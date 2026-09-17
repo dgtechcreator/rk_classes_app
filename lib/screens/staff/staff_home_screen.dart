@@ -122,39 +122,54 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
     final visibleModules = _modules.where((m) => m.permKey == null || session.hasPerm(m.permKey!)).toList();
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Hi, ${session.fullName.split(' ').first}'),
-        actions: [
-          Stack(
-            alignment: Alignment.center,
-            children: [
-              IconButton(
-                icon: const Icon(Icons.notifications_none),
-                tooltip: 'Notifications',
-                onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const TasksNotificationsScreen())),
-              ),
-              if (unreadCount > 0)
-                Positioned(
-                  top: 8, right: 8,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-                    decoration: BoxDecoration(color: AppColors.danger, borderRadius: BorderRadius.circular(10)),
-                    child: Text('$unreadCount', style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w700)),
-                  ),
+      backgroundColor: AppColors.background,
+      body: SafeArea(
+        bottom: false,
+        child: RefreshIndicator(
+          onRefresh: session.isAdmin ? _load : () async {},
+          child: CustomScrollView(
+            slivers: [
+              SliverToBoxAdapter(
+                child: GreetingHeader(
+                  greeting: 'Hi,',
+                  name: session.fullName.split(' ').first,
+                  subtitle: session.roleName,
+                  leadingIcon: Icons.badge_outlined,
+                  actions: [
+                    Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.notifications_none, color: Colors.white),
+                          tooltip: 'Notifications',
+                          onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const TasksNotificationsScreen())),
+                        ),
+                        if (unreadCount > 0)
+                          Positioned(
+                            top: 6, right: 6,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(10)),
+                              child: Text('$unreadCount', style: const TextStyle(color: AppColors.primaryDark, fontSize: 10, fontWeight: FontWeight.w700)),
+                            ),
+                          ),
+                      ],
+                    ),
+                    IconButton(icon: const Icon(Icons.logout, color: Colors.white), tooltip: 'Logout', onPressed: () => _confirmLogout(context)),
+                  ],
                 ),
+              ),
+              SliverPadding(
+                padding: const EdgeInsets.all(16),
+                sliver: SliverList(
+                  delegate: SliverChildListDelegate([
+                    if (session.isAdmin) ..._buildAdminDashboard(),
+                    for (final group in _groupOrder) ..._buildModuleGroup(group, visibleModules),
+                  ]),
+                ),
+              ),
             ],
           ),
-          IconButton(icon: const Icon(Icons.logout), tooltip: 'Logout', onPressed: () => _confirmLogout(context)),
-        ],
-      ),
-      body: RefreshIndicator(
-        onRefresh: session.isAdmin ? _load : () async {},
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            if (session.isAdmin) ..._buildAdminDashboard(),
-            for (final group in _groupOrder) ..._buildModuleGroup(group, visibleModules),
-          ],
         ),
       ),
     );
@@ -413,33 +428,13 @@ class _ModuleTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = _groupColor(module.group);
-    return InkWell(
-      borderRadius: BorderRadius.circular(16),
+    return IconTile(
+      icon: module.icon,
+      label: module.label,
+      color: _groupColor(module.group),
       onTap: () => Navigator.of(context).push(MaterialPageRoute(
         builder: module.screenBuilder ?? (_) => ComingSoonScreen(title: module.label, icon: module.icon),
       )),
-      child: Container(
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.border),
-          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 6, offset: const Offset(0, 2))],
-        ),
-        padding: const EdgeInsets.all(8),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              width: 44, height: 44,
-              decoration: BoxDecoration(color: color.withValues(alpha: 0.12), shape: BoxShape.circle),
-              child: Icon(module.icon, color: color, size: 22),
-            ),
-            const SizedBox(height: 8),
-            Text(module.label, textAlign: TextAlign.center, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600), maxLines: 2, overflow: TextOverflow.ellipsis),
-          ],
-        ),
-      ),
     );
   }
 }

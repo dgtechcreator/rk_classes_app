@@ -4,7 +4,9 @@ import 'package:provider/provider.dart';
 import '../../core/api_client.dart';
 import '../../core/session.dart';
 import '../../services/parent_service.dart';
+import '../../theme/app_theme.dart';
 import '../../widgets/common.dart';
+import '../auth/login_screen.dart';
 
 class ParentContactScreen extends StatefulWidget {
   const ParentContactScreen({super.key});
@@ -56,26 +58,84 @@ class _ParentContactScreenState extends State<ParentContactScreen> {
     }
   }
 
+  Future<void> _confirmLogout() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Logout'),
+        content: const Text('Are you sure you want to logout?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Logout', style: TextStyle(color: AppColors.danger))),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    await context.read<Session>().signOut();
+    if (!mounted) return;
+    Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(builder: (_) => const LoginScreen()), (_) => false);
+  }
+
   @override
   Widget build(BuildContext context) {
+    final session = context.watch<Session>();
     return Scaffold(
-      appBar: AppBar(title: const Text('Contact Us')),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            TextField(controller: _name, decoration: const InputDecoration(labelText: 'Your Name')),
-            const SizedBox(height: 14),
-            TextField(controller: _email, keyboardType: TextInputType.emailAddress, decoration: const InputDecoration(labelText: 'Email')),
-            const SizedBox(height: 14),
-            TextField(controller: _subject, decoration: const InputDecoration(labelText: 'Subject')),
-            const SizedBox(height: 14),
-            TextField(controller: _message, maxLines: 5, decoration: const InputDecoration(labelText: 'Message', alignLabelWithHint: true)),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: _sending ? null : _send,
-              child: _sending ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const Text('Send Message'),
+      backgroundColor: AppColors.background,
+      body: SafeArea(
+        bottom: false,
+        child: CustomScrollView(
+          slivers: [
+            SliverToBoxAdapter(
+              child: GreetingHeader(greeting: 'Profile', name: session.parentName.isEmpty ? 'Parent' : session.parentName, subtitle: session.phone, leadingIcon: Icons.person),
+            ),
+            SliverToBoxAdapter(
+              child: Transform.translate(
+                offset: const Offset(0, -12),
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: AppColors.surface,
+                          borderRadius: BorderRadius.circular(20),
+                          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 16, offset: const Offset(0, 6))],
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            const Text('Contact Us', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
+                            const SizedBox(height: 14),
+                            TextField(controller: _name, decoration: const InputDecoration(labelText: 'Your Name')),
+                            const SizedBox(height: 14),
+                            TextField(controller: _email, keyboardType: TextInputType.emailAddress, decoration: const InputDecoration(labelText: 'Email')),
+                            const SizedBox(height: 14),
+                            TextField(controller: _subject, decoration: const InputDecoration(labelText: 'Subject')),
+                            const SizedBox(height: 14),
+                            TextField(controller: _message, maxLines: 5, decoration: const InputDecoration(labelText: 'Message', alignLabelWithHint: true)),
+                            const SizedBox(height: 20),
+                            ElevatedButton(
+                              onPressed: _sending ? null : _send,
+                              child: _sending
+                                  ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                                  : const Text('Send Message'),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      OutlinedButton.icon(
+                        onPressed: _confirmLogout,
+                        icon: const Icon(Icons.logout, color: AppColors.danger),
+                        label: const Text('Logout', style: TextStyle(color: AppColors.danger)),
+                        style: OutlinedButton.styleFrom(side: const BorderSide(color: AppColors.danger)),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ),
           ],
         ),
