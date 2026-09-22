@@ -12,7 +12,7 @@ class ApiConfig {
   // Run `dotnet run` in SchoolMS.Web, find this machine's Wi-Fi IPv4 (`ipconfig`), and put it here with
   // the port from launchSettings.json (e.g. http://192.168.0.124:2020).
  // static const String baseUrl = 'http://192.168.0.124:2020';
-  static const String baseUrl = 'https://rkclasses.jmmportal.com/Api';
+  static const String baseUrl = 'https://rkclasses.jmmportal.com';
   // Same-machine dev/testing only (Flutter web preview + local dotnet run against RKClassesLive).
   // static const String baseUrl = 'http://127.0.0.1:5299';
 }
