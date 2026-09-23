@@ -79,6 +79,7 @@ class _ParentContactScreenState extends State<ParentContactScreen> {
   @override
   Widget build(BuildContext context) {
     final session = context.watch<Session>();
+    final displayName = session.parentName.isEmpty ? 'Parent' : session.parentName;
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
@@ -86,27 +87,31 @@ class _ParentContactScreenState extends State<ParentContactScreen> {
         child: CustomScrollView(
           slivers: [
             SliverToBoxAdapter(
-              child: GreetingHeader(greeting: 'Profile', name: session.parentName.isEmpty ? 'Parent' : session.parentName, subtitle: session.phone, leadingIcon: Icons.person),
+              child: GreetingHeader(greeting: 'Your Account', name: displayName, subtitle: session.phone, leadingIcon: Icons.person),
             ),
             SliverToBoxAdapter(
-              child: Transform.translate(
-                offset: const Offset(0, -12),
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-                  child: Column(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 20, 16, 24),
+                child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
                           color: AppColors.surface,
-                          borderRadius: BorderRadius.circular(20),
-                          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 16, offset: const Offset(0, 6))],
+                          borderRadius: BorderRadius.circular(AppRadius.lg),
+                          boxShadow: AppShadows.card,
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            const Text('Contact Us', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
+                            Row(
+                              children: const [
+                                Icon(Icons.support_agent_rounded, size: 18, color: AppColors.primary),
+                                SizedBox(width: 8),
+                                Text('Contact Us', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
+                              ],
+                            ),
                             const SizedBox(height: 14),
                             TextField(controller: _name, decoration: const InputDecoration(labelText: 'Your Name')),
                             const SizedBox(height: 14),
@@ -136,10 +141,10 @@ class _ParentContactScreenState extends State<ParentContactScreen> {
                   ),
                 ),
               ),
-            ),
           ],
         ),
       ),
     );
   }
 }
+

@@ -249,6 +249,7 @@ class _ExpenseFormSheetState extends State<_ExpenseFormSheet> {
                 ),
                 const SizedBox(height: 12),
                 DropdownButtonFormField<int?>(
+      isExpanded: true,
                   initialValue: widget.categories.any((c) => c.id == _categoryId) ? _categoryId : null,
                   decoration: const InputDecoration(labelText: 'Category'),
                   items: widget.categories.map((c) => DropdownMenuItem<int?>(value: c.id, child: Text(c.name))).toList(),
@@ -263,6 +264,7 @@ class _ExpenseFormSheetState extends State<_ExpenseFormSheet> {
                 ),
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
+      isExpanded: true,
                   initialValue: _mode,
                   decoration: const InputDecoration(labelText: 'Payment Mode'),
                   items: _modes.map((m) => DropdownMenuItem(value: m, child: Text(m))).toList(),

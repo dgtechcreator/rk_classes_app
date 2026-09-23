@@ -121,6 +121,7 @@ class _UserFormScreenState extends State<UserFormScreen> {
                       TextFormField(controller: _phoneCtrl, decoration: const InputDecoration(labelText: 'Phone'), keyboardType: TextInputType.phone),
                       const SizedBox(height: 12),
                       DropdownButtonFormField<int>(
+      isExpanded: true,
                         initialValue: _roles.any((r) => r.roleId == _roleId) ? _roleId : null,
                         decoration: const InputDecoration(labelText: 'Role *'),
                         items: _roles.map((r) => DropdownMenuItem(value: r.roleId, child: Text(r.roleName))).toList(),

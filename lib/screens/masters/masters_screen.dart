@@ -696,6 +696,7 @@ class _SubjectsTabState extends State<_SubjectsTab> {
                         Padding(
                           padding: const EdgeInsets.all(12),
                           child: DropdownButtonFormField<int>(
+      isExpanded: true,
                             initialValue: _classId,
                             decoration: const InputDecoration(labelText: 'Class'),
                             items: _classes.map((c) => DropdownMenuItem(value: c.classId, child: Text(c.className))).toList(),

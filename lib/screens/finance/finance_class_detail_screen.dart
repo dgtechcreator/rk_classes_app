@@ -66,7 +66,7 @@ class _FinanceClassDetailScreenState extends State<FinanceClassDetailScreen> {
             physics: const NeverScrollableScrollPhysics(),
             mainAxisSpacing: 12,
             crossAxisSpacing: 12,
-            childAspectRatio: 1.7,
+            childAspectRatio: 1.25,
             children: [
               StatCard(label: 'Students', value: '${d.totalStudents}', color: AppColors.info, icon: Icons.groups),
               StatCard(label: 'Total Fees', value: _fmt.format(d.totalFees), color: AppColors.info, icon: Icons.receipt_long_outlined),

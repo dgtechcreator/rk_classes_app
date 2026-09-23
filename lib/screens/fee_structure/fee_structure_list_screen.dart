@@ -283,6 +283,7 @@ class _FilterSheetState extends State<_FilterSheet> {
 
   Widget _dropdown(String label, int? value, List<LookupItem> items, ValueChanged<int?> onChanged) {
     return DropdownButtonFormField<int?>(
+      isExpanded: true,
       initialValue: items.any((e) => e.id == value) ? value : null,
       decoration: InputDecoration(labelText: label),
       items: [
@@ -443,6 +444,7 @@ class _FeeStructureFormSheetState extends State<_FeeStructureFormSheet> {
 
   Widget _dropdown(String label, int? value, List<LookupItem> items, ValueChanged<int?> onChanged) {
     return DropdownButtonFormField<int?>(
+      isExpanded: true,
       initialValue: items.any((e) => e.id == value) ? value : null,
       decoration: InputDecoration(labelText: label),
       items: items.map((e) => DropdownMenuItem<int?>(value: e.id, child: Text(e.name))).toList(),

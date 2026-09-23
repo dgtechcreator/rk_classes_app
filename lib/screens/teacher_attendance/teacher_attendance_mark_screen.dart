@@ -220,6 +220,7 @@ class _TeacherAttendanceMarkScreenState extends State<TeacherAttendanceMarkScree
 
   Widget _dropdown(String label, int? value, List<LookupItem> items, ValueChanged<int?> onChanged, {bool validator = false}) {
     return DropdownButtonFormField<int?>(
+      isExpanded: true,
       initialValue: items.any((e) => e.id == value) ? value : null,
       decoration: InputDecoration(labelText: label),
       items: items.map((e) => DropdownMenuItem<int?>(value: e.id, child: Text(e.name, overflow: TextOverflow.ellipsis))).toList(),

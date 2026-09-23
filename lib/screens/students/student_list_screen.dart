@@ -228,6 +228,7 @@ class _FilterSheetState extends State<_FilterSheet> {
           _dropdown('Batch', _batchId, widget.batches, (v) => setState(() => _batchId = v)),
           const SizedBox(height: 12),
           DropdownButtonFormField<String>(
+      isExpanded: true,
             initialValue: _status,
             decoration: const InputDecoration(labelText: 'Status'),
             items: const [
@@ -261,6 +262,7 @@ class _FilterSheetState extends State<_FilterSheet> {
 
   Widget _dropdown(String label, int? value, List<LookupItem> items, ValueChanged<int?> onChanged) {
     return DropdownButtonFormField<int?>(
+      isExpanded: true,
       initialValue: value,
       decoration: InputDecoration(labelText: label),
       items: [

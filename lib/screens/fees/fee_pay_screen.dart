@@ -220,6 +220,7 @@ class _CollectPaymentSheetState extends State<_CollectPaymentSheet> {
                 ]),
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
+      isExpanded: true,
                   initialValue: _mode,
                   decoration: const InputDecoration(labelText: 'Payment Mode'),
                   items: _modes.map((m) => DropdownMenuItem(value: m, child: Text(m))).toList(),

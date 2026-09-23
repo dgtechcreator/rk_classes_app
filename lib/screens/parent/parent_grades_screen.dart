@@ -33,14 +33,24 @@ class _ParentGradesScreenState extends State<ParentGradesScreen> {
     final d = ctrl.data;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Grades')),
-      body: ctrl.loading && d == null
-          ? const LoadingView()
-          : ctrl.error != null && d == null
-              ? ErrorView(message: ctrl.error!, onRetry: ctrl.load)
-              : d == null
-                  ? const EmptyState(message: 'No children linked to this account yet.', icon: Icons.family_restroom)
-                  : _buildBody(context, d),
+      backgroundColor: AppColors.background,
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          children: [
+            const TabHeader(title: 'Grades', subtitle: 'Test marks by subject'),
+            Expanded(
+              child: ctrl.loading && d == null
+                  ? const LoadingView()
+                  : ctrl.error != null && d == null
+                      ? ErrorView(message: ctrl.error!, onRetry: ctrl.load)
+                      : d == null
+                          ? const EmptyState(message: 'No children linked to this account yet.', icon: Icons.family_restroom)
+                          : _buildBody(context, d),
+            ),
+          ],
+        ),
+      ),
     );
   }
 

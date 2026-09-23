@@ -169,6 +169,7 @@ class _StudentFormScreenState extends State<StudentFormScreen> {
                   Row(children: [
                     Expanded(
                       child: DropdownButtonFormField<String>(
+      isExpanded: true,
                         initialValue: _gender,
                         decoration: const InputDecoration(labelText: 'Gender'),
                         items: const [DropdownMenuItem(value: 'Male', child: Text('Male')), DropdownMenuItem(value: 'Female', child: Text('Female')), DropdownMenuItem(value: 'Other', child: Text('Other'))],
@@ -178,6 +179,7 @@ class _StudentFormScreenState extends State<StudentFormScreen> {
                     const SizedBox(width: 12),
                     Expanded(
                       child: DropdownButtonFormField<String>(
+      isExpanded: true,
                         initialValue: _bloodGroup,
                         decoration: const InputDecoration(labelText: 'Blood Group'),
                         items: const ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map((b) => DropdownMenuItem(value: b, child: Text(b))).toList(),
@@ -216,6 +218,7 @@ class _StudentFormScreenState extends State<StudentFormScreen> {
                   if (widget.isEdit) ...[
                     const SizedBox(height: 12),
                     DropdownButtonFormField<String>(
+      isExpanded: true,
                       initialValue: _status,
                       decoration: const InputDecoration(labelText: 'Status'),
                       items: const [DropdownMenuItem(value: 'Active', child: Text('Active')), DropdownMenuItem(value: 'Inactive', child: Text('Inactive'))],
@@ -237,6 +240,7 @@ class _StudentFormScreenState extends State<StudentFormScreen> {
 
   Widget _dropdown(String label, int? value, List<LookupItem> items, ValueChanged<int?> onChanged) {
     return DropdownButtonFormField<int?>(
+      isExpanded: true,
       initialValue: items.any((e) => e.id == value) ? value : null,
       decoration: InputDecoration(labelText: label),
       items: items.map((e) => DropdownMenuItem<int?>(value: e.id, child: Text(e.name))).toList(),

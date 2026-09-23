@@ -231,6 +231,7 @@ class _FilterSheetState extends State<_FilterSheet> {
             children: [
               Expanded(
                 child: DropdownButtonFormField<int>(
+      isExpanded: true,
                   initialValue: _month,
                   decoration: const InputDecoration(labelText: 'Month'),
                   items: List.generate(12, (i) => i + 1)
@@ -242,6 +243,7 @@ class _FilterSheetState extends State<_FilterSheet> {
               const SizedBox(width: 12),
               Expanded(
                 child: DropdownButtonFormField<int>(
+      isExpanded: true,
                   initialValue: _year,
                   decoration: const InputDecoration(labelText: 'Year'),
                   items: List.generate(6, (i) => DateTime.now().year - i)
@@ -280,6 +282,7 @@ class _FilterSheetState extends State<_FilterSheet> {
 
   Widget _dropdown(String label, int? value, List<LookupItem> items, ValueChanged<int?> onChanged) {
     return DropdownButtonFormField<int?>(
+      isExpanded: true,
       initialValue: value,
       decoration: InputDecoration(labelText: label),
       items: [

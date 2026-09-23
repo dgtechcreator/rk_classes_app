@@ -15,11 +15,11 @@ class StatCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final card = Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.10),
-        borderRadius: BorderRadius.circular(14),
-        border: Border(left: BorderSide(color: color, width: 3)),
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        boxShadow: AppShadows.soft,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -27,25 +27,37 @@ class StatCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              if (icon != null) ...[
-                Icon(icon, size: 16, color: color),
-                const SizedBox(width: 6),
-              ],
-              Expanded(
-                child: Text(label,
-                    style: const TextStyle(fontSize: 12, color: AppColors.textSecondary, fontWeight: FontWeight.w500),
-                    overflow: TextOverflow.ellipsis),
-              ),
-              if (onTap != null) Icon(Icons.chevron_right, size: 16, color: color.withValues(alpha: 0.6)),
+              if (icon != null)
+                Container(
+                  width: 34,
+                  height: 34,
+                  decoration: BoxDecoration(color: color.withValues(alpha: 0.13), shape: BoxShape.circle),
+                  child: Icon(icon, size: 17, color: color),
+                ),
+              const Spacer(),
+              if (onTap != null)
+                Container(
+                  padding: const EdgeInsets.all(3),
+                  decoration: BoxDecoration(color: AppColors.background, shape: BoxShape.circle),
+                  child: Icon(Icons.arrow_outward_rounded, size: 12, color: color.withValues(alpha: 0.75)),
+                ),
             ],
           ),
-          const SizedBox(height: 6),
-          Text(value, style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: color)),
+          const SizedBox(height: 10),
+          Text(value,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: AppColors.textPrimary)),
+          const SizedBox(height: 3),
+          Text(label,
+              style: const TextStyle(fontSize: 12, color: AppColors.textSecondary, fontWeight: FontWeight.w500),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis),
         ],
       ),
     );
     if (onTap == null) return card;
-    return InkWell(borderRadius: BorderRadius.circular(14), onTap: onTap, child: card);
+    return InkWell(borderRadius: BorderRadius.circular(AppRadius.lg), onTap: onTap, child: card);
   }
 }
 
@@ -174,13 +186,13 @@ class IconTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return InkWell(
-      borderRadius: BorderRadius.circular(18),
+      borderRadius: BorderRadius.circular(AppRadius.lg),
       onTap: onTap,
       child: Container(
         decoration: BoxDecoration(
           color: AppColors.surface,
-          borderRadius: BorderRadius.circular(18),
-          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 10, offset: const Offset(0, 3))],
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+          boxShadow: AppShadows.soft,
         ),
         padding: const EdgeInsets.all(8),
         child: Column(
@@ -366,7 +378,9 @@ class DateStrip extends StatelessWidget {
 }
 
 /// Rounded-bottom gradient banner (brand primary → primaryDark) for a shell's Home screen — the
-/// "Hello, {name}" header pattern shared by the parent and staff dashboards.
+/// "Hello, {name}" header pattern shared by the parent and staff dashboards. Carries a subtle
+/// decorative circle motif (common in top-tier consumer app headers) instead of a flat gradient
+/// slab, and a bigger initials avatar so the header reads as a genuine "home" moment, not a title bar.
 class GreetingHeader extends StatelessWidget {
   const GreetingHeader({super.key, required this.greeting, required this.name, this.subtitle, this.leadingIcon = Icons.person_outline, this.actions = const []});
   final String greeting;
@@ -377,32 +391,148 @@ class GreetingHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(18, 8, 8, 16),
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [AppColors.primary, AppColors.primaryDark]),
-        borderRadius: BorderRadius.vertical(bottom: Radius.circular(18)),
+    final initial = name.trim().isNotEmpty ? name.trim()[0].toUpperCase() : '?';
+    return ClipRRect(
+      borderRadius: const BorderRadius.vertical(bottom: Radius.circular(AppRadius.xl)),
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(18, 10, 10, 22),
+        decoration: const BoxDecoration(gradient: AppGradients.primarySheen).copyWith(boxShadow: AppShadows.header),
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Positioned(
+              top: -46,
+              right: -30,
+              child: Container(
+                width: 140,
+                height: 140,
+                decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.08), shape: BoxShape.circle),
+              ),
+            ),
+            Positioned(
+              bottom: -60,
+              right: 60,
+              child: Container(
+                width: 90,
+                height: 90,
+                decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.06), shape: BoxShape.circle),
+              ),
+            ),
+            Row(
+              children: [
+                Container(
+                  width: 46,
+                  height: 46,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.16),
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white.withValues(alpha: 0.35), width: 1.4),
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(initial, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w800)),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(greeting, style: const TextStyle(color: Colors.white70, fontSize: 12, height: 1.1)),
+                      const SizedBox(height: 2),
+                      Text(name, style: const TextStyle(color: Colors.white, fontSize: 19, fontWeight: FontWeight.w800, height: 1.2), maxLines: 1, overflow: TextOverflow.ellipsis),
+                      if (subtitle != null && subtitle!.isNotEmpty) ...[
+                        const SizedBox(height: 3),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.18), borderRadius: BorderRadius.circular(AppRadius.pill)),
+                          child: Text(subtitle!, style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600)),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                ...actions,
+              ],
+            ),
+          ],
+        ),
       ),
+    );
+  }
+}
+
+/// Large tappable card used in a Home screen's "Quick Actions" row — bigger touch target and more
+/// visual weight than [IconTile], for the handful of shortcuts worth surfacing above the fold.
+class QuickActionTile extends StatelessWidget {
+  const QuickActionTile({super.key, required this.icon, required this.label, required this.color, this.onTap});
+  final IconData icon;
+  final String label;
+  final Color color;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(AppRadius.lg),
+      onTap: onTap,
+      child: Container(
+        width: 92,
+        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+          boxShadow: AppShadows.soft,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [color.withValues(alpha: 0.85), color]),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: Colors.white, size: 21),
+            ),
+            const SizedBox(height: 8),
+            Text(label, textAlign: TextAlign.center, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Plain (non-gradient) title block for a bottom-nav tab root that isn't the Home/Profile tab —
+/// keeps sizing/spacing consistent with the gradient [GreetingHeader] screens without the heavier
+/// treatment, so every tab root reads as part of the same shell instead of a pushed sub-page.
+class TabHeader extends StatelessWidget {
+  const TabHeader({super.key, required this.title, this.subtitle, this.trailing});
+  final String title;
+  final String? subtitle;
+  final Widget? trailing;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 6),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Container(
-            width: 34, height: 34,
-            decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.18), shape: BoxShape.circle),
-            child: Icon(leadingIcon, color: Colors.white, size: 18),
-          ),
-          const SizedBox(width: 10),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
               children: [
-                Text(greeting, style: const TextStyle(color: Colors.white70, fontSize: 11.5, height: 1.1)),
-                Text(name, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700, height: 1.2), maxLines: 1, overflow: TextOverflow.ellipsis),
-                if (subtitle != null && subtitle!.isNotEmpty) Text(subtitle!, style: const TextStyle(color: Colors.white70, fontSize: 11.5, height: 1.2)),
+                Text(title, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w800)),
+                if (subtitle != null) ...[
+                  const SizedBox(height: 2),
+                  Text(subtitle!, style: const TextStyle(fontSize: 13, color: AppColors.textSecondary)),
+                ],
               ],
             ),
           ),
-          ...actions,
+          ?trailing,
         ],
       ),
     );

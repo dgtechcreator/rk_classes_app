@@ -155,6 +155,7 @@ class _FacultyFormScreenState extends State<FacultyFormScreen> {
                   Row(children: [
                     Expanded(
                       child: DropdownButtonFormField<String>(
+      isExpanded: true,
                         initialValue: _gender,
                         decoration: const InputDecoration(labelText: 'Gender'),
                         items: const [
@@ -168,6 +169,7 @@ class _FacultyFormScreenState extends State<FacultyFormScreen> {
                     const SizedBox(width: 12),
                     Expanded(
                       child: DropdownButtonFormField<String>(
+      isExpanded: true,
                         initialValue: _bloodGroup,
                         decoration: const InputDecoration(labelText: 'Blood Group'),
                         items: const ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map((b) => DropdownMenuItem(value: b, child: Text(b))).toList(),
@@ -191,6 +193,7 @@ class _FacultyFormScreenState extends State<FacultyFormScreen> {
                   const SizedBox(height: 20),
                   const SectionHeader(title: 'Professional'),
                   DropdownButtonFormField<int?>(
+      isExpanded: true,
                     initialValue: _designations.any((e) => e.designationId == _designationId) ? _designationId : null,
                     decoration: const InputDecoration(labelText: 'Designation *'),
                     items: _designations.map((e) => DropdownMenuItem<int?>(value: e.designationId, child: Text(e.designationName))).toList(),
@@ -208,6 +211,7 @@ class _FacultyFormScreenState extends State<FacultyFormScreen> {
                   if (widget.isEdit) ...[
                     const SizedBox(height: 12),
                     DropdownButtonFormField<String>(
+      isExpanded: true,
                       initialValue: _status,
                       decoration: const InputDecoration(labelText: 'Status'),
                       items: const [DropdownMenuItem(value: 'Active', child: Text('Active')), DropdownMenuItem(value: 'Inactive', child: Text('Inactive'))],

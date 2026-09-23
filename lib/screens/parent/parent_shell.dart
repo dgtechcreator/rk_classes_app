@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../core/parent_data_controller.dart';
 import '../../theme/app_theme.dart';
+import '../../widgets/premium_nav_bar.dart';
 import 'parent_attendance_screen.dart';
 import 'parent_contact_screen.dart';
 import 'parent_grades_screen.dart';
@@ -20,23 +21,24 @@ class _ParentShellState extends State<ParentShell> {
 
   static const _screens = [ParentHomeScreen(), ParentAttendanceScreen(), ParentGradesScreen(), ParentContactScreen()];
 
+  static const _items = [
+    PremiumNavItem(icon: Icons.home_outlined, selectedIcon: Icons.home_rounded, label: 'Home'),
+    PremiumNavItem(icon: Icons.event_available_outlined, selectedIcon: Icons.event_available_rounded, label: 'Attendance'),
+    PremiumNavItem(icon: Icons.grade_outlined, selectedIcon: Icons.grade_rounded, label: 'Grades'),
+    PremiumNavItem(icon: Icons.person_outline_rounded, selectedIcon: Icons.person_rounded, label: 'Profile'),
+  ];
+
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
       create: (_) => ParentDataController()..load(),
       child: Scaffold(
+        backgroundColor: AppColors.background,
         body: IndexedStack(index: _index, children: _screens),
-        bottomNavigationBar: NavigationBar(
-          selectedIndex: _index,
-          onDestinationSelected: (i) => setState(() => _index = i),
-          backgroundColor: AppColors.surface,
-          indicatorColor: AppColors.primarySoft,
-          destinations: const [
-            NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: 'Home'),
-            NavigationDestination(icon: Icon(Icons.event_available_outlined), selectedIcon: Icon(Icons.event_available), label: 'Attendance'),
-            NavigationDestination(icon: Icon(Icons.grade_outlined), selectedIcon: Icon(Icons.grade), label: 'Grades'),
-            NavigationDestination(icon: Icon(Icons.person_outline), selectedIcon: Icon(Icons.person), label: 'Profile'),
-          ],
+        bottomNavigationBar: PremiumBottomNav(
+          currentIndex: _index,
+          onTap: (i) => setState(() => _index = i),
+          items: _items,
         ),
       ),
     );

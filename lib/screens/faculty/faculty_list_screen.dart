@@ -253,6 +253,7 @@ class _FilterSheetState extends State<_FilterSheet> {
           const Text('Filter Faculty', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
           const SizedBox(height: 16),
           DropdownButtonFormField<int?>(
+      isExpanded: true,
             initialValue: widget.designations.any((e) => e.designationId == _designationId) ? _designationId : null,
             decoration: const InputDecoration(labelText: 'Designation'),
             items: [
@@ -263,6 +264,7 @@ class _FilterSheetState extends State<_FilterSheet> {
           ),
           const SizedBox(height: 12),
           DropdownButtonFormField<String>(
+      isExpanded: true,
             initialValue: _status,
             decoration: const InputDecoration(labelText: 'Status'),
             items: const [

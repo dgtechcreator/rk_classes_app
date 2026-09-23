@@ -140,29 +140,99 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const SizedBox(height: 24),
-              Center(child: Image.asset('assets/images/rk_logo_full.png', height: 72, fit: BoxFit.contain)),
-              const SizedBox(height: 32),
-              _buildTabToggle(),
-              const SizedBox(height: 24),
-              if (_error != null) ...[
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(color: AppColors.danger.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(10)),
-                  child: Text(_error!, style: const TextStyle(color: AppColors.danger, fontSize: 13)),
-                ),
-                const SizedBox(height: 16),
-              ],
-              if (_tab == _LoginTab.staff) _buildStaffForm() else _buildParentForm(),
-            ],
+      body: Stack(
+        children: [
+          Positioned(
+            top: -110,
+            right: -90,
+            child: Container(
+              width: 260, height: 260,
+              decoration: BoxDecoration(gradient: AppGradients.primarySheen.scale(0.12), shape: BoxShape.circle),
+            ),
           ),
-        ),
+          Positioned(
+            top: -60,
+            right: -40,
+            child: Container(
+              width: 180, height: 180,
+              decoration: BoxDecoration(color: AppColors.primary.withValues(alpha: 0.06), shape: BoxShape.circle),
+            ),
+          ),
+          SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const SizedBox(height: 20),
+                  Center(
+                    child: Container(
+                      padding: const EdgeInsets.all(18),
+                      decoration: BoxDecoration(
+                        color: AppColors.surface,
+                        shape: BoxShape.circle,
+                        boxShadow: AppShadows.floating,
+                      ),
+                      child: Image.asset('assets/images/rk_logo_icon.png', height: 56, width: 56, fit: BoxFit.contain),
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                  const Text('RK Classes', textAlign: TextAlign.center, style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: AppColors.textPrimary)),
+                  const SizedBox(height: 4),
+                  const Text('Sign in to continue', textAlign: TextAlign.center, style: TextStyle(fontSize: 13.5, color: AppColors.textSecondary)),
+                  const SizedBox(height: 28),
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: AppColors.surface,
+                      borderRadius: BorderRadius.circular(AppRadius.xl),
+                      boxShadow: AppShadows.card,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        _buildTabToggle(),
+                        const SizedBox(height: 22),
+                        AnimatedSize(
+                          duration: const Duration(milliseconds: 220),
+                          curve: Curves.easeOutCubic,
+                          alignment: Alignment.topCenter,
+                          child: _error == null
+                              ? const SizedBox(width: double.infinity)
+                              : Padding(
+                                  padding: const EdgeInsets.only(bottom: 16),
+                                  child: Container(
+                                    padding: const EdgeInsets.all(12),
+                                    decoration: BoxDecoration(color: AppColors.dangerSoft, borderRadius: BorderRadius.circular(AppRadius.sm)),
+                                    child: Row(
+                                      children: [
+                                        const Icon(Icons.error_outline_rounded, color: AppColors.danger, size: 18),
+                                        const SizedBox(width: 8),
+                                        Expanded(child: Text(_error ?? '', style: const TextStyle(color: AppColors.danger, fontSize: 12.5))),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                        ),
+                        AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 220),
+                          child: KeyedSubtree(
+                            key: ValueKey('$_tab-$_showRegister'),
+                            child: _tab == _LoginTab.staff ? _buildStaffForm() : _buildParentForm(),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  const Center(
+                    child: Text('Powered by RK Classes', style: TextStyle(fontSize: 11.5, color: AppColors.textMuted)),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -170,30 +240,39 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget _buildTabToggle() {
     return Container(
       padding: const EdgeInsets.all(4),
-      decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(14), border: Border.all(color: AppColors.border)),
+      decoration: BoxDecoration(color: AppColors.background, borderRadius: BorderRadius.circular(AppRadius.md)),
       child: Row(
         children: [
-          Expanded(child: _tabButton('Staff Login', _LoginTab.staff)),
-          Expanded(child: _tabButton('Parent Login', _LoginTab.parent)),
+          Expanded(child: _tabButton('Staff', Icons.badge_outlined, _LoginTab.staff)),
+          Expanded(child: _tabButton('Parent', Icons.family_restroom_rounded, _LoginTab.parent)),
         ],
       ),
     );
   }
 
-  Widget _tabButton(String label, _LoginTab tab) {
+  Widget _tabButton(String label, IconData icon, _LoginTab tab) {
     final selected = _tab == tab;
     return GestureDetector(
       onTap: () => setState(() { _tab = tab; _error = null; _showRegister = false; }),
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        padding: const EdgeInsets.symmetric(vertical: 12),
+        duration: const Duration(milliseconds: 220),
+        curve: Curves.easeOutCubic,
+        padding: const EdgeInsets.symmetric(vertical: 11),
         decoration: BoxDecoration(
           color: selected ? AppColors.primary : Colors.transparent,
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(AppRadius.sm),
+          boxShadow: selected ? [BoxShadow(color: AppColors.primary.withValues(alpha: 0.30), blurRadius: 10, offset: const Offset(0, 4))] : null,
         ),
-        child: Text(label,
-            textAlign: TextAlign.center,
-            style: TextStyle(color: selected ? Colors.white : AppColors.textSecondary, fontWeight: FontWeight.w600)),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 16, color: selected ? Colors.white : AppColors.textSecondary),
+            const SizedBox(width: 6),
+            Text(label,
+                textAlign: TextAlign.center,
+                style: TextStyle(color: selected ? Colors.white : AppColors.textSecondary, fontWeight: FontWeight.w700, fontSize: 13.5)),
+          ],
+        ),
       ),
     );
   }

@@ -10,63 +10,15 @@ import '../../models/dashboard.dart';
 import '../../services/staff_dashboard_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/common.dart';
-import '../attendance/attendance_mark_screen.dart';
-import '../auth/login_screen.dart';
-import '../deleted/deleted_records_screen.dart';
-import '../expenses/expense_list_screen.dart';
-import '../faculty/faculty_list_screen.dart';
-import '../fee_structure/fee_structure_list_screen.dart';
-import '../fees/fee_collect_search_screen.dart';
-import '../finance/finance_dashboard_screen.dart';
-import '../marks/marks_entry_screen.dart';
-import '../masters/masters_screen.dart';
-import '../students/student_list_screen.dart';
-import '../teacher_attendance/teacher_attendance_mark_screen.dart';
-import '../teacher_payment/teacher_payment_list_screen.dart';
-import '../users/user_list_screen.dart';
 import 'coming_soon_screen.dart';
-import 'tasks_notifications_screen.dart';
+import 'staff_modules_screen.dart';
 
-class _ModuleDef {
-  const _ModuleDef(this.label, this.icon, this.permKey, this.group, {this.screenBuilder});
-  final String label;
-  final IconData icon;
-  final String? permKey; // null = always visible to any staff login
-  final String group;
-  final WidgetBuilder? screenBuilder; // null = "coming soon" placeholder
-}
-
-Color _groupColor(String group) {
-  switch (group) {
-    case 'Academics': return AppColors.info;
-    case 'Finance': return AppColors.success;
-    case 'Staff': return AppColors.warning;
-    case 'Admin': return AppColors.primary;
-    default: return AppColors.primary;
-  }
-}
-
-final _modules = [
-  _ModuleDef('Students', Icons.groups_outlined, 'student_view', 'Academics', screenBuilder: (_) => const StudentListScreen()),
-  _ModuleDef('Attendance', Icons.event_available_outlined, 'attendance_entry', 'Academics', screenBuilder: (_) => const AttendanceMarkScreen()),
-  _ModuleDef('Marks', Icons.grade_outlined, 'marks_entry', 'Academics', screenBuilder: (_) => const MarksEntryScreen()),
-  _ModuleDef('Fees', Icons.payments_outlined, 'fee_collection', 'Finance', screenBuilder: (_) => const FeeCollectSearchScreen()),
-  _ModuleDef('Fee Structure', Icons.receipt_long_outlined, 'fee_structure', 'Finance', screenBuilder: (_) => const FeeStructureListScreen()),
-  _ModuleDef('Expenses', Icons.request_quote_outlined, 'expenses_view', 'Finance', screenBuilder: (_) => const ExpenseListScreen()),
-  _ModuleDef('Finance', Icons.pie_chart_outline, 'finance_view', 'Finance', screenBuilder: (_) => const FinanceDashboardScreen()),
-  _ModuleDef('Faculty', Icons.school_outlined, 'faculty_view', 'Staff', screenBuilder: (_) => const FacultyListScreen()),
-  _ModuleDef('Teacher Attendance', Icons.badge_outlined, 'teacher_attendance', 'Staff', screenBuilder: (_) => const TeacherAttendanceMarkScreen()),
-  _ModuleDef('Teacher Payment', Icons.currency_rupee, 'teacher_payment', 'Staff', screenBuilder: (_) => const TeacherPaymentListScreen()),
-  _ModuleDef('Masters', Icons.settings_outlined, 'masters_view', 'Admin', screenBuilder: (_) => const MastersScreen()),
-  _ModuleDef('Users', Icons.admin_panel_settings_outlined, 'users_view', 'Admin', screenBuilder: (_) => const UserListScreen()),
-  _ModuleDef('Deleted Records', Icons.restore_from_trash_outlined, 'deleted_records', 'Admin', screenBuilder: (_) => const DeletedRecordsScreen()),
-  _ModuleDef('Tasks', Icons.checklist_outlined, null, 'Admin', screenBuilder: (_) => const TasksNotificationsScreen()),
-];
-
-const _groupOrder = ['Academics', 'Finance', 'Staff', 'Admin'];
-
+/// Home tab — a quick "what matters right now" surface (admin KPIs + charts, then a handful of
+/// one-tap shortcuts). The full permission-filtered module directory lives in the Modules tab so
+/// this screen never has to cram every module into a wall of icons.
 class StaffHomeScreen extends StatefulWidget {
-  const StaffHomeScreen({super.key});
+  const StaffHomeScreen({super.key, this.onOpenTasks});
+  final VoidCallback? onOpenTasks;
 
   @override
   State<StaffHomeScreen> createState() => _StaffHomeScreenState();
@@ -95,31 +47,11 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
     }
   }
 
-  Future<void> _confirmLogout(BuildContext context) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Logout'),
-        content: const Text('Are you sure you want to logout?'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Logout', style: TextStyle(color: AppColors.danger))),
-        ],
-      ),
-    );
-    if (confirmed != true || !context.mounted) return;
-    await context.read<RealtimeNotificationService>().disconnect();
-    if (!context.mounted) return;
-    await context.read<Session>().signOut();
-    if (!context.mounted) return;
-    Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(builder: (_) => const LoginScreen()), (_) => false);
-  }
-
   @override
   Widget build(BuildContext context) {
     final session = context.watch<Session>();
     final unreadCount = context.watch<RealtimeNotificationService>().unreadCount;
-    final visibleModules = _modules.where((m) => m.permKey == null || session.hasPerm(m.permKey!)).toList();
+    final quickActions = allModules.where((m) => m.permKey == null || session.hasPerm(m.permKey!)).take(6).toList();
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -131,7 +63,7 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
             slivers: [
               SliverToBoxAdapter(
                 child: GreetingHeader(
-                  greeting: 'Hi,',
+                  greeting: 'Welcome back,',
                   name: session.fullName.split(' ').first,
                   subtitle: session.roleName,
                   leadingIcon: Icons.badge_outlined,
@@ -140,9 +72,9 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
                       alignment: Alignment.center,
                       children: [
                         IconButton(
-                          icon: const Icon(Icons.notifications_none, color: Colors.white),
+                          icon: const Icon(Icons.notifications_none_rounded, color: Colors.white),
                           tooltip: 'Notifications',
-                          onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const TasksNotificationsScreen())),
+                          onPressed: widget.onOpenTasks,
                         ),
                         if (unreadCount > 0)
                           Positioned(
@@ -155,16 +87,15 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
                           ),
                       ],
                     ),
-                    IconButton(icon: const Icon(Icons.logout, color: Colors.white), tooltip: 'Logout', onPressed: () => _confirmLogout(context)),
                   ],
                 ),
               ),
               SliverPadding(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
                 sliver: SliverList(
                   delegate: SliverChildListDelegate([
                     if (session.isAdmin) ..._buildAdminDashboard(),
-                    for (final group in _groupOrder) ..._buildModuleGroup(group, visibleModules),
+                    if (quickActions.isNotEmpty) ..._buildQuickActions(quickActions),
                   ]),
                 ),
               ),
@@ -175,17 +106,25 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
     );
   }
 
-  List<Widget> _buildModuleGroup(String group, List<_ModuleDef> visibleModules) {
-    final items = visibleModules.where((m) => m.group == group).toList();
-    if (items.isEmpty) return const [];
+  List<Widget> _buildQuickActions(List<ModuleDef> items) {
     return [
-      SectionHeader(title: group),
+      const SectionHeader(title: 'Quick Actions'),
       GridView.builder(
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
         itemCount: items.length,
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3, mainAxisSpacing: 12, crossAxisSpacing: 12, childAspectRatio: 0.9),
-        itemBuilder: (_, i) => _ModuleTile(module: items[i]),
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3, mainAxisSpacing: 12, crossAxisSpacing: 12, childAspectRatio: 0.82),
+        itemBuilder: (_, i) {
+          final m = items[i];
+          return QuickActionTile(
+            icon: m.icon,
+            label: m.label,
+            color: groupColor(m.group),
+            onTap: () => Navigator.of(context).push(MaterialPageRoute(
+              builder: m.screenBuilder ?? (_) => ComingSoonScreen(title: m.label, icon: m.icon),
+            )),
+          );
+        },
       ),
       const SizedBox(height: 8),
     ];
@@ -204,7 +143,7 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
         physics: const NeverScrollableScrollPhysics(),
         mainAxisSpacing: 12,
         crossAxisSpacing: 12,
-        childAspectRatio: 1.7,
+        childAspectRatio: 1.25,
         children: [
           StatCard(label: 'Total Students', value: '${s.totalStudents}', color: AppColors.info, icon: Icons.groups),
           StatCard(label: 'Present Today', value: '${s.presentToday}', color: AppColors.success, icon: Icons.check_circle_outline),
@@ -225,7 +164,7 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
     final total = s.classStrengths.fold<int>(0, (a, b) => a + b.studentCount);
     return Container(
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.border)),
+      decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(AppRadius.lg), boxShadow: AppShadows.soft),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -283,7 +222,7 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
     final fmt = NumberFormat.compactCurrency(symbol: '₹');
     return Container(
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.border)),
+      decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(AppRadius.lg), boxShadow: AppShadows.soft),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -299,7 +238,7 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
             borderRadius: BorderRadius.circular(8),
             child: LinearProgressIndicator(
               value: pct, minHeight: 10,
-              backgroundColor: AppColors.border,
+              backgroundColor: AppColors.background,
               valueColor: const AlwaysStoppedAnimation(AppColors.success),
             ),
           ),
@@ -418,23 +357,6 @@ class _AbsentTodaySheetState extends State<_AbsentTodaySheet> {
           ),
         );
       },
-    );
-  }
-}
-
-class _ModuleTile extends StatelessWidget {
-  const _ModuleTile({required this.module});
-  final _ModuleDef module;
-
-  @override
-  Widget build(BuildContext context) {
-    return IconTile(
-      icon: module.icon,
-      label: module.label,
-      color: _groupColor(module.group),
-      onTap: () => Navigator.of(context).push(MaterialPageRoute(
-        builder: module.screenBuilder ?? (_) => ComingSoonScreen(title: module.label, icon: module.icon),
-      )),
     );
   }
 }

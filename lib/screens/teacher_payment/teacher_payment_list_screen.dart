@@ -200,6 +200,7 @@ class _MarkPaidDialogState extends State<_MarkPaidDialog> {
         mainAxisSize: MainAxisSize.min,
         children: [
           DropdownButtonFormField<String>(
+      isExpanded: true,
             initialValue: _mode,
             decoration: const InputDecoration(labelText: 'Payment Mode'),
             items: _modes.map((m) => DropdownMenuItem(value: m, child: Text(m))).toList(),
@@ -294,6 +295,7 @@ class _AddPaymentSheetState extends State<_AddPaymentSheet> {
                 const Text('Add Teacher Payment', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
                 const SizedBox(height: 16),
                 DropdownButtonFormField<int>(
+      isExpanded: true,
                   initialValue: _facultyId,
                   decoration: const InputDecoration(labelText: 'Faculty *'),
                   items: widget.faculty.map((f) => DropdownMenuItem(value: f.id, child: Text(f.name, overflow: TextOverflow.ellipsis))).toList(),
@@ -302,6 +304,7 @@ class _AddPaymentSheetState extends State<_AddPaymentSheet> {
                 ),
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
+      isExpanded: true,
                   initialValue: _type,
                   decoration: const InputDecoration(labelText: 'Payment Type'),
                   items: _types.map((t) => DropdownMenuItem(value: t, child: Text(t))).toList(),
@@ -332,6 +335,7 @@ class _AddPaymentSheetState extends State<_AddPaymentSheet> {
                 Row(children: [
                   Expanded(
                     child: DropdownButtonFormField<int>(
+      isExpanded: true,
                       initialValue: _month,
                       decoration: const InputDecoration(labelText: 'Month'),
                       items: List.generate(12, (i) => DropdownMenuItem(value: i + 1, child: Text(_monthNames[i]))),
@@ -341,6 +345,7 @@ class _AddPaymentSheetState extends State<_AddPaymentSheet> {
                   const SizedBox(width: 12),
                   Expanded(
                     child: DropdownButtonFormField<int>(
+      isExpanded: true,
                       initialValue: _year,
                       decoration: const InputDecoration(labelText: 'Year'),
                       items: [widget.currentYear - 1, widget.currentYear, widget.currentYear + 1].map((y) => DropdownMenuItem(value: y, child: Text('$y'))).toList(),

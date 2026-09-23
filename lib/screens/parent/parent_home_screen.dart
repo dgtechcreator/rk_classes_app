@@ -7,6 +7,7 @@ import '../../core/session.dart';
 import '../../models/student.dart';
 import '../../theme/app_theme.dart';
 import '../../theme/subject_visuals.dart';
+import '../../widgets/attendance_ring.dart';
 import '../../widgets/common.dart';
 import 'parent_grades_screen.dart';
 
@@ -34,12 +35,9 @@ class ParentHomeScreen extends StatelessWidget {
                 ),
               ),
               SliverToBoxAdapter(
-                child: Transform.translate(
-                  offset: const Offset(0, -12),
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                    child: _buildBody(context, ctrl),
-                  ),
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
+                  child: _buildBody(context, ctrl),
                 ),
               ),
             ],
@@ -72,26 +70,32 @@ class ParentHomeScreen extends StatelessWidget {
         _ChildCard(ctrl: ctrl),
         if (d != null) ...[
           const SizedBox(height: 20),
-          Row(
-            children: [
-              Expanded(
-                child: StatCard(
+          Container(
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(AppRadius.xl), boxShadow: AppShadows.card),
+            child: Row(
+              children: [
+                AttendanceRing(
+                  percent: d.attendance?.attendancePct ?? 0,
+                  color: (d.attendance?.attendancePct ?? 0) >= 75 ? AppColors.success : AppColors.warning,
                   label: 'Attendance',
-                  value: d.attendance == null ? '-' : '${d.attendance!.attendancePct.toStringAsFixed(0)}%',
-                  color: AppColors.success,
-                  icon: Icons.event_available,
                 ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: StatCard(
-                  label: 'Balance Due',
-                  value: NumberFormat.compactCurrency(symbol: '₹').format(d.balance),
-                  color: d.balance > 0 ? AppColors.danger : AppColors.success,
-                  icon: Icons.account_balance_wallet_outlined,
+                const SizedBox(width: 20),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _miniStatRow(Icons.event_available_rounded, AppColors.info,
+                          d.attendance == null ? '-' : '${d.attendance!.presentDays}/${d.attendance!.totalDays}', 'Present Days'),
+                      const SizedBox(height: 14),
+                      _miniStatRow(Icons.account_balance_wallet_outlined, d.balance > 0 ? AppColors.danger : AppColors.success,
+                          NumberFormat.compactCurrency(symbol: '₹').format(d.balance), 'Balance Due'),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
           if (subjects.isNotEmpty) ...[
             const SizedBox(height: 24),
@@ -160,6 +164,27 @@ class ParentHomeScreen extends StatelessWidget {
       ],
     );
   }
+
+  Widget _miniStatRow(IconData icon, Color color, String value, String label) {
+    return Row(
+      children: [
+        Container(
+          width: 34, height: 34,
+          decoration: BoxDecoration(color: color.withValues(alpha: 0.13), shape: BoxShape.circle),
+          child: Icon(icon, size: 16, color: color),
+        ),
+        const SizedBox(width: 10),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(value, style: const TextStyle(fontSize: 14.5, fontWeight: FontWeight.w800)),
+            Text(label, style: const TextStyle(fontSize: 11.5, color: AppColors.textSecondary)),
+          ],
+        ),
+      ],
+    );
+  }
 }
 
 class _ChildCard extends StatelessWidget {
@@ -174,31 +199,57 @@ class _ChildCard extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 16, offset: const Offset(0, 6))],
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        boxShadow: AppShadows.card,
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          CircleAvatar(
-            radius: 26,
-            backgroundColor: AppColors.primarySoft,
-            child: Text(
-              s.fullName.isNotEmpty ? s.fullName[0].toUpperCase() : '?',
-              style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold, fontSize: 20),
-            ),
+          Row(
+            children: [
+              Icon(Icons.school_rounded, size: 14, color: AppColors.textMuted),
+              const SizedBox(width: 6),
+              const Text('YOUR CHILD', style: TextStyle(color: AppColors.textMuted, fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: 0.6)),
+            ],
           ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(s.fullName, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
-                Text(s.classLabel, style: const TextStyle(color: AppColors.textSecondary, fontSize: 13)),
-              ],
-            ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              CircleAvatar(
+                radius: 26,
+                backgroundColor: AppColors.primarySoft,
+                child: Text(
+                  s.fullName.isNotEmpty ? s.fullName[0].toUpperCase() : '?',
+                  style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold, fontSize: 20),
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(s.fullName, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
+                    const SizedBox(height: 3),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+                      decoration: BoxDecoration(color: AppColors.infoSoft, borderRadius: BorderRadius.circular(AppRadius.pill)),
+                      child: Text(s.classLabel, style: const TextStyle(color: AppColors.info, fontSize: 12, fontWeight: FontWeight.w700)),
+                    ),
+                  ],
+                ),
+              ),
+              if (ctrl.children.length > 1)
+                InkWell(
+                  borderRadius: BorderRadius.circular(AppRadius.pill),
+                  onTap: () => _pickChild(context),
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(color: AppColors.background, shape: BoxShape.circle),
+                    child: const Icon(Icons.swap_horiz, color: AppColors.primary, size: 20),
+                  ),
+                ),
+            ],
           ),
-          if (ctrl.children.length > 1)
-            IconButton(icon: const Icon(Icons.swap_horiz, color: AppColors.primary), onPressed: () => _pickChild(context)),
         ],
       ),
     );

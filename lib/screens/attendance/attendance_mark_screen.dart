@@ -208,6 +208,7 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
 
   Widget _dropdown(String label, int? value, List<LookupItem> items, ValueChanged<int?> onChanged) {
     return DropdownButtonFormField<int?>(
+      isExpanded: true,
       initialValue: items.any((e) => e.id == value) ? value : null,
       decoration: InputDecoration(labelText: label),
       items: [

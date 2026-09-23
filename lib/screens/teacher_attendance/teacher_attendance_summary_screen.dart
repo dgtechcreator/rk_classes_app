@@ -186,6 +186,7 @@ class _SummaryFilterSheetState extends State<_SummaryFilterSheet> {
           const Text('Filter Summary', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
           const SizedBox(height: 16),
           DropdownButtonFormField<int?>(
+      isExpanded: true,
             initialValue: widget.faculties.any((e) => e.key == _facultyId) ? _facultyId : null,
             decoration: const InputDecoration(labelText: 'Faculty'),
             items: [
@@ -196,6 +197,7 @@ class _SummaryFilterSheetState extends State<_SummaryFilterSheet> {
           ),
           const SizedBox(height: 12),
           DropdownButtonFormField<int?>(
+      isExpanded: true,
             initialValue: _month,
             decoration: const InputDecoration(labelText: 'Month'),
             items: [
@@ -206,6 +208,7 @@ class _SummaryFilterSheetState extends State<_SummaryFilterSheet> {
           ),
           const SizedBox(height: 12),
           DropdownButtonFormField<int?>(
+      isExpanded: true,
             initialValue: widget.years.contains(_year) ? _year : null,
             decoration: const InputDecoration(labelText: 'Year'),
             items: [

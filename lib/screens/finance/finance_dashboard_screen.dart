@@ -67,7 +67,7 @@ class _FinanceDashboardScreenState extends State<FinanceDashboardScreen> {
             physics: const NeverScrollableScrollPhysics(),
             mainAxisSpacing: 12,
             crossAxisSpacing: 12,
-            childAspectRatio: 1.7,
+            childAspectRatio: 1.25,
             children: [
               StatCard(label: 'Total Students', value: '${d.totalStudents}', color: AppColors.info, icon: Icons.groups),
               StatCard(label: 'Total Fees', value: _fmt.format(d.totalFees), color: AppColors.info, icon: Icons.receipt_long_outlined),
@@ -78,7 +78,7 @@ class _FinanceDashboardScreenState extends State<FinanceDashboardScreen> {
           const SizedBox(height: 20),
           Container(
             padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.border)),
+            decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(AppRadius.lg), boxShadow: AppShadows.card),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [

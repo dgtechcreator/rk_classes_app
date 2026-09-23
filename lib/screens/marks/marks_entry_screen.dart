@@ -275,6 +275,7 @@ class _MarksEntryScreenState extends State<MarksEntryScreen> {
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<int?>(
+      isExpanded: true,
               initialValue: _subjects.any((s) => s.subjectId == _subjectId) ? _subjectId : null,
               decoration: const InputDecoration(labelText: 'Subject'),
               items: _subjects.map((s) => DropdownMenuItem<int?>(value: s.subjectId, child: Text('${s.subjectName} (max ${s.maxMarks})'))).toList(),
@@ -309,6 +310,7 @@ class _MarksEntryScreenState extends State<MarksEntryScreen> {
 
   Widget _dropdown(String label, int? value, List<LookupItem> items, ValueChanged<int?> onChanged) {
     return DropdownButtonFormField<int?>(
+      isExpanded: true,
       initialValue: items.any((e) => e.id == value) ? value : null,
       decoration: InputDecoration(labelText: label),
       items: [
