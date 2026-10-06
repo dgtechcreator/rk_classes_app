@@ -42,6 +42,23 @@ class TeacherPaymentService {
     );
   }
 
+  /// Admin summary with filters. [month] 0 = whole year; [status] all | paid | pending.
+  Future<TeacherPaymentReport> getSummary({int? year, int month = 0, int? facultyId, String status = 'all'}) async {
+    final res = await _client.get('/api/teacher-payment/summary', query: {
+      if (year != null) 'year': year,
+      if (month > 0) 'month': month,
+      if (facultyId != null) 'facultyId': facultyId,
+      if (status != 'all') 'status': status,
+    });
+    return TeacherPaymentReport.fromJson(res.data as Map<String, dynamic>);
+  }
+
+  /// A teacher's own payments (when each one was paid). `linked == false` when the login has no faculty profile.
+  Future<TeacherPaymentReport> getMine({int? year}) async {
+    final res = await _client.get('/api/teacher-payment/mine', query: {if (year != null && year > 0) 'year': year});
+    return TeacherPaymentReport.fromJson(res.data as Map<String, dynamic>);
+  }
+
   Future<int> save({
     required int facultyId,
     required String paymentType,

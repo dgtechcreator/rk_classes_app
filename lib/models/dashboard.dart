@@ -1,17 +1,32 @@
+import 'contact_number.dart';
+
 double _asDouble(dynamic v) => v == null ? 0 : (v is num ? v.toDouble() : double.tryParse(v.toString()) ?? 0);
 int _asInt(dynamic v) => v == null ? 0 : (v is int ? v : int.tryParse(v.toString()) ?? 0);
 String _asString(dynamic v) => v?.toString() ?? '';
 
+class ClassSectionStrength {
+  ClassSectionStrength({required this.sectionName, required this.studentCount});
+  final String sectionName; // Medium, e.g. "English Medium"
+  final int studentCount;
+
+  factory ClassSectionStrength.fromJson(Map<String, dynamic> j) => ClassSectionStrength(
+        sectionName: _asString(j['sectionName']).trim(),
+        studentCount: _asInt(j['studentCount']),
+      );
+}
+
 class ClassStrength {
-  ClassStrength({required this.className, required this.studentCount, required this.color});
+  ClassStrength({required this.className, required this.studentCount, required this.color, this.sections = const []});
   final String className;
   final int studentCount;
   final String color;
+  final List<ClassSectionStrength> sections;
 
   factory ClassStrength.fromJson(Map<String, dynamic> j) => ClassStrength(
         className: _asString(j['className']),
         studentCount: _asInt(j['studentCount']),
         color: _asString(j['color']).isEmpty ? '#6d28d9' : _asString(j['color']),
+        sections: (j['sections'] as List? ?? []).map((e) => ClassSectionStrength.fromJson(e as Map<String, dynamic>)).toList(),
       );
 }
 
@@ -58,12 +73,26 @@ class DashboardStats {
 }
 
 class AbsentStudent {
-  AbsentStudent({required this.studentId, required this.fullName, required this.admissionNo, required this.className, required this.sectionName});
+  AbsentStudent({
+    required this.studentId,
+    required this.fullName,
+    required this.admissionNo,
+    required this.className,
+    required this.sectionName,
+    this.phone = '',
+    this.fatherPhone = '',
+    this.motherPhone = '',
+  });
   final int studentId;
   final String fullName;
   final String admissionNo;
   final String className;
   final String sectionName;
+  final String phone;
+  final String fatherPhone;
+  final String motherPhone;
+
+  List<ContactNumber> get contacts => buildContacts(father: fatherPhone, mother: motherPhone, student: phone);
 
   factory AbsentStudent.fromJson(Map<String, dynamic> j) => AbsentStudent(
         studentId: _asInt(j['studentId']),
@@ -71,6 +100,9 @@ class AbsentStudent {
         admissionNo: _asString(j['admissionNo']),
         className: _asString(j['className']),
         sectionName: _asString(j['sectionName']),
+        phone: _asString(j['phone']),
+        fatherPhone: _asString(j['fatherPhone']),
+        motherPhone: _asString(j['motherPhone']),
       );
 }
 

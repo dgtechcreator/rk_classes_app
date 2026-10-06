@@ -65,3 +65,85 @@ class TeacherPayment {
   String get monthLabel => paymentMonth >= 1 && paymentMonth <= 12 ? DateFormat('MMMM').format(DateTime(2000, paymentMonth)) : '';
   String get monthYearLabel => '$monthLabel $paymentYear';
 }
+
+/// Per-teacher roll-up inside a payment summary.
+class TeacherPaymentTeacherRow {
+  TeacherPaymentTeacherRow({required this.facultyId, required this.facultyName, required this.count, required this.paidAmount, required this.pendingAmount, this.lastPaidOn});
+  final int facultyId;
+  final String facultyName;
+  final int count;
+  final double paidAmount;
+  final double pendingAmount;
+  final DateTime? lastPaidOn;
+
+  factory TeacherPaymentTeacherRow.fromJson(Map<String, dynamic> j) => TeacherPaymentTeacherRow(
+        facultyId: _asInt(j['facultyId']),
+        facultyName: _asString(j['facultyName']),
+        count: _asInt(j['count']),
+        paidAmount: _asDouble(j['paidAmount']),
+        pendingAmount: _asDouble(j['pendingAmount']),
+        lastPaidOn: j['lastPaidOn'] == null ? null : DateTime.tryParse(_asString(j['lastPaidOn'])),
+      );
+}
+
+class TeacherPaymentSummary {
+  TeacherPaymentSummary({this.count = 0, this.paidCount = 0, this.pendingCount = 0, this.totalAmount = 0, this.paidAmount = 0, this.pendingAmount = 0, this.teachers = const []});
+  final int count;
+  final int paidCount;
+  final int pendingCount;
+  final double totalAmount;
+  final double paidAmount;
+  final double pendingAmount;
+  final List<TeacherPaymentTeacherRow> teachers;
+
+  factory TeacherPaymentSummary.fromJson(Map<String, dynamic> j) => TeacherPaymentSummary(
+        count: _asInt(j['count']),
+        paidCount: _asInt(j['paidCount']),
+        pendingCount: _asInt(j['pendingCount']),
+        totalAmount: _asDouble(j['totalAmount']),
+        paidAmount: _asDouble(j['paidAmount']),
+        pendingAmount: _asDouble(j['pendingAmount']),
+        teachers: (j['teachers'] as List? ?? []).map((e) => TeacherPaymentTeacherRow.fromJson(e as Map<String, dynamic>)).toList(),
+      );
+}
+
+/// Response of GET /api/teacher-payment/summary (admin) and /api/teacher-payment/mine (a teacher's own).
+class TeacherPaymentReport {
+  TeacherPaymentReport({
+    required this.linked,
+    this.message,
+    this.facultyName,
+    this.year = 0,
+    this.years = const [],
+    required this.summary,
+    this.payments = const [],
+    this.faculty = const [],
+    this.hasPayments = true,
+  });
+  final bool linked;
+
+  /// False when an older server answered without a `payments` list (it can't do filtered summaries).
+  final bool hasPayments;
+  final String? message;
+  final String? facultyName;
+  final int year;
+  final List<int> years;
+  final TeacherPaymentSummary summary;
+  final List<TeacherPayment> payments;
+  final List<({int id, String name})> faculty;
+
+  factory TeacherPaymentReport.fromJson(Map<String, dynamic> j) => TeacherPaymentReport(
+        linked: j['linked'] != false,
+        hasPayments: j['linked'] == false || j.containsKey('payments'),
+        message: _asStringN(j['message']),
+        facultyName: _asStringN(j['facultyName']),
+        year: _asInt(j['year']),
+        years: (j['years'] as List? ?? []).map((e) => _asInt(e)).toList(),
+        summary: j['summary'] == null ? TeacherPaymentSummary() : TeacherPaymentSummary.fromJson(j['summary'] as Map<String, dynamic>),
+        payments: (j['payments'] as List? ?? []).map((e) => TeacherPayment.fromJson(e as Map<String, dynamic>)).toList(),
+        faculty: (j['allFaculty'] as List? ?? []).map((e) {
+          final m = e as Map<String, dynamic>;
+          return (id: _asInt(m['facultyId']), name: _asString(m['fullName']).trim());
+        }).toList(),
+      );
+}

@@ -48,7 +48,9 @@ class FeePayInfo {
     required this.feeStructures,
     required this.paymentHistory,
     required this.existingDiscount,
-  });
+    this.additionalCharges = 0,
+    double? netTotal,
+  }) : netTotal = netTotal ?? (actualFee + additionalCharges - existingDiscount);
 
   final Student student;
   final double actualFee;
@@ -58,6 +60,18 @@ class FeePayInfo {
   final List<FeeStructure> feeStructures;
   final List<FeePayment> paymentHistory;
   final double existingDiscount;
+
+  /// Charges added at payment time (kept in the payment remarks by the server).
+  final double additionalCharges;
+
+  /// What the student really has to pay: fee + additional charges - discount. [balance] = this - paid.
+  final double netTotal;
+}
+
+double _legacyNetTotal(Map<String, dynamic> d) {
+  final fee = _asDouble(d['actualFee']), paid = _asDouble(d['totalPaid']), bal = _asDouble(d['balance']), disc = _asDouble(d['existingDiscount']);
+  final extra = bal > 0 ? (bal - (fee - disc - paid)).clamp(0, double.infinity).toDouble() : 0.0;
+  return fee + (extra > 0.5 ? extra : 0) - disc;
 }
 
 double _asDouble(dynamic v) => v == null ? 0 : (v is num ? v.toDouble() : double.tryParse(v.toString()) ?? 0);
@@ -90,6 +104,10 @@ class FeesService {
       feeStructures: (data['feeStructures'] as List? ?? []).map((e) => FeeStructure.fromJson(e as Map<String, dynamic>)).toList(),
       paymentHistory: (data['paymentHistory'] as List? ?? []).map((e) => FeePayment.fromJson(e as Map<String, dynamic>)).toList(),
       existingDiscount: _asDouble(data['existingDiscount']),
+      additionalCharges: _asDouble(data['additionalCharges']),
+      // Older servers don't send netTotal/additionalCharges: derive the charges from the balance so
+      // total - paid = balance still reconciles (exact whenever a balance is due).
+      netTotal: data['netTotal'] != null ? _asDouble(data['netTotal']) : _legacyNetTotal(data),
     );
   }
 

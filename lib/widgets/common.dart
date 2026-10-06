@@ -61,6 +61,60 @@ class StatCard extends StatelessWidget {
   }
 }
 
+/// Slim horizontal KPI tile (icon badge left, value + label right, ~56px tall) — used on dashboards
+/// where the taller [StatCard] would eat too much scroll space.
+class SlimStatCard extends StatelessWidget {
+  const SlimStatCard({super.key, required this.label, required this.value, required this.color, required this.icon, this.onTap});
+
+  final String label;
+  final String value;
+  final Color color;
+  final IconData icon;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final card = Container(
+      height: 56,
+      padding: const EdgeInsets.symmetric(horizontal: 10),
+      decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(AppRadius.md), boxShadow: AppShadows.soft),
+      child: Row(
+        children: [
+          Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(color: color.withValues(alpha: 0.13), borderRadius: BorderRadius.circular(10)),
+            child: Icon(icon, size: 17, color: color),
+          ),
+          const SizedBox(width: 9),
+          Expanded(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(value,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: AppColors.textPrimary, height: 1.15)),
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(label,
+                      maxLines: 1,
+                      style: const TextStyle(fontSize: 11, color: AppColors.textSecondary, fontWeight: FontWeight.w500, height: 1.2)),
+                ),
+              ],
+            ),
+          ),
+          if (onTap != null) Icon(Icons.chevron_right_rounded, size: 18, color: color.withValues(alpha: 0.8)),
+        ],
+      ),
+    );
+    if (onTap == null) return card;
+    return InkWell(borderRadius: BorderRadius.circular(AppRadius.md), onTap: onTap, child: card);
+  }
+}
+
 Color statusColor(String status) {
   switch (status.toLowerCase()) {
     case 'present':
@@ -165,7 +219,7 @@ class SectionHeader extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+          Flexible(child: Text(title, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600))),
           ?action,
         ],
       ),
@@ -473,30 +527,30 @@ class QuickActionTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return InkWell(
-      borderRadius: BorderRadius.circular(AppRadius.lg),
+      borderRadius: BorderRadius.circular(AppRadius.md),
       onTap: onTap,
       child: Container(
         width: 92,
-        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
+        padding: const EdgeInsets.symmetric(vertical: 9, horizontal: 6),
         decoration: BoxDecoration(
           color: AppColors.surface,
-          borderRadius: BorderRadius.circular(AppRadius.lg),
+          borderRadius: BorderRadius.circular(AppRadius.md),
           boxShadow: AppShadows.soft,
         ),
         child: Column(
-          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              width: 44,
-              height: 44,
+              width: 36,
+              height: 36,
               decoration: BoxDecoration(
                 gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [color.withValues(alpha: 0.85), color]),
                 shape: BoxShape.circle,
               ),
-              child: Icon(icon, color: Colors.white, size: 21),
+              child: Icon(icon, color: Colors.white, size: 18),
             ),
-            const SizedBox(height: 8),
-            Text(label, textAlign: TextAlign.center, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700)),
+            const SizedBox(height: 5),
+            Text(label, textAlign: TextAlign.center, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700)),
           ],
         ),
       ),

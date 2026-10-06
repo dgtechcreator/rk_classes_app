@@ -8,6 +8,7 @@ import '../../models/student.dart';
 import '../../services/fees_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/common.dart';
+import 'receipt_screen.dart';
 
 /// Paginated fee payment history with search/month filter and delete — mirrors FeesController's
 /// Summary partial (_Summary.cshtml).
@@ -126,6 +127,12 @@ class _FeeSummaryScreenState extends State<FeeSummaryScreen> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(_fmt.format(p.netAmount), style: const TextStyle(fontWeight: FontWeight.w700)),
+                        IconButton(
+                          tooltip: 'Receipt',
+                          visualDensity: VisualDensity.compact,
+                          icon: const Icon(Icons.receipt_long_outlined, color: AppColors.info),
+                          onPressed: () => ReceiptScreen.open(context, p),
+                        ),
                         if (canEdit)
                           IconButton(icon: const Icon(Icons.delete_outline, color: AppColors.danger), onPressed: () => _delete(p)),
                       ],

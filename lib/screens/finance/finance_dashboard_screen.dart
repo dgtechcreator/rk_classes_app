@@ -6,10 +6,10 @@ import '../../models/finance.dart';
 import '../../services/finance_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/common.dart';
-import 'finance_class_detail_screen.dart';
+import 'finance_students_screen.dart';
 
-/// Collection-analytics dashboard, gated on the `finance_view` permission — mirrors
-/// FinanceController.Dashboard. Real per-class/batch fee collection breakdown, tap a row for detail.
+/// Finance overview: collection hero, four tappable tiles (each opens the matching student list with
+/// call / WhatsApp / receipt actions) and a class-wise breakdown whose rows open that class's students.
 class FinanceDashboardScreen extends StatefulWidget {
   const FinanceDashboardScreen({super.key});
 
@@ -23,7 +23,8 @@ class _FinanceDashboardScreenState extends State<FinanceDashboardScreen> {
   String? _error;
   FinanceDashboardData? _data;
 
-  final _fmt = NumberFormat.compactCurrency(symbol: '₹');
+  final _compact = NumberFormat.compactCurrency(symbol: '₹');
+  final _full = NumberFormat.currency(locale: 'en_IN', symbol: '₹', decimalDigits: 0);
 
   @override
   void initState() {
@@ -41,92 +42,213 @@ class _FinanceDashboardScreenState extends State<FinanceDashboardScreen> {
     }
   }
 
+  void _open(FinanceStudentsScreen screen) => Navigator.of(context).push(MaterialPageRoute(builder: (_) => screen));
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Finance Dashboard')),
+      backgroundColor: AppColors.background,
       body: _loading
-          ? const LoadingView()
+          ? const Center(child: CircularProgressIndicator())
           : _error != null
-              ? ErrorView(message: _error!, onRetry: _load)
-              : _buildBody(),
+              ? SafeArea(
+                  child: Column(
+                    children: [
+                      const Align(alignment: Alignment.centerLeft, child: BackButton()),
+                      Expanded(child: ErrorView(message: _error!, onRetry: _load)),
+                    ],
+                  ),
+                )
+              : RefreshIndicator(onRefresh: _load, child: _buildBody()),
     );
   }
 
   Widget _buildBody() {
     final d = _data!;
     final pct = (d.collectionPercentage / 100).clamp(0.0, 1.0);
-    return RefreshIndicator(
-      onRefresh: _load,
-      child: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          GridView.count(
-            crossAxisCount: 2,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            mainAxisSpacing: 12,
-            crossAxisSpacing: 12,
-            childAspectRatio: 1.25,
-            children: [
-              StatCard(label: 'Total Students', value: '${d.totalStudents}', color: AppColors.info, icon: Icons.groups),
-              StatCard(label: 'Total Fees', value: _fmt.format(d.totalFees), color: AppColors.info, icon: Icons.receipt_long_outlined),
-              StatCard(label: 'Collected', value: _fmt.format(d.totalCollected), color: AppColors.success, icon: Icons.check_circle_outline),
-              StatCard(label: 'Balance', value: _fmt.format(d.totalBalance), color: d.totalBalance > 0 ? AppColors.warning : AppColors.success, icon: Icons.account_balance_wallet_outlined),
-            ],
+    return CustomScrollView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      slivers: [
+        SliverToBoxAdapter(child: _header(d, pct)),
+        SliverPadding(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
+          sliver: SliverList(
+            delegate: SliverChildListDelegate([
+              GridView(
+                padding: EdgeInsets.zero,
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, mainAxisSpacing: 10, crossAxisSpacing: 10, mainAxisExtent: 56),
+                children: [
+                  SlimStatCard(
+                    label: 'Total Students', value: '${d.totalStudents}', color: AppColors.info, icon: Icons.groups,
+                    onTap: () => _open(const FinanceStudentsScreen(title: 'All Students')),
+                  ),
+                  SlimStatCard(
+                    label: 'Total Fees', value: _compact.format(d.totalFees), color: AppColors.violet, icon: Icons.receipt_long_outlined,
+                    onTap: () => _open(const FinanceStudentsScreen(title: 'Total Fees', sort: FinanceSort.fees)),
+                  ),
+                  SlimStatCard(
+                    label: 'Collected', value: _compact.format(d.totalCollected), color: AppColors.success, icon: Icons.check_circle_outline,
+                    onTap: () => _open(const FinanceStudentsScreen(title: 'Collected Fees', sort: FinanceSort.collected)),
+                  ),
+                  SlimStatCard(
+                    label: 'Balance', value: _compact.format(d.totalBalance), color: d.totalBalance > 0 ? AppColors.warning : AppColors.success,
+                    icon: Icons.account_balance_wallet_outlined,
+                    onTap: () => _open(const FinanceStudentsScreen(title: 'Pending Dues', filter: FinanceFilter.due, sort: FinanceSort.balance)),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 18),
+              const SectionHeader(title: 'Class-wise'),
+              if (d.academicData.isEmpty)
+                const EmptyState(message: 'No fee data yet.', icon: Icons.bar_chart_outlined)
+              else
+                for (final row in d.academicData) Padding(padding: const EdgeInsets.only(bottom: 10), child: _classCard(row)),
+            ]),
           ),
-          const SizedBox(height: 20),
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(AppRadius.lg), boxShadow: AppShadows.card),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+        ),
+      ],
+    );
+  }
+
+  Widget _header(FinanceDashboardData d, double pct) {
+    return ClipRRect(
+      borderRadius: const BorderRadius.vertical(bottom: Radius.circular(AppRadius.xl)),
+      child: Container(
+        padding: EdgeInsets.fromLTRB(8, MediaQuery.of(context).padding.top + 4, 18, 20),
+        decoration: const BoxDecoration(gradient: AppGradients.primarySheen),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Row(
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text('Collection %', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
-                    Text('${d.collectionPercentage.toStringAsFixed(1)}%', style: const TextStyle(fontWeight: FontWeight.w700, color: AppColors.success)),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: LinearProgressIndicator(value: pct, minHeight: 10, backgroundColor: AppColors.border, valueColor: const AlwaysStoppedAnimation(AppColors.success)),
-                ),
+                BackButton(color: Colors.white),
+                Text('Finance', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w800)),
               ],
             ),
-          ),
-          const SizedBox(height: 20),
-          const SectionHeader(title: 'By Class / Batch'),
-          if (d.academicData.isEmpty)
-            const EmptyState(message: 'No fee structure data yet.', icon: Icons.bar_chart_outlined)
-          else
-            ...d.academicData.map((row) {
-              final rowPct = row.totalFees == 0 ? 0.0 : (row.estimatedCollected / row.totalFees).clamp(0.0, 1.0);
-              return Card(
-                child: ListTile(
-                  onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => FinanceClassDetailScreen(className: row.className, batchName: row.batchName))),
-                  title: Text('${row.className} / ${row.batchName}', style: const TextStyle(fontWeight: FontWeight.w600)),
-                  subtitle: Padding(
-                    padding: const EdgeInsets.only(top: 6),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(6),
-                      child: LinearProgressIndicator(value: rowPct, minHeight: 6, backgroundColor: AppColors.border, valueColor: const AlwaysStoppedAnimation(AppColors.info)),
+            Padding(
+              padding: const EdgeInsets.only(left: 10),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('Collected so far', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                        const SizedBox(height: 2),
+                        FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerLeft,
+                          child: Text(_full.format(d.totalCollected), style: const TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.w800)),
+                        ),
+                        const SizedBox(height: 2),
+                        Text('of ${_full.format(d.totalFees)} total fees', style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                        const SizedBox(height: 10),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 6,
+                          children: [
+                            _chip('Discount ${_compact.format(d.totalDiscount)}'),
+                            _chip('Balance ${_compact.format(d.totalBalance)}'),
+                          ],
+                        ),
+                      ],
                     ),
                   ),
-                  trailing: Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text('${row.studentCount} students', style: const TextStyle(fontSize: 11, color: AppColors.textSecondary)),
-                      Text(_fmt.format(row.balance), style: TextStyle(fontWeight: FontWeight.w700, color: row.balance > 0 ? AppColors.warning : AppColors.success)),
-                    ],
+                  const SizedBox(width: 12),
+                  SizedBox(
+                    width: 84,
+                    height: 84,
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        SizedBox(
+                          width: 84,
+                          height: 84,
+                          child: CircularProgressIndicator(value: pct, strokeWidth: 8, strokeCap: StrokeCap.round, backgroundColor: Colors.white24, color: Colors.white),
+                        ),
+                        Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text('${d.collectionPercentage.toStringAsFixed(1)}%', style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800)),
+                            const Text('collected', style: TextStyle(color: Colors.white70, fontSize: 9.5)),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _chip(String text) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+        decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.18), borderRadius: BorderRadius.circular(AppRadius.pill)),
+        child: Text(text, style: const TextStyle(color: Colors.white, fontSize: 11.5, fontWeight: FontWeight.w600)),
+      );
+
+  Widget _classCard(FinanceAcademicRow row) {
+    final cls = row.className.trim();
+    final batch = row.batchName.trim();
+    final title = batch.isEmpty ? cls : '$cls · $batch';
+    final pct = row.totalFees <= 0 ? 0.0 : (row.estimatedCollected / row.totalFees * 100).clamp(0.0, 100.0);
+    final due = row.balance > 0.5;
+    Widget fig(String label, double v, Color c) => Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(label, style: const TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+              const SizedBox(height: 1),
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Text(_compact.format(v), style: TextStyle(fontSize: 14.5, fontWeight: FontWeight.w800, color: c)),
+              ),
+            ],
+          ),
+        );
+    return InkWell(
+      borderRadius: BorderRadius.circular(AppRadius.md),
+      onTap: () => _open(FinanceStudentsScreen(title: title, className: cls, batchName: batch, sort: FinanceSort.balance)),
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(14, 12, 10, 12),
+        decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(AppRadius.md), boxShadow: AppShadows.soft),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(child: Text(title, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15))),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(color: AppColors.infoSoft, borderRadius: BorderRadius.circular(AppRadius.pill)),
+                  child: Text('${row.studentCount} students', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.info)),
                 ),
-              );
-            }),
-        ],
+                const Icon(Icons.chevron_right_rounded, color: AppColors.textMuted),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                fig('Fees', row.totalFees, AppColors.textPrimary),
+                fig('Collected', row.estimatedCollected, AppColors.success),
+                fig('Discount', row.estimatedDiscount, AppColors.info),
+                fig('Balance', row.balance < 0 ? 0 : row.balance, due ? AppColors.danger : AppColors.success),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              due ? '${pct.toStringAsFixed(0)}% collected · tap to see students with dues' : '${pct.toStringAsFixed(0)}% collected · fully settled',
+              style: const TextStyle(fontSize: 11.5, color: AppColors.textSecondary),
+            ),
+          ],
+        ),
       ),
     );
   }

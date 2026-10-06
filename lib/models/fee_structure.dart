@@ -88,6 +88,9 @@ class FeeStructureSummary {
     required this.feeHeads,
     required this.collectedAmt,
     required this.pendingAmt,
+    this.totalFees = 0,
+    this.discount = 0,
+    this.hasFinanceFigures = true,
   });
 
   final String? className;
@@ -98,6 +101,21 @@ class FeeStructureSummary {
   final int feeHeads;
   final double collectedAmt;
   final double pendingAmt;
+  final double totalFees;
+  final double discount;
+
+  /// False when the server is an older build that doesn't send the real fee figures (then collected /
+  /// pending below are the old, unreliable ones and must not be turned into percentages).
+  final bool hasFinanceFigures;
+
+  /// What the class really has to pay: fees minus discount.
+  double get netTotal => totalFees - discount;
+
+  /// Share of [netTotal] already received, 0-100 (whole percent).
+  int get collectedPct => netTotal <= 0 ? 0 : (collectedAmt / netTotal * 100).clamp(0, 100).round();
+
+  /// The rest — always 100 - collected so the two always add up.
+  int get pendingPct => netTotal <= 0 ? 0 : 100 - collectedPct;
 
   factory FeeStructureSummary.fromJson(Map<String, dynamic> j) => FeeStructureSummary(
         className: _asStringN(j['className']),
@@ -108,6 +126,9 @@ class FeeStructureSummary {
         feeHeads: _asInt(j['feeHeads']),
         collectedAmt: _asDouble(j['collectedAmt']),
         pendingAmt: _asDouble(j['pendingAmt']),
+        totalFees: _asDouble(j['totalFees']),
+        discount: _asDouble(j['discount']),
+        hasFinanceFigures: j.containsKey('totalFees'),
       );
 }
 

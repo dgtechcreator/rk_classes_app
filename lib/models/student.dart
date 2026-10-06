@@ -1,3 +1,4 @@
+import 'fee_structure.dart';
 int _asInt(dynamic v) => v == null ? 0 : (v is int ? v : int.tryParse(v.toString()) ?? 0);
 int? _asIntN(dynamic v) => v == null ? null : _asInt(v);
 double _asDouble(dynamic v) => v == null ? 0 : (v is num ? v.toDouble() : double.tryParse(v.toString()) ?? 0);
@@ -271,7 +272,12 @@ class ParentDashboardData {
     required this.totalPaid,
     required this.actualFee,
     required this.balance,
-  });
+    this.discount = 0,
+    this.additionalCharges = 0,
+    double? netTotal,
+    this.dueDate,
+    this.feeStructures = const [],
+  }) : netTotal = netTotal ?? (actualFee + additionalCharges - discount);
 
   final Student student;
   final AttendanceReport? attendance;
@@ -281,6 +287,13 @@ class ParentDashboardData {
   final double totalPaid;
   final double actualFee;
   final double balance;
+  final double discount;
+  final double additionalCharges;
+
+  /// Fee + additional charges - discount (what the family actually owes in total).
+  final double netTotal;
+  final DateTime? dueDate;
+  final List<FeeStructure> feeStructures;
 
   factory ParentDashboardData.fromJson(Map<String, dynamic> j) => ParentDashboardData(
         student: Student.fromJson(j['student'] as Map<String, dynamic>),
@@ -293,5 +306,10 @@ class ParentDashboardData {
         totalPaid: _asDouble(j['totalPaid']),
         actualFee: _asDouble(j['actualFee']),
         balance: _asDouble(j['balance']),
+        discount: _asDouble(j['discount']),
+        additionalCharges: _asDouble(j['additionalCharges']),
+        netTotal: j['netTotal'] != null ? _asDouble(j['netTotal']) : null,
+        dueDate: j['dueDate'] == null ? null : DateTime.tryParse(j['dueDate'].toString()),
+        feeStructures: (j['feeStructures'] as List? ?? []).map((e) => FeeStructure.fromJson(e as Map<String, dynamic>)).toList(),
       );
 }

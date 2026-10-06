@@ -9,7 +9,15 @@ import '../../theme/app_theme.dart';
 import '../../theme/subject_visuals.dart';
 import '../../widgets/attendance_ring.dart';
 import '../../widgets/common.dart';
+import '../fees/receipt_screen.dart';
+import 'parent_fees_screen.dart';
 import 'parent_grades_screen.dart';
+
+/// Pushed routes sit outside the shell's provider, so hand the controller to them explicitly.
+Future<T?> _pushWithController<T>(BuildContext context, Widget page) {
+  final ctrl = context.read<ParentDataController>();
+  return Navigator.of(context).push<T>(MaterialPageRoute(builder: (_) => ChangeNotifierProvider.value(value: ctrl, child: page)));
+}
 
 class ParentHomeScreen extends StatelessWidget {
   const ParentHomeScreen({super.key});
@@ -113,8 +121,7 @@ class ParentHomeScreen extends StatelessWidget {
                     icon: v.icon,
                     color: v.color,
                     label: name,
-                    onTap: () => Navigator.of(context)
-                        .push(MaterialPageRoute(builder: (_) => ParentGradesScreen(initialSubject: name))),
+                    onTap: () => _pushWithController(context, ParentGradesScreen(initialSubject: name)),
                   );
                 },
               ),
@@ -125,7 +132,7 @@ class ParentHomeScreen extends StatelessWidget {
             SectionHeader(
               title: 'Recent Grades',
               action: TextButton(
-                onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ParentGradesScreen())),
+                onPressed: () => _pushWithController(context, const ParentGradesScreen()),
                 child: const Text('View all'),
               ),
             ),
@@ -145,18 +152,39 @@ class ParentHomeScreen extends StatelessWidget {
               );
             }),
           ],
+          const SizedBox(height: 24),
+          SectionHeader(
+            title: 'Fees',
+            action: TextButton(
+              onPressed: () => _pushWithController(context, const ParentFeesScreen(standalone: true)),
+              child: const Text('Details'),
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(AppRadius.lg), boxShadow: AppShadows.soft),
+            child: Row(
+              children: [
+                _feeFigure('Total', d.netTotal, AppColors.textPrimary),
+                _feeFigure('Paid', d.totalPaid, AppColors.success),
+                _feeFigure('Balance', d.balance, d.balance > 0.5 ? AppColors.danger : AppColors.success),
+              ],
+            ),
+          ),
           if (d.feeHistory.isNotEmpty) ...[
-            const SizedBox(height: 20),
-            const SectionHeader(title: 'Recent Fee Payments'),
+            const SizedBox(height: 14),
             ...d.feeHistory.take(3).map((p) => Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: ListInfoCard(
-                    title: p.feeTypeName ?? 'Fee Payment',
-                    subtitle: '${DateFormat.yMMMd().format(p.paymentDate)} • ${p.paymentMode}',
-                    icon: Icons.payments_outlined,
-                    iconColor: AppColors.success,
-                    badgeText: NumberFormat.simpleCurrency(name: 'INR').format(p.netAmount),
-                    badgeColor: AppColors.success,
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: Container(
+                    decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(AppRadius.md), boxShadow: AppShadows.soft),
+                    child: ListTile(
+                      dense: true,
+                      onTap: () => ReceiptScreen.openForParent(context, p, student: ctrl.selected ?? d.student, balance: d.balance, dueDate: d.dueDate),
+                      leading: const CircleAvatar(radius: 18, backgroundColor: AppColors.successSoft, child: Icon(Icons.payments_outlined, color: AppColors.success, size: 18)),
+                      title: Text(NumberFormat.currency(locale: 'en_IN', symbol: '₹', decimalDigits: 0).format(p.netAmount), style: const TextStyle(fontWeight: FontWeight.w800)),
+                      subtitle: Text('${DateFormat('dd MMM yyyy').format(p.paymentDate)} · ${p.paymentMode}'),
+                      trailing: const Icon(Icons.receipt_long_outlined, color: AppColors.info),
+                    ),
                   ),
                 )),
           ],
@@ -164,6 +192,21 @@ class ParentHomeScreen extends StatelessWidget {
       ],
     );
   }
+
+  Widget _feeFigure(String label, double v, Color c) => Expanded(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(label, style: const TextStyle(fontSize: 11.5, color: AppColors.textSecondary)),
+            const SizedBox(height: 2),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Text(NumberFormat.currency(locale: 'en_IN', symbol: '₹', decimalDigits: 0).format(v), style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: c)),
+            ),
+          ],
+        ),
+      );
 
   Widget _miniStatRow(IconData icon, Color color, String value, String label) {
     return Row(

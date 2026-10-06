@@ -9,6 +9,7 @@ import '../../services/fee_structure_service.dart';
 import '../../services/lookup_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/common.dart';
+import '../finance/finance_students_screen.dart';
 
 class FeeStructureListScreen extends StatefulWidget {
   const FeeStructureListScreen({super.key});
@@ -115,6 +116,73 @@ class _FeeStructureListScreenState extends State<FeeStructureListScreen> {
     }
   }
 
+  /// One class + medium row: how much of its fees has come in and how much is still pending (in %).
+  /// Tapping opens the student-wise list (needs the Finance permission, which owns that data).
+  Widget _classSummaryCard(FeeStructureSummary s) {
+    final canOpen = context.read<Session>().hasPerm('finance_view') && (s.className ?? '').trim().isNotEmpty;
+    final hasFees = s.hasFinanceFigures && s.netTotal > 0;
+    final cls = (s.className ?? '—').trim();
+    final med = (s.sectionName ?? '').trim();
+    final title = med.isEmpty ? cls : '$cls · $med';
+    Widget pill(String text, Color bg, Color fg) => Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+          decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(AppRadius.pill)),
+          child: Text(text, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: fg)),
+        );
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        onTap: !canOpen
+            ? null
+            : () => Navigator.of(context).push(MaterialPageRoute(
+                  builder: (_) => FinanceStudentsScreen(
+                    title: title,
+                    className: cls,
+                    sectionName: med.isEmpty ? null : med,
+                    anyBatch: true,
+                    sort: FinanceSort.balance,
+                  ),
+                )),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(14, 12, 8, 12),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
+                    const SizedBox(height: 2),
+                    Text('${s.studentCount} students • ${s.feeHeads} heads', style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                    const SizedBox(height: 8),
+                    if (hasFees)
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 6,
+                        children: [
+                          pill('Collected ${s.collectedPct}%', AppColors.successSoft, AppColors.success),
+                          pill('Pending ${s.pendingPct}%', s.pendingPct > 0 ? AppColors.warningSoft : AppColors.successSoft, s.pendingPct > 0 ? AppColors.warning : AppColors.success),
+                        ],
+                      )
+                    else
+                      Text(
+                        !s.hasFinanceFigures
+                            ? 'Collected / pending % needs the latest server update'
+                            : s.collectedAmt > 0 ? 'Received ₹${s.collectedAmt.toStringAsFixed(0)} · fee structure not set' : 'No fees assigned yet',
+                        style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
+                      ),
+                  ],
+                ),
+              ),
+              if (canOpen) const Icon(Icons.chevron_right_rounded, color: AppColors.textMuted),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final session = context.watch<Session>();
@@ -155,22 +223,7 @@ class _FeeStructureListScreenState extends State<FeeStructureListScreen> {
                             if (_summary.isNotEmpty) ...[
                               const SizedBox(height: 16),
                               const SectionHeader(title: 'Class Summary'),
-                              ..._summary.map((s) => Card(
-                                    margin: const EdgeInsets.only(bottom: 8),
-                                    child: ListTile(
-                                      dense: true,
-                                      title: Text('${s.className ?? '—'} / ${s.sectionName ?? '—'}'),
-                                      subtitle: Text('${s.studentCount} students • ${s.feeHeads} heads'),
-                                      trailing: Column(
-                                        mainAxisAlignment: MainAxisAlignment.center,
-                                        crossAxisAlignment: CrossAxisAlignment.end,
-                                        children: [
-                                          Text('₹${s.collectedAmt.toStringAsFixed(0)}', style: const TextStyle(color: AppColors.success, fontWeight: FontWeight.w700, fontSize: 12)),
-                                          Text('₹${s.pendingAmt.toStringAsFixed(0)} due', style: const TextStyle(color: AppColors.warning, fontSize: 11)),
-                                        ],
-                                      ),
-                                    ),
-                                  )),
+                              ..._summary.map((s) => _classSummaryCard(s)),
                             ],
                             const SizedBox(height: 16),
                             const SectionHeader(title: 'Fee Heads'),

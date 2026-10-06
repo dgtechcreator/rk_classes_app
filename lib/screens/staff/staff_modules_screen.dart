@@ -19,14 +19,20 @@ import '../attendance/attendance_mark_screen.dart';
 import '../users/user_list_screen.dart';
 import 'coming_soon_screen.dart';
 import 'tasks_notifications_screen.dart';
+import '../teacher_payment/teacher_payment_summary_screen.dart';
 
 class ModuleDef {
-  const ModuleDef(this.label, this.icon, this.permKey, this.group, {this.screenBuilder});
+  const ModuleDef(this.label, this.icon, this.permKey, this.group, {this.screenBuilder, this.visibleWhen});
   final String label;
   final IconData icon;
   final String? permKey; // null = always visible to any staff login
   final String group;
   final WidgetBuilder? screenBuilder; // null = "coming soon" placeholder
+
+  /// Extra rule on top of [permKey] (e.g. a screen meant only for the Teacher role).
+  final bool Function(Session session)? visibleWhen;
+
+  bool isVisibleTo(Session s) => (permKey == null || s.hasPerm(permKey!)) && (visibleWhen?.call(s) ?? true);
 }
 
 Color groupColor(String group) {
@@ -60,6 +66,9 @@ final allModules = [
   ModuleDef('Faculty', Icons.school_outlined, 'faculty_view', 'Staff', screenBuilder: (_) => const FacultyListScreen()),
   ModuleDef('Teacher Attendance', Icons.badge_outlined, 'teacher_attendance', 'Staff', screenBuilder: (_) => const TeacherAttendanceMarkScreen()),
   ModuleDef('Teacher Payment', Icons.currency_rupee, 'teacher_payment', 'Staff', screenBuilder: (_) => const TeacherPaymentListScreen()),
+  ModuleDef('My Payments', Icons.account_balance_wallet_outlined, null, 'Staff',
+      screenBuilder: (_) => const TeacherPaymentSummaryScreen(mine: true),
+      visibleWhen: (s) => !s.isAdmin && s.roleName.toLowerCase().contains('teacher')),
   ModuleDef('Masters', Icons.settings_outlined, 'masters_view', 'Admin', screenBuilder: (_) => const MastersScreen()),
   ModuleDef('Users', Icons.admin_panel_settings_outlined, 'users_view', 'Admin', screenBuilder: (_) => const UserListScreen()),
   ModuleDef('Deleted Records', Icons.restore_from_trash_outlined, 'deleted_records', 'Admin', screenBuilder: (_) => const DeletedRecordsScreen()),
@@ -91,7 +100,7 @@ class _StaffModulesScreenState extends State<StaffModulesScreen> {
   @override
   Widget build(BuildContext context) {
     final session = context.watch<Session>();
-    final visible = allModules.where((m) => m.permKey == null || session.hasPerm(m.permKey!)).toList();
+    final visible = allModules.where((m) => m.isVisibleTo(session)).toList();
     final filtered = _query.isEmpty
         ? visible
         : visible.where((m) => m.label.toLowerCase().contains(_query.toLowerCase())).toList();

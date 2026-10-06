@@ -8,6 +8,7 @@ import '../../models/teacher_payment.dart';
 import '../../services/teacher_payment_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/common.dart';
+import 'teacher_payment_summary_screen.dart';
 
 /// Teacher payment dues + this month's payments — mirrors TeacherPaymentController.Index. The API only
 /// ever returns all-time unpaid dues plus the current month's payments (see service doc comment), so
@@ -97,7 +98,16 @@ class _TeacherPaymentListScreenState extends State<TeacherPaymentListScreen> {
     final session = context.watch<Session>();
     final canEdit = session.isAdmin || session.hasPerm('teacher_payment');
     return Scaffold(
-      appBar: AppBar(title: const Text('Teacher Payment')),
+      appBar: AppBar(
+        title: const Text('Teacher Payment'),
+        actions: [
+          IconButton(
+            tooltip: 'Summary',
+            icon: const Icon(Icons.insights_outlined),
+            onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const TeacherPaymentSummaryScreen())),
+          ),
+        ],
+      ),
       body: _loading
           ? const LoadingView()
           : _error != null

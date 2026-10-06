@@ -7,6 +7,7 @@ import '../../core/session.dart';
 import '../../services/fees_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/common.dart';
+import 'receipt_screen.dart';
 
 /// A student's fee status + collect-payment flow — mirrors FeesController.Pay. Shows fee structure
 /// breakdown, running balance and payment history, with a bottom-sheet form to record a new payment.
@@ -46,13 +47,30 @@ class _FeePayScreenState extends State<FeePayScreen> {
   Future<void> _openCollectSheet() async {
     final info = _info;
     if (info == null) return;
-    final saved = await showModalBottomSheet<bool>(
+    // The sheet returns the new payment's id (0 if the server didn't send one); null = cancelled.
+    final savedId = await showModalBottomSheet<int>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (_) => _CollectPaymentSheet(service: _service, studentId: widget.studentId, balance: info.balance),
     );
-    if (saved == true) _load();
+    if (savedId == null) return;
+    await _load();
+    if (!mounted) return;
+    final p = _info?.paymentHistory.where((x) => x.paymentId == savedId).firstOrNull ?? _info?.paymentHistory.firstOrNull;
+    if (p == null) return;
+    final view = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Payment recorded'),
+        content: Text('${_fmt.format(p.netAmount)} received · ${p.receiptNo}'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Later')),
+          FilledButton.icon(onPressed: () => Navigator.pop(ctx, true), icon: const Icon(Icons.receipt_long_outlined, size: 18), label: const Text('View Receipt')),
+        ],
+      ),
+    );
+    if (view == true && mounted) await ReceiptScreen.open(context, p);
   }
 
   @override
@@ -81,7 +99,7 @@ class _FeePayScreenState extends State<FeePayScreen> {
         children: [
           Row(
             children: [
-              Expanded(child: StatCard(label: 'Total Fee', value: _fmt.format(info.actualFee), color: AppColors.info, icon: Icons.receipt_long_outlined)),
+              Expanded(child: StatCard(label: 'Total Fee', value: _fmt.format(info.netTotal), color: AppColors.info, icon: Icons.receipt_long_outlined)),
               const SizedBox(width: 12),
               Expanded(child: StatCard(label: 'Paid', value: _fmt.format(info.totalPaid), color: AppColors.success, icon: Icons.check_circle_outline)),
             ],
@@ -92,6 +110,17 @@ class _FeePayScreenState extends State<FeePayScreen> {
             color: info.balance > 0 ? AppColors.warning : AppColors.success,
             icon: Icons.account_balance_wallet_outlined,
           ),
+          if (info.additionalCharges > 0 || info.existingDiscount > 0) ...[
+            const SizedBox(height: 8),
+            Text(
+              [
+                'Fee ${_fmt.format(info.actualFee)}',
+                if (info.additionalCharges > 0) '+ charges ${_fmt.format(info.additionalCharges)}',
+                if (info.existingDiscount > 0) '− discount ${_fmt.format(info.existingDiscount)}',
+              ].join(' '),
+              style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+            ),
+          ],
           if (info.dueDate != null) ...[
             const SizedBox(height: 8),
             Text('Due date: ${DateFormat.yMMMd().format(info.dueDate!)}', style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
@@ -118,6 +147,12 @@ class _FeePayScreenState extends State<FeePayScreen> {
                     leading: const CircleAvatar(backgroundColor: AppColors.primarySoft, child: Icon(Icons.check, color: AppColors.primary, size: 18)),
                     title: Text(_fmt.format(p.netAmount), style: const TextStyle(fontWeight: FontWeight.w700)),
                     subtitle: Text('${p.receiptNo} • ${DateFormat.yMMMd().format(p.paymentDate)} • ${p.paymentMode}'),
+                    trailing: IconButton(
+                      tooltip: 'Receipt',
+                      icon: const Icon(Icons.receipt_long_outlined, color: AppColors.info),
+                      onPressed: () => ReceiptScreen.open(context, p),
+                    ),
+                    onTap: () => ReceiptScreen.open(context, p),
                   ),
                 )),
         ],
@@ -163,7 +198,7 @@ class _CollectPaymentSheetState extends State<_CollectPaymentSheet> {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _saving = true);
     try {
-      await widget.service.savePay(
+      final newId = await widget.service.savePay(
         studentId: widget.studentId,
         payingNow: double.parse(_amountCtrl.text.trim()),
         additionalDiscount: double.tryParse(_discountCtrl.text.trim()) ?? 0,
@@ -175,7 +210,7 @@ class _CollectPaymentSheetState extends State<_CollectPaymentSheet> {
       );
       if (mounted) {
         showSnack(context, 'Payment recorded.');
-        Navigator.of(context).pop(true);
+        Navigator.of(context).pop(newId);
       }
     } on ApiException catch (e) {
       if (mounted) showSnack(context, e.message, isError: true);
