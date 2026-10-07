@@ -3,9 +3,11 @@ import 'package:provider/provider.dart';
 
 import '../../core/parent_data_controller.dart';
 import '../../models/student.dart';
+import '../../models/toppers.dart';
 import '../../theme/app_theme.dart';
 import '../../theme/subject_visuals.dart';
 import '../../widgets/common.dart';
+import '../../widgets/toppers_card.dart';
 
 /// Mirrors the reference design's "Grades" screen: subject filter chips + a date strip that
 /// narrow the same underlying [ParentDashboardData.marks] list down to one subject/day.
@@ -54,6 +56,20 @@ class _ParentGradesScreenState extends State<ParentGradesScreen> {
     );
   }
 
+  /// Top 5 of the child's own class: overall, or of the chosen subject when a subject chip is selected.
+  Widget _toppersSection(ClassToppers? t) {
+    if (t == null) return const SizedBox.shrink();
+    final subjectKey = _subject?.trim();
+    final bySubject = subjectKey != null ? t.subjects[subjectKey] : null;
+    final card = bySubject != null
+        ? ToppersCard(title: 'Top 5 in $subjectKey', subtitle: t.classLabel, section: bySubject)
+        : subjectKey != null
+            ? null
+            : ToppersCard(title: 'Class Toppers', subtitle: '${t.classLabel}${t.yearName != null ? ' • ${t.yearName}' : ''} • all tests combined', section: t.overall);
+    if (card == null) return const SizedBox.shrink();
+    return Padding(padding: const EdgeInsets.only(bottom: 16), child: card);
+  }
+
   Widget _buildBody(BuildContext context, ParentDashboardData d) {
     final subjects = <String>{for (final m in d.marks) if ((m.subjectName ?? '').isNotEmpty) m.subjectName!};
     final dates = <DateTime>{
@@ -98,6 +114,7 @@ class _ParentGradesScreenState extends State<ParentGradesScreen> {
             DateStrip(dates: dates, selected: _date, onSelected: (dt) => setState(() => _date = dt)),
             const SizedBox(height: 16),
           ],
+          _toppersSection(context.watch<ParentDataController>().toppers),
           if (filtered.isEmpty)
             const EmptyState(message: 'No test marks match this filter.', icon: Icons.grade_outlined)
           else

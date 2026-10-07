@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 
 import '../models/student.dart';
+import '../models/toppers.dart';
 import '../services/parent_service.dart';
 import 'api_client.dart';
 
@@ -14,6 +15,9 @@ class ParentDataController extends ChangeNotifier {
   List<Student> children = [];
   Student? selected;
   ParentDashboardData? data;
+
+  /// Class toppers for the selected child; stays null when the server has none / is older than the app.
+  ClassToppers? toppers;
 
   Future<void> load() async {
     loading = true;
@@ -34,6 +38,7 @@ class ParentDataController extends ChangeNotifier {
       loading = false;
     }
     notifyListeners();
+    if (selected != null && error == null) _loadToppers(selected!.studentId);
   }
 
   Future<void> selectChild(Student s) async {
@@ -49,5 +54,21 @@ class ParentDataController extends ChangeNotifier {
       loading = false;
     }
     notifyListeners();
+    if (error == null) _loadToppers(s.studentId);
+  }
+
+  /// Separate from the dashboard load so a toppers failure never blocks attendance, marks or fees.
+  Future<void> _loadToppers(int studentId) async {
+    toppers = null;
+    notifyListeners();
+    try {
+      final t = await _service.getToppers(studentId);
+      if (selected?.studentId == studentId) {
+        toppers = t;
+        notifyListeners();
+      }
+    } on ApiException {
+      // toppers stays null: the card is simply hidden
+    }
   }
 }

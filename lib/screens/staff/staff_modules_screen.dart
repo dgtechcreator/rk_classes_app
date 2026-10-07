@@ -16,6 +16,10 @@ import '../students/student_list_screen.dart';
 import '../teacher_attendance/teacher_attendance_mark_screen.dart';
 import '../teacher_payment/teacher_payment_list_screen.dart';
 import '../attendance/attendance_mark_screen.dart';
+import '../marks/top_students_screen.dart';
+import '../lectures/lecture_list_screen.dart';
+import '../lectures/lecture_summary_screen.dart';
+import '../lectures/my_lectures_screen.dart';
 import '../users/user_list_screen.dart';
 import 'coming_soon_screen.dart';
 import 'tasks_notifications_screen.dart';
@@ -59,6 +63,12 @@ final allModules = [
   ModuleDef('Students', Icons.groups_outlined, 'student_view', 'Academics', screenBuilder: (_) => const StudentListScreen()),
   ModuleDef('Attendance', Icons.event_available_outlined, 'attendance_entry', 'Academics', screenBuilder: (_) => const AttendanceMarkScreen()),
   ModuleDef('Marks', Icons.grade_outlined, 'marks_entry', 'Academics', screenBuilder: (_) => const MarksEntryScreen()),
+  ModuleDef('Top Students', Icons.emoji_events_outlined, 'marks_topstudents', 'Academics', screenBuilder: (_) => const TopStudentsScreen()),
+  ModuleDef('Lecture Schedule', Icons.calendar_view_week_outlined, 'lecture_schedule', 'Academics', screenBuilder: (_) => const LectureListScreen()),
+  ModuleDef('Lecture Summary', Icons.pie_chart_outline, 'lecture_summary', 'Academics', screenBuilder: (_) => const LectureSummaryScreen()),
+  ModuleDef('My Lectures', Icons.menu_book_outlined, null, 'Academics',
+      screenBuilder: (_) => const MyLecturesScreen(),
+      visibleWhen: (s) => !s.isAdmin && s.roleName.toLowerCase().contains('teacher')),
   ModuleDef('Fees', Icons.payments_outlined, 'fee_collection', 'Finance', screenBuilder: (_) => const FeeCollectSearchScreen()),
   ModuleDef('Fee Structure', Icons.receipt_long_outlined, 'fee_structure', 'Finance', screenBuilder: (_) => const FeeStructureListScreen()),
   ModuleDef('Expenses', Icons.request_quote_outlined, 'expenses_view', 'Finance', screenBuilder: (_) => const ExpenseListScreen()),

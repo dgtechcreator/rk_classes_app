@@ -418,7 +418,8 @@ class _AttendanceEntryScreenState extends State<AttendanceEntryScreen> {
 /// ‹ [date] › bar with Today / Yesterday chips — shared by the attendance list and entry screens so the
 /// previous-day review works the same everywhere. Future dates are never selectable.
 class AttendanceDateBar extends StatelessWidget {
-  const AttendanceDateBar({super.key, required this.date, required this.onChanged, required this.onPick});
+  const AttendanceDateBar({super.key, required this.date, required this.onChanged, required this.onPick, this.allowFuture = false});
+  final bool allowFuture;
   final DateTime date;
   final ValueChanged<DateTime> onChanged;
   final VoidCallback onPick;
@@ -463,7 +464,7 @@ class AttendanceDateBar extends StatelessWidget {
               ),
               IconButton.filledTonal(
                 tooltip: 'Next day',
-                onPressed: isToday ? null : () => onChanged(date.add(const Duration(days: 1))),
+                onPressed: (isToday && !allowFuture) ? null : () => onChanged(date.add(const Duration(days: 1))),
                 icon: const Icon(Icons.chevron_right),
               ),
             ],
@@ -476,6 +477,10 @@ class AttendanceDateBar extends StatelessWidget {
               const SizedBox(width: 8),
               ChoiceChip(label: const Text('Yesterday'), selected: isYesterday, onSelected: (_) => onChanged(today.subtract(const Duration(days: 1)))),
               const SizedBox(width: 8),
+              if (allowFuture) ...[
+                ChoiceChip(label: const Text('Tomorrow'), selected: DateUtils.isSameDay(date, today.add(const Duration(days: 1))), onSelected: (_) => onChanged(today.add(const Duration(days: 1)))),
+                const SizedBox(width: 8),
+              ],
               ActionChip(avatar: const Icon(Icons.history, size: 16), label: const Text('Pick date'), onPressed: onPick),
             ],
           ),

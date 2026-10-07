@@ -1,5 +1,6 @@
 import '../core/api_client.dart';
 import '../models/student.dart';
+import '../models/toppers.dart';
 
 class ParentService {
   final _client = ApiClient.instance;
@@ -18,6 +19,12 @@ class ParentService {
     final res = await _client.get('/api/parent/top5', query: {'studentId': studentId, 'subjectName': subjectName});
     final data = res.data as Map<String, dynamic>;
     return data['top5'] as List? ?? [];
+  }
+
+  /// Top 5 (overall + per subject) of the child's own class and medium.
+  Future<ClassToppers> getToppers(int studentId) async {
+    final res = await _client.get('/api/parent/toppers', query: {'studentId': studentId});
+    return ClassToppers.fromJson(res.data as Map<String, dynamic>);
   }
 
   Future<void> sendContactMessage({required String name, required String email, required String subject, required String message}) async {
