@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/api_client.dart';
@@ -10,11 +9,13 @@ import '../../services/attendance_service.dart';
 import '../../services/lookup_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/common.dart';
+import 'attendance_entry_screen.dart';
 import 'attendance_report_screen.dart';
 
-/// Daily "take attendance" flow — mirrors AttendanceController.Index + Save. Pick a date and a
-/// class/section/batch, get every student in that combo defaulted to Present, tap each student's chip
-/// row to change their status, then Save All posts the batch in one AttSaveReq.
+/// Attendance home — mirrors the web Attendance page. For the chosen date it lists every attendance
+/// batch as a card (green = attendance taken, light red = still pending, with present/total); tapping a
+/// card opens that batch's entry screen, pre-filled when the day was already marked. The "By class"
+/// tab is the Class/Section/Batch filter for ad-hoc groups. Any past date can be picked to review it.
 class AttendanceMarkScreen extends StatefulWidget {
   const AttendanceMarkScreen({super.key});
 
@@ -26,94 +27,93 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
   final _service = AttendanceService();
   final _lookup = LookupService();
 
-  bool _loadingFilters = true;
-  bool _loadingList = false;
-  bool _saving = false;
+  DateTime _date = DateUtils.dateOnly(DateTime.now());
+  bool _byClass = false;
+
+  bool _loadingBatches = true;
+  String? _batchesError;
+  List<AttendanceBatchSummary> _batches = [];
+
+  bool _loadingFilters = false;
+  bool _filtersLoaded = false;
   String? _filtersError;
-  String? _listError;
-
-  List<LookupItem> _classes = [], _sections = [], _batches = [];
-  DateTime _date = DateTime.now();
+  List<LookupItem> _classes = [], _sections = [], _batchLookup = [];
   int? _classId, _sectionId, _batchId;
-
-  List<AttendanceRecord> _records = [];
-  final Map<int, String> _statuses = {};
 
   @override
   void initState() {
     super.initState();
-    _loadFilters();
+    _loadBatches();
+  }
+
+  Future<void> _loadBatches() async {
+    setState(() { _loadingBatches = true; _batchesError = null; });
+    final requested = _date;
+    try {
+      final list = await _service.getBatches(requested);
+      // Ignore a slow answer for a date the user already moved away from.
+      if (!mounted || requested != _date) return;
+      setState(() { _batches = list; _loadingBatches = false; });
+    } on ApiException catch (e) {
+      if (mounted && requested == _date) setState(() { _batchesError = e.message; _loadingBatches = false; });
+    }
   }
 
   Future<void> _loadFilters() async {
+    if (_filtersLoaded || _loadingFilters) return;
     setState(() { _loadingFilters = true; _filtersError = null; });
     try {
       final classes = await _lookup.getClasses();
       final sections = await _lookup.getSections();
       final batches = await _lookup.getBatches();
       if (!mounted) return;
-      setState(() { _classes = classes; _sections = sections; _batches = batches; _loadingFilters = false; });
+      setState(() { _classes = classes; _sections = sections; _batchLookup = batches; _loadingFilters = false; _filtersLoaded = true; });
     } on ApiException catch (e) {
       if (mounted) setState(() { _filtersError = e.message; _loadingFilters = false; });
     }
   }
 
-  Future<void> _load() async {
-    if (_classId == null) {
-      setState(() { _records = []; _statuses.clear(); _listError = null; });
-      return;
-    }
-    setState(() { _loadingList = true; _listError = null; });
-    try {
-      final result = await _service.getForDate(date: _date, classId: _classId, sectionId: _sectionId, batchId: _batchId);
-      if (!mounted) return;
-      setState(() {
-        _records = result.records;
-        _statuses
-          ..clear()
-          ..addEntries(result.records.map((r) => MapEntry(r.studentId, r.attendanceStatus)));
-        _loadingList = false;
-      });
-    } on ApiException catch (e) {
-      if (mounted) setState(() { _listError = e.message; _loadingList = false; });
-    }
+  void _setDate(DateTime d) {
+    final day = DateUtils.dateOnly(d);
+    if (day.isAfter(DateUtils.dateOnly(DateTime.now())) || DateUtils.isSameDay(day, _date)) return;
+    setState(() => _date = day);
+    _loadBatches();
   }
 
   Future<void> _pickDate() async {
-    final picked = await showDatePicker(context: context, initialDate: _date, firstDate: DateTime(2020), lastDate: DateTime.now());
-    if (picked == null) return;
-    setState(() => _date = picked);
-    _load();
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _date,
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now(),
+      helpText: 'Attendance date',
+    );
+    if (picked != null) _setDate(picked);
   }
 
-  void _setStatus(int studentId, String status) => setState(() => _statuses[studentId] = status);
+  Future<void> _openBatch(AttendanceBatchSummary b) async {
+    await Navigator.of(context).push<bool>(MaterialPageRoute(
+      builder: (_) => AttendanceEntryScreen(title: b.batchName, date: _date, attBatchId: b.batchId),
+    ));
+    if (mounted) _loadBatches();
+  }
 
-  int get _presentCount => _statuses.values.where((s) => s == 'Present').length;
-  int get _absentCount => _statuses.values.where((s) => s == 'Absent').length;
-  int get _lateCount => _statuses.values.where((s) => s == 'Late').length;
+  String _lookupName(List<LookupItem> items, int? id) => items.where((e) => e.id == id).map((e) => e.name).firstOrNull ?? '';
 
-  Future<void> _saveAll() async {
-    if (_records.isEmpty) return;
-    setState(() => _saving = true);
-    try {
-      final message = await _service.save(
+  Future<void> _openClassFilter() async {
+    final label = [_lookupName(_classes, _classId), _lookupName(_sections, _sectionId), _lookupName(_batchLookup, _batchId)]
+        .where((e) => e.isNotEmpty)
+        .join(' / ');
+    await Navigator.of(context).push<bool>(MaterialPageRoute(
+      builder: (_) => AttendanceEntryScreen(
+        title: label.isEmpty ? 'Attendance' : label,
         date: _date,
         classId: _classId,
         sectionId: _sectionId,
         batchId: _batchId,
-        entries: _records
-            .map((r) => {'studentId': r.studentId, 'status': _statuses[r.studentId] ?? 'Present', 'remarks': null})
-            .toList(),
-      );
-      if (mounted) {
-        showSnack(context, message);
-        _load();
-      }
-    } on ApiException catch (e) {
-      if (mounted) showSnack(context, e.message, isError: true);
-    } finally {
-      if (mounted) setState(() => _saving = false);
-    }
+      ),
+    ));
+    if (mounted) _loadBatches();
   }
 
   @override
@@ -138,71 +138,118 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
             ),
         ],
       ),
-      body: _loadingFilters
-          ? const LoadingView()
-          : _filtersError != null
-              ? ErrorView(message: _filtersError!, onRetry: _loadFilters)
-              : Column(
-                  children: [
-                    _buildFilters(),
-                    if (_records.isNotEmpty) _buildStats(),
-                    Expanded(child: _buildBody()),
-                  ],
-                ),
-      bottomNavigationBar: _records.isEmpty
-          ? null
-          : SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-                child: ElevatedButton(
-                  onPressed: _saving ? null : _saveAll,
-                  child: _saving
-                      ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                      : Text('Save All (${_records.length})'),
-                ),
+      body: Column(
+        children: [
+          AttendanceDateBar(date: _date, onChanged: _setDate, onPick: _pickDate),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 4, 12, 8),
+            child: SizedBox(
+              width: double.infinity,
+              child: SegmentedButton<bool>(
+                showSelectedIcon: false,
+                segments: const [
+                  ButtonSegment(value: false, icon: Icon(Icons.layers_outlined, size: 18), label: Text('Batches')),
+                  ButtonSegment(value: true, icon: Icon(Icons.filter_alt_outlined, size: 18), label: Text('By class')),
+                ],
+                selected: {_byClass},
+                onSelectionChanged: (s) {
+                  setState(() => _byClass = s.first);
+                  if (_byClass) _loadFilters();
+                },
               ),
             ),
+          ),
+          Expanded(child: _byClass ? _buildClassFilter() : _buildBatches()),
+        ],
+      ),
     );
   }
 
-  Widget _buildFilters() {
+  // ── Batches tab ──────────────────────────────────────────────────────────────────────────────
+
+  Widget _buildBatches() {
+    if (_loadingBatches) return const LoadingView();
+    if (_batchesError != null) return ErrorView(message: _batchesError!, onRetry: _loadBatches);
+    if (_batches.isEmpty) {
+      return RefreshIndicator(
+        onRefresh: _loadBatches,
+        child: ListView(children: const [
+          SizedBox(height: 60),
+          EmptyState(
+            message: 'No attendance batches yet.\nCreate them in Masters → Attendance Batches, or use the "By class" tab.',
+            icon: Icons.layers_outlined,
+          ),
+        ]),
+      );
+    }
+
+    final done = _batches.where((b) => b.isMarked).length;
+    return RefreshIndicator(
+      onRefresh: _loadBatches,
+      child: ListView.separated(
+        padding: const EdgeInsets.fromLTRB(12, 0, 12, 24),
+        itemCount: _batches.length + 1,
+        separatorBuilder: (_, _) => const SizedBox(height: 10),
+        itemBuilder: (_, i) {
+          if (i == 0) return _legend(done, _batches.length);
+          final b = _batches[i - 1];
+          return AttendanceBatchCard(batch: b, onTap: () => _openBatch(b));
+        },
+      ),
+    );
+  }
+
+  Widget _legend(int done, int total) {
+    Widget dot(Color c, String t) => Row(mainAxisSize: MainAxisSize.min, children: [
+          Container(width: 10, height: 10, decoration: BoxDecoration(color: c, shape: BoxShape.circle)),
+          const SizedBox(width: 5),
+          Text(t, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textSecondary)),
+        ]);
     return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
-      child: Column(
+      padding: const EdgeInsets.only(bottom: 2),
+      child: Row(
         children: [
-          InkWell(
-            onTap: _pickDate,
-            child: InputDecorator(
-              decoration: const InputDecoration(labelText: 'Date', suffixIcon: Icon(Icons.calendar_today_outlined, size: 18)),
-              child: Text(DateFormat.yMMMd().format(_date)),
-            ),
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: _dropdown('Class', _classId, _classes, (v) {
-                  setState(() { _classId = v; _sectionId = null; _batchId = null; });
-                  _load();
-                }),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _dropdown('Section', _sectionId, _sections, (v) {
-                  setState(() => _sectionId = v);
-                  _load();
-                }),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          _dropdown('Batch', _batchId, _batches, (v) {
-            setState(() => _batchId = v);
-            _load();
-          }),
-          const SizedBox(height: 12),
+          dot(AppColors.success, 'Marked'),
+          const SizedBox(width: 14),
+          dot(const Color(0xFFF87171), 'Pending'),
+          const Spacer(),
+          Text('$done of $total marked', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
         ],
       ),
+    );
+  }
+
+  // ── By class tab ─────────────────────────────────────────────────────────────────────────────
+
+  Widget _buildClassFilter() {
+    if (_loadingFilters) return const LoadingView();
+    if (_filtersError != null) return ErrorView(message: _filtersError!, onRetry: () { _filtersLoaded = false; _loadFilters(); });
+    final hasFilter = _classId != null || _sectionId != null || _batchId != null;
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(12, 4, 12, 24),
+      children: [
+        Row(
+          children: [
+            Expanded(child: _dropdown('Class', _classId, _classes, (v) => setState(() => _classId = v))),
+            const SizedBox(width: 12),
+            Expanded(child: _dropdown('Section', _sectionId, _sections, (v) => setState(() => _sectionId = v))),
+          ],
+        ),
+        const SizedBox(height: 12),
+        _dropdown('Batch', _batchId, _batchLookup, (v) => setState(() => _batchId = v)),
+        const SizedBox(height: 16),
+        ElevatedButton.icon(
+          onPressed: hasFilter ? _openClassFilter : null,
+          icon: const Icon(Icons.groups_outlined),
+          label: const Text('Load students'),
+        ),
+        if (!hasFilter)
+          const Padding(
+            padding: EdgeInsets.only(top: 12),
+            child: Text('Pick a class, section or batch to load students.',
+                textAlign: TextAlign.center, style: TextStyle(color: AppColors.textSecondary)),
+          ),
+      ],
     );
   }
 
@@ -218,105 +265,69 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
       onChanged: onChanged,
     );
   }
-
-  Widget _buildStats() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
-      child: Row(
-        children: [
-          Expanded(child: StatCard(label: 'Present', value: '$_presentCount', color: AppColors.present, icon: Icons.check_circle_outline)),
-          const SizedBox(width: 10),
-          Expanded(child: StatCard(label: 'Absent', value: '$_absentCount', color: AppColors.absent, icon: Icons.cancel_outlined)),
-          const SizedBox(width: 10),
-          Expanded(child: StatCard(label: 'Late', value: '$_lateCount', color: AppColors.late, icon: Icons.schedule_outlined)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildBody() {
-    if (_classId == null) {
-      return const EmptyState(message: 'Pick a class to load students.', icon: Icons.groups_outlined);
-    }
-    if (_loadingList) return const LoadingView();
-    if (_listError != null) return ErrorView(message: _listError!, onRetry: _load);
-    if (_records.isEmpty) {
-      return const EmptyState(message: 'No students found for this class/section/batch.', icon: Icons.groups_outlined);
-    }
-
-    return RefreshIndicator(
-      onRefresh: _load,
-      child: ListView.separated(
-        padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
-        itemCount: _records.length,
-        separatorBuilder: (_, _) => const SizedBox(height: 8),
-        itemBuilder: (_, i) => _StudentAttendanceTile(
-          record: _records[i],
-          status: _statuses[_records[i].studentId] ?? 'Present',
-          onChanged: (s) => _setStatus(_records[i].studentId, s),
-        ),
-      ),
-    );
-  }
 }
 
-class _StudentAttendanceTile extends StatelessWidget {
-  const _StudentAttendanceTile({required this.record, required this.status, required this.onChanged});
-  final AttendanceRecord record;
-  final String status;
-  final ValueChanged<String> onChanged;
+/// One attendance batch for the selected date: green when attendance was taken, light red while it is
+/// still pending. The pill on the right is present / total (e.g. 15/20).
+class AttendanceBatchCard extends StatelessWidget {
+  const AttendanceBatchCard({super.key, required this.batch, required this.onTap});
+  final AttendanceBatchSummary batch;
+  final VoidCallback onTap;
+
+  static const _pendingBg = Color(0xFFFEE2E2);
+  static const _pendingBorder = Color(0xFFFCA5A5);
+  static const _pendingText = Color(0xFF991B1B);
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        child: Row(
-          children: [
-            CircleAvatar(
-              backgroundColor: AppColors.primarySoft,
-              child: Text(
-                record.fullName.isNotEmpty ? record.fullName[0].toUpperCase() : '?',
-                style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(record.fullName, style: const TextStyle(fontWeight: FontWeight.w600), overflow: TextOverflow.ellipsis),
-                  Text(record.rollNo?.isNotEmpty == true ? '${record.admissionNo} • Roll ${record.rollNo}' : record.admissionNo,
-                      style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
-                ],
-              ),
-            ),
-            _statusChip('P', 'Present', AppColors.present),
-            const SizedBox(width: 6),
-            _statusChip('A', 'Absent', AppColors.absent),
-            const SizedBox(width: 6),
-            _statusChip('L', 'Late', AppColors.late),
-          ],
-        ),
-      ),
-    );
-  }
+    final done = batch.isMarked;
+    final bg = done ? const Color(0xFF16A34A) : _pendingBg;
+    final fg = done ? Colors.white : _pendingText;
+    final subtitle = !done
+        ? 'Not marked yet'
+        : [
+            'Absent ${batch.absent}',
+            if (batch.late > 0) 'Late ${batch.late}',
+            if (batch.pending > 0) '${batch.pending} pending',
+          ].join(' · ');
 
-  Widget _statusChip(String label, String value, Color color) {
-    final selected = status == value;
-    return InkWell(
-      onTap: () => onChanged(value),
-      borderRadius: BorderRadius.circular(20),
-      child: Container(
-        width: 34,
-        height: 34,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: selected ? color : color.withValues(alpha: 0.10),
-          shape: BoxShape.circle,
-          border: Border.all(color: color, width: selected ? 0 : 1),
+    return Material(
+      color: bg,
+      borderRadius: BorderRadius.circular(AppRadius.md),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(AppRadius.md),
+            border: Border.all(color: done ? const Color(0xFF15803D) : _pendingBorder, width: 1.5),
+          ),
+          child: Row(
+            children: [
+              Icon(done ? Icons.check_circle : Icons.pending_outlined, color: fg, size: 24),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(batch.batchName, style: TextStyle(color: fg, fontWeight: FontWeight.w800, fontSize: 15), maxLines: 2, overflow: TextOverflow.ellipsis),
+                    const SizedBox(height: 3),
+                    Text(subtitle, style: TextStyle(color: fg.withValues(alpha: 0.9), fontSize: 12, fontWeight: FontWeight.w600)),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 10),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.95), borderRadius: BorderRadius.circular(AppRadius.pill)),
+                child: Text('${batch.present}/${batch.total}',
+                    style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w800, fontSize: 16)),
+              ),
+              Icon(Icons.chevron_right, color: fg.withValues(alpha: 0.8)),
+            ],
+          ),
         ),
-        child: Text(label, style: TextStyle(color: selected ? Colors.white : color, fontWeight: FontWeight.w700, fontSize: 13)),
       ),
     );
   }

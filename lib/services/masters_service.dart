@@ -97,4 +97,43 @@ class MastersService {
       });
 
   Future<void> deleteSubject(int id) => _client.post('/api/masters/subjects/$id/delete');
+
+  // ── Attendance batches (groups of students for the green/red attendance cards) ──────────────
+
+  Future<List<AttendanceBatchInfo>> getAttendanceBatches() async {
+    final res = await _client.get('/api/masters/attendance-batches');
+    final data = res.data as Map<String, dynamic>;
+    return (data['attendanceBatches'] as List? ?? []).map((e) => AttendanceBatchInfo.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
+  Future<AttendanceBatchInfo> getAttendanceBatch(int batchId) async {
+    final res = await _client.get('/api/masters/attendance-batches/$batchId/edit');
+    final data = res.data as Map<String, dynamic>;
+    return AttendanceBatchInfo.fromJson(data['batch'] as Map<String, dynamic>);
+  }
+
+  /// Active students for the picker; pass nothing to list everyone ([classId] 0 means "all classes").
+  Future<List<BatchStudentOption>> getStudentsForAttendanceBatch({int? classId, int? sectionId, int? batchId}) async {
+    final res = await _client.get('/api/masters/attendance-batches/students', query: {
+      'classId': classId ?? 0,
+      if (sectionId != null) 'sectionId': sectionId,
+      if (batchId != null) 'batchId': batchId,
+    });
+    final data = res.data;
+    if (data is Map<String, dynamic> && data['error'] != null) throw ApiException(data['error'].toString());
+    return (data as List).map((e) => BatchStudentOption.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
+  /// [batchId] 0 creates a new batch, anything else updates that batch (name + students).
+  Future<void> saveAttendanceBatch({required int batchId, required String batchName, required List<int> studentIds}) async {
+    final res = batchId == 0
+        ? await _client.post('/api/masters/attendance-batches/create', data: {'batchName': batchName, 'studentIds': studentIds})
+        : await _client.post('/api/masters/attendance-batches/save', data: {'batchId': batchId, 'batchName': batchName, 'studentIds': studentIds});
+    final data = res.data;
+    if (data is Map<String, dynamic> && data['success'] == false) {
+      throw ApiException(data['message']?.toString() ?? 'Could not save the batch.');
+    }
+  }
+
+  Future<void> deleteAttendanceBatch(int id) => _client.post('/api/masters/attendance-batches/$id/delete');
 }

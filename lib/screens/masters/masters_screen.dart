@@ -5,6 +5,7 @@ import '../../models/masters.dart';
 import '../../services/masters_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/common.dart';
+import 'attendance_batches_tab.dart';
 import 'message_templates_tab.dart';
 
 /// Single admin settings screen mirroring MastersController.Index, which shows Academic Years,
@@ -26,7 +27,7 @@ class _MastersScreenState extends State<MastersScreen> with SingleTickerProvider
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 7, vsync: this);
+    _tabController = TabController(length: 8, vsync: this);
   }
 
   @override
@@ -49,6 +50,7 @@ class _MastersScreenState extends State<MastersScreen> with SingleTickerProvider
             Tab(text: 'Sections'),
             Tab(text: 'Batches'),
             Tab(text: 'Subjects'),
+            Tab(text: 'Att. Batches'),
             Tab(text: 'Expenses'),
             Tab(text: 'Templates'),
           ],
@@ -86,6 +88,7 @@ class _MastersScreenState extends State<MastersScreen> with SingleTickerProvider
             onDelete: _service.deleteBatch,
           ),
           const _SubjectsTab(),
+          const AttendanceBatchesTab(),
           _SimpleNameTab<ExpenseCategory>(
             emptyMessage: 'No expense categories found.',
             emptyIcon: Icons.request_quote_outlined,

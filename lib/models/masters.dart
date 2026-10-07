@@ -146,3 +146,43 @@ class MasterSubject {
         isActive: j['isActive'] == null ? true : _asBool(j['isActive']),
       );
 }
+
+/// A named group of students used for one-tap attendance (e.g. "5th English Morning").
+class AttendanceBatchInfo {
+  AttendanceBatchInfo({required this.batchId, required this.batchName, required this.studentIds});
+  final int batchId;
+  final String batchName;
+  final List<int> studentIds;
+  int get studentCount => studentIds.length;
+
+  factory AttendanceBatchInfo.fromJson(Map<String, dynamic> j) => AttendanceBatchInfo(
+        batchId: _asInt(j['batchId']),
+        batchName: _asString(j['batchName']),
+        studentIds: ((j['studentIds'] as List?) ?? const []).map(_asInt).toList(),
+      );
+}
+
+/// A student row shown while picking members of an attendance batch.
+class BatchStudentOption {
+  BatchStudentOption({required this.studentId, required this.fullName, required this.admissionNo, this.className, this.sectionName, this.batchName});
+  final int studentId;
+  final String fullName;
+  final String admissionNo;
+  final String? className;
+  final String? sectionName;
+  final String? batchName;
+
+  String get details => [admissionNo, className, sectionName, batchName]
+      .where((e) => e != null && e.trim().isNotEmpty)
+      .map((e) => e!.trim())
+      .join(' • ');
+
+  factory BatchStudentOption.fromJson(Map<String, dynamic> j) => BatchStudentOption(
+        studentId: _asInt(j['studentId']),
+        fullName: _asString(j['fullName']),
+        admissionNo: _asString(j['admissionNo']),
+        className: _asStringN(j['className']),
+        sectionName: _asStringN(j['sectionName']),
+        batchName: _asStringN(j['batchName']),
+      );
+}

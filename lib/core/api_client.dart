@@ -16,8 +16,9 @@ class ApiConfig {
   // true  = local SchoolMS.Web on this PC (database stays the live one). The phone reaches it over USB via
   //         `adb reverse tcp:5299 tcp:5299`, so keep the cable connected while this is on.
   // false = live server. Set this to false (then rebuild) before shipping the app.
-  static const bool useLocalBackend = false;
+  static const bool useLocalBackend = true;
   static const String _localUrl = 'http://127.0.0.1:5299';
+  //static const String _localUrl = 'http://localhost:44374'; //personal laptop
   static const String _liveUrl = 'https://rkclasses.jmmportal.com';
   // --dart-define=API_BASE=... still overrides both.
   static const String baseUrl = String.fromEnvironment('API_BASE', defaultValue: useLocalBackend ? _localUrl : _liveUrl);

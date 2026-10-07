@@ -15,7 +15,10 @@ class AttendanceIndexResult {
     this.endTime,
     required this.totalPresent,
     required this.totalAbsent,
+    this.totalLate = 0,
     required this.totalMarked,
+    this.batchId,
+    this.batchName,
   });
 
   final DateTime date;
@@ -26,7 +29,17 @@ class AttendanceIndexResult {
   final String? endTime;
   final int totalPresent;
   final int totalAbsent;
+  final int totalLate;
+  /// Students that already have a saved row for the date (the rest default to Present until saved).
   final int totalMarked;
+  final int? batchId;
+  final String? batchName;
+}
+
+class AttendanceOptions {
+  AttendanceOptions({required this.subjects, required this.teachers});
+  final List<String> subjects;
+  final List<AttendanceTeacher> teachers;
 }
 
 class AttendanceReportResult {
@@ -50,6 +63,25 @@ class AttendanceDateGridResult {
 class AttendanceService {
   final _client = ApiClient.instance;
 
+  AttendanceIndexResult _parseDay(Map<String, dynamic> data, DateTime fallback) {
+    final records = (data['records'] as List? ?? []).map((e) => AttendanceRecord.fromJson(e as Map<String, dynamic>)).toList();
+    int n(String k) => (data[k] as num?)?.toInt() ?? 0;
+    return AttendanceIndexResult(
+      date: DateTime.tryParse(data['date']?.toString() ?? '') ?? fallback,
+      records: records,
+      subject: data['subject']?.toString(),
+      sirName: data['sirName']?.toString(),
+      startTime: data['startTime']?.toString(),
+      endTime: data['endTime']?.toString(),
+      totalPresent: n('totalPresent'),
+      totalAbsent: n('totalAbsent'),
+      totalLate: n('totalLate'),
+      totalMarked: n('totalMarked'),
+      batchId: (data['batchId'] as num?)?.toInt(),
+      batchName: data['batchName']?.toString(),
+    );
+  }
+
   Future<AttendanceIndexResult> getForDate({DateTime? date, int? classId, int? sectionId, int? batchId}) async {
     final d = date ?? DateTime.now();
     final res = await _client.get('/api/attendance', query: {
@@ -58,18 +90,39 @@ class AttendanceService {
       if (sectionId != null) 'sectionId': sectionId,
       if (batchId != null) 'batchId': batchId,
     });
+    return _parseDay(res.data as Map<String, dynamic>, d);
+  }
+
+  /// Every attendance batch with its present/total for [date] (green = marked, light red = pending).
+  Future<List<AttendanceBatchSummary>> getBatches(DateTime date) async {
+    final res = await _client.get('/api/attendance/batches', query: {'date': _fmtDate(date)});
     final data = res.data as Map<String, dynamic>;
-    final records = (data['records'] as List? ?? []).map((e) => AttendanceRecord.fromJson(e as Map<String, dynamic>)).toList();
-    return AttendanceIndexResult(
-      date: DateTime.tryParse(data['date']?.toString() ?? '') ?? d,
-      records: records,
-      subject: data['subject']?.toString(),
-      sirName: data['sirName']?.toString(),
-      startTime: data['startTime']?.toString(),
-      endTime: data['endTime']?.toString(),
-      totalPresent: data['totalPresent'] as int? ?? 0,
-      totalAbsent: data['totalAbsent'] as int? ?? 0,
-      totalMarked: data['totalMarked'] as int? ?? 0,
+    return (data['batches'] as List? ?? []).map((e) => AttendanceBatchSummary.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
+  /// One batch's students for [date]; a day that was already marked comes back filled in.
+  Future<AttendanceIndexResult> getBatchDetail(int attBatchId, DateTime date) async {
+    final res = await _client.get('/api/attendance/batch/$attBatchId', query: {'date': _fmtDate(date)});
+    return _parseDay(res.data as Map<String, dynamic>, date);
+  }
+
+  Future<AttendanceOptions> getOptions() async {
+    final res = await _client.get('/api/attendance/options');
+    final data = res.data as Map<String, dynamic>;
+    return AttendanceOptions(
+      subjects: (data['subjects'] as List? ?? []).map((e) => e.toString()).toList(),
+      teachers: (data['teachers'] as List? ?? []).map((e) => AttendanceTeacher.fromJson(e as Map<String, dynamic>)).toList(),
+    );
+  }
+
+  /// Father / mother / student numbers (the attendance list itself does not carry phones).
+  Future<({String father, String mother, String student})> getStudentContact(int studentId) async {
+    final res = await _client.get('/api/attendance/student-contact', query: {'studentId': studentId});
+    final m = res.data as Map<String, dynamic>;
+    return (
+      father: m['fatherPhone']?.toString() ?? '',
+      mother: m['motherPhone']?.toString() ?? '',
+      student: m['studentPhone']?.toString() ?? '',
     );
   }
 
@@ -78,6 +131,7 @@ class AttendanceService {
     int? classId,
     int? sectionId,
     int? batchId,
+    int? attBatchId,
     String? subject,
     String? sirName,
     String? startTime,
@@ -89,6 +143,7 @@ class AttendanceService {
       'classId': classId,
       'sectionId': sectionId,
       'batchId': batchId,
+      'attBatchId': attBatchId,
       'subject': subject,
       'sirName': sirName,
       'startTime': startTime,

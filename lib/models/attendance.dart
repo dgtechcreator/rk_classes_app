@@ -133,3 +133,49 @@ class DateAttendanceEntry {
         status: j['status'] == null ? 'Present' : _asString(j['status']),
       );
 }
+
+/// One attendance batch (a named group of students, e.g. "5th English Morning") for a single date —
+/// mirrors AttendanceApiController `batches`. Drives the green (marked) / light-red (pending) cards.
+class AttendanceBatchSummary {
+  AttendanceBatchSummary({
+    required this.batchId,
+    required this.batchName,
+    required this.total,
+    required this.present,
+    required this.absent,
+    required this.late,
+    required this.marked,
+  });
+
+  final int batchId;
+  final String batchName;
+  final int total;
+  final int present;
+  final int absent;
+  final int late;
+  /// Students that already have a saved attendance row for the date.
+  final int marked;
+
+  bool get isMarked => marked > 0;
+  int get pending => total - marked;
+
+  factory AttendanceBatchSummary.fromJson(Map<String, dynamic> j) => AttendanceBatchSummary(
+        batchId: _asInt(j['batchId']),
+        batchName: _asString(j['batchName']),
+        total: _asInt(j['total']),
+        present: _asInt(j['present']),
+        absent: _asInt(j['absent']),
+        late: _asInt(j['late']),
+        marked: _asInt(j['marked']),
+      );
+}
+
+/// Teacher choice for the lecture-details fields (value saved is [fullName], like the web dropdown).
+class AttendanceTeacher {
+  AttendanceTeacher({required this.fullName, required this.displayName});
+  final String fullName;
+  final String displayName;
+
+  factory AttendanceTeacher.fromJson(Map<String, dynamic> j) =>
+      AttendanceTeacher(fullName: _asString(j['fullName']), displayName: _asString(j['displayName'])) ;
+}
