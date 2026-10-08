@@ -116,11 +116,50 @@ class _FeeStructureListScreenState extends State<FeeStructureListScreen> {
     }
   }
 
+  static String _n(String? v) => (v ?? '').trim().toLowerCase();
+
+  /// Fee heads that belong to one class + medium summary card.
+  List<FeeStructure> _headsOf(FeeStructureSummary s) =>
+      _list.where((f) => _n(f.className) == _n(s.className) && _n(f.sectionName) == _n(s.sectionName)).toList();
+
+  /// Deletes every fee head of one class + medium in one go (same soft-delete as the single-head delete:
+  /// unpaid student fees for those heads go, paid ones stay).
+  Future<void> _deleteClassHeads(FeeStructureSummary s) async {
+    final heads = _headsOf(s);
+    if (heads.isEmpty) return;
+    final title = [(s.className ?? '').trim(), (s.sectionName ?? '').trim()].where((e) => e.isNotEmpty).join(' · ');
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete Fee Structure'),
+        content: Text('Delete all ${heads.length} fee head${heads.length == 1 ? '' : 's'} of $title '
+            '(${heads.map((h) => h.feeTypeName ?? 'Fee').join(', ')})?\n\nUnpaid student fees for these heads will be removed. Paid fees stay.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Delete', style: TextStyle(color: AppColors.danger))),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    var deleted = 0;
+    try {
+      for (final h in heads) {
+        await _service.delete(h.structureId);
+        deleted++;
+      }
+      if (mounted) showSnack(context, '$deleted fee head${deleted == 1 ? '' : 's'} deleted.');
+    } on ApiException catch (e) {
+      if (mounted) showSnack(context, 'Deleted $deleted of ${heads.length}. ${e.message}', isError: true);
+    }
+    _load();
+  }
+
   /// One class + medium row: how much of its fees has come in and how much is still pending (in %).
   /// Tapping opens the student-wise list (needs the Finance permission, which owns that data).
   Widget _classSummaryCard(FeeStructureSummary s) {
     final canOpen = context.read<Session>().hasPerm('finance_view') && (s.className ?? '').trim().isNotEmpty;
     final hasFees = s.hasFinanceFigures && s.netTotal > 0;
+    final canDelete = (context.read<Session>().isAdmin || context.read<Session>().hasPerm('fee_structure')) && _headsOf(s).isNotEmpty;
     final cls = (s.className ?? '—').trim();
     final med = (s.sectionName ?? '').trim();
     final title = med.isEmpty ? cls : '$cls · $med';
@@ -175,6 +214,12 @@ class _FeeStructureListScreenState extends State<FeeStructureListScreen> {
                   ],
                 ),
               ),
+              if (canDelete)
+                IconButton(
+                  icon: const Icon(Icons.delete_outline, color: AppColors.danger, size: 20),
+                  tooltip: 'Delete fee structure',
+                  onPressed: () => _deleteClassHeads(s),
+                ),
               if (canOpen) const Icon(Icons.chevron_right_rounded, color: AppColors.textMuted),
             ],
           ),

@@ -179,7 +179,7 @@ class ParentHomeScreen extends StatelessWidget {
                     decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(AppRadius.md), boxShadow: AppShadows.soft),
                     child: ListTile(
                       dense: true,
-                      onTap: () => ReceiptScreen.openForParent(context, p, student: ctrl.selected ?? d.student, balance: d.balance, dueDate: d.dueDate),
+                      onTap: () => ReceiptScreen.openForParent(context, p, student: ctrl.selected ?? d.student),
                       leading: const CircleAvatar(radius: 18, backgroundColor: AppColors.successSoft, child: Icon(Icons.payments_outlined, color: AppColors.success, size: 18)),
                       title: Text(NumberFormat.currency(locale: 'en_IN', symbol: '₹', decimalDigits: 0).format(p.netAmount), style: const TextStyle(fontWeight: FontWeight.w800)),
                       subtitle: Text('${DateFormat('dd MMM yyyy').format(p.paymentDate)} · ${p.paymentMode}'),

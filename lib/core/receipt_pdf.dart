@@ -20,8 +20,6 @@ class ReceiptPdf {
   static Future<Uint8List> build({
     required FeePayment payment,
     Student? student,
-    double remainingBalance = 0,
-    DateTime? dueDate,
   }) async {
     final logo = pw.MemoryImage(
       (await rootBundle.load(
@@ -301,37 +299,12 @@ class ReceiptPdf {
                     row([
                       cell('Online Tranx. No.:- ', onlineRef),
                       cell(
-                        'Discount: ',
-                        payment.discount > 0
-                            ? 'Rs. ${money.format(payment.discount)}'
-                            : 'Nil',
-                      ),
-                      cell(
-                        'Late fine: ',
-                        payment.lateFine > 0
-                            ? 'Rs. ${money.format(payment.lateFine)}'
-                            : 'Nil',
-                      ),
-                    ]),
-                    row([
-                      cell(
-                        'Due Date:- ',
-                        (remainingBalance > 0 && dueDate != null)
-                            ? DateFormat('dd-MM-yyyy').format(dueDate)
-                            : 'Nil',
-                      ),
-                      cell(
-                        'Due fees:- ',
-                        remainingBalance > 0
-                            ? 'Rs. ${money.format(remainingBalance)}'
-                            : 'Nil',
-                      ),
-                      cell(
                         'Collected by: ',
                         payment.collectorName?.trim().isNotEmpty == true
                             ? payment.collectorName!.trim()
                             : '-',
                       ),
+                      cell('', ''),
                     ]),
                   ],
                   cols: const {
