@@ -21,12 +21,16 @@ class ReceiptScreen extends StatefulWidget {
     super.key,
     required this.payment,
     this.student,
+    this.remainingBalance,
+    this.dueDate,
     this.allowSendToParent = true,
   });
   final FeePayment payment;
 
   /// When the caller already has the student (e.g. the parent app), the staff-only fee lookup is skipped.
   final Student? student;
+  final double? remainingBalance;
+  final DateTime? dueDate;
 
   /// Staff can push the PDF to a parent's WhatsApp; a parent just shares / saves their own copy.
   final bool allowSendToParent;
@@ -35,9 +39,9 @@ class ReceiptScreen extends StatefulWidget {
       Navigator.of(context).push(MaterialPageRoute(builder: (_) => ReceiptScreen(payment: payment)));
 
   /// Parent view: no staff lookups, only Share / Print.
-  static Future<void> openForParent(BuildContext context, FeePayment payment, {required Student student}) =>
+  static Future<void> openForParent(BuildContext context, FeePayment payment, {required Student student, required double balance, DateTime? dueDate}) =>
       Navigator.of(context).push(MaterialPageRoute(
-        builder: (_) => ReceiptScreen(payment: payment, student: student, allowSendToParent: false),
+        builder: (_) => ReceiptScreen(payment: payment, student: student, remainingBalance: balance, dueDate: dueDate, allowSendToParent: false),
       ));
 
   @override
@@ -72,7 +76,12 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
           info = null;
         }
       }
-      final bytes = await ReceiptPdf.build(payment: _p, student: widget.student ?? info?.student);
+      final bytes = await ReceiptPdf.build(
+        payment: _p,
+        student: widget.student ?? info?.student,
+        remainingBalance: widget.remainingBalance ?? info?.balance ?? 0,
+        dueDate: _p.dueDate ?? widget.dueDate ?? info?.dueDate,
+      );
       if (mounted) setState(() { _info = info; _pdf = bytes; _loading = false; });
     } catch (e) {
       if (mounted) setState(() { _error = 'Could not generate the receipt. Please try again.'; _loading = false; });

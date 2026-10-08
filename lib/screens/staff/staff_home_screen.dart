@@ -68,7 +68,8 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
               SliverToBoxAdapter(
                 child: GreetingHeader(
                   greeting: 'Welcome back,',
-                  name: session.fullName.split(' ').first,
+                  //name: session.fullName.split(' ').first,
+                  name: session.fullName,
                   subtitle: session.roleName,
                   leadingIcon: Icons.badge_outlined,
                   actions: [
@@ -154,9 +155,9 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
               onTap: s.absentToday > 0 ? _openAbsentSheet : null),
           SlimStatCard(label: 'Total Staff', value: '${s.totalStaff}', color: AppColors.info, icon: Icons.badge,
               onTap: () => _push(const UserListScreen())),
-          SlimStatCard(label: 'Fees This Month', value: NumberFormat.compactCurrency(symbol: '₹').format(s.feesThisMonth), color: AppColors.success, icon: Icons.trending_up,
+          SlimStatCard(label: 'Fees This Month', value: NumberFormat.currency(symbol: '₹').format(s.feesThisMonth), color: AppColors.success, icon: Icons.trending_up,
               onTap: () => _push(const FeesThisMonthScreen())),
-          SlimStatCard(label: 'Balance Overall', value: NumberFormat.compactCurrency(symbol: '₹').format(s.balanceOverall), color: s.balanceOverall > 0 ? AppColors.warning : AppColors.success, icon: Icons.account_balance_wallet_outlined,
+          SlimStatCard(label: 'Balance Overall', value: NumberFormat.currency(symbol: '₹').format(s.balanceOverall), color: s.balanceOverall > 0 ? AppColors.warning : AppColors.success, icon: Icons.account_balance_wallet_outlined,
               onTap: () => _push(const FinanceDashboardScreen())),
         ],
       ),
@@ -249,7 +250,7 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
 
   Widget _buildFeeCollectionCard(DashboardStats s) {
     final pct = s.totalFeesOverall == 0 ? 0.0 : (s.totalCollectedOverall / s.totalFeesOverall).clamp(0.0, 1.0);
-    final fmt = NumberFormat.compactCurrency(symbol: '₹');
+    final fmt = NumberFormat.currency(symbol: '₹');
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(AppRadius.md), boxShadow: AppShadows.soft),

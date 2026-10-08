@@ -23,7 +23,7 @@ class _FinanceDashboardScreenState extends State<FinanceDashboardScreen> {
   String? _error;
   FinanceDashboardData? _data;
 
-  final _compact = NumberFormat.compactCurrency(symbol: '₹');
+  final _compact = NumberFormat.currency(symbol: '₹');
   final _full = NumberFormat.currency(locale: 'en_IN', symbol: '₹', decimalDigits: 0);
 
   @override

@@ -117,7 +117,7 @@ class ParentFeesScreen extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 8),
       child: InkWell(
         borderRadius: BorderRadius.circular(AppRadius.md),
-        onTap: () => ReceiptScreen.openForParent(context, p, student: student),
+        onTap: () => ReceiptScreen.openForParent(context, p, student: student, balance: d.balance, dueDate: d.dueDate),
         child: Padding(
           padding: const EdgeInsets.fromLTRB(14, 10, 8, 10),
           child: Row(
@@ -141,7 +141,7 @@ class ParentFeesScreen extends StatelessWidget {
                 ),
               ),
               TextButton.icon(
-                onPressed: () => ReceiptScreen.openForParent(context, p, student: student),
+                onPressed: () => ReceiptScreen.openForParent(context, p, student: student, balance: d.balance, dueDate: d.dueDate),
                 icon: const Icon(Icons.receipt_long_outlined, size: 18),
                 label: const Text('Receipt'),
               ),
