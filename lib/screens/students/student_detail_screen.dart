@@ -78,7 +78,7 @@ class _StudentDetailScreenState extends State<StudentDetailScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Delete Student'),
-        content: Text('Move ${_detail!.student.fullName} to inactive/deleted records?'),
+        content: Text('Move ${_detail!.student.displayName} to inactive/deleted records?'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
           TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Delete', style: TextStyle(color: AppColors.danger))),
@@ -132,13 +132,13 @@ class _StudentDetailScreenState extends State<StudentDetailScreen> {
               child: Column(children: [
               Row(
                 children: [
-                  CircleAvatar(radius: 32, backgroundColor: AppColors.primarySoft, child: Text(s.fullName.isNotEmpty ? s.fullName[0].toUpperCase() : '?', style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold, fontSize: 22))),
+                  CircleAvatar(radius: 32, backgroundColor: AppColors.primarySoft, child: Text(s.displayName.isNotEmpty ? s.displayName[0].toUpperCase() : '?', style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold, fontSize: 22))),
                   const SizedBox(width: 14),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(s.fullName, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 18)),
+                        Text(s.displayName, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 18)),
                         const SizedBox(height: 2),
                         Text(s.classLabel, style: const TextStyle(color: AppColors.textSecondary)),
                         Text('Admission No: ${s.admissionNo}', style: const TextStyle(color: AppColors.textSecondary, fontSize: 13)),
@@ -211,7 +211,7 @@ class _StudentDetailScreenState extends State<StudentDetailScreen> {
   List<ContactNumber> _contactsOf(Student s) => buildContacts(father: s.fatherPhone, mother: s.motherPhone, student: s.phone);
 
   Map<String, String> _vars(Student s, {Map<String, String> extra = const {}}) =>
-      ContactActions.baseVars(student: s.fullName, className: s.className, medium: s.sectionName, extra: extra);
+      ContactActions.baseVars(student: s.displayName, className: s.className, medium: s.sectionName, extra: extra);
 
   Widget _contactButtons(Student s) {
     final contacts = _contactsOf(s);
@@ -222,7 +222,7 @@ class _StudentDetailScreenState extends State<StudentDetailScreen> {
           children: [
             Expanded(
               child: OutlinedButton.icon(
-                onPressed: enabled ? () => ContactActions.call(context, name: s.fullName, contacts: contacts) : null,
+                onPressed: enabled ? () => ContactActions.call(context, name: s.displayName, contacts: contacts) : null,
                 icon: const Icon(Icons.call_rounded, size: 18),
                 label: const Text('Call'),
                 style: OutlinedButton.styleFrom(foregroundColor: AppColors.info, side: const BorderSide(color: AppColors.info), minimumSize: const Size.fromHeight(42)),
@@ -232,7 +232,7 @@ class _StudentDetailScreenState extends State<StudentDetailScreen> {
             Expanded(
               child: FilledButton.icon(
                 onPressed: enabled
-                    ? () => ContactActions.whatsapp(context, name: s.fullName, contacts: contacts, category: 'General', vars: _vars(s))
+                    ? () => ContactActions.whatsapp(context, name: s.displayName, contacts: contacts, category: 'General', vars: _vars(s))
                     : null,
                 icon: const Icon(Icons.chat_rounded, size: 18),
                 label: const Text('WhatsApp'),
@@ -351,7 +351,7 @@ class _StudentDetailScreenState extends State<StudentDetailScreen> {
                     ? null
                     : () => ContactActions.whatsapp(
                           context,
-                          name: s.fullName,
+                          name: s.displayName,
                           contacts: _contactsOf(s),
                           category: 'FeeReminder',
                           vars: _vars(s, extra: {

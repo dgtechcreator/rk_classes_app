@@ -108,12 +108,12 @@ class _DeletedRecordsScreenState extends State<DeletedRecordsScreen> with Single
           final s = d.students[i];
           return Card(
             child: ListTile(
-              title: Text(s.fullName, style: const TextStyle(fontWeight: FontWeight.w600)),
+              title: Text(s.displayName, style: const TextStyle(fontWeight: FontWeight.w600)),
               subtitle: Text('${s.admissionNo} • ${s.classLabel}'),
               trailing: TextButton.icon(
                 icon: const Icon(Icons.restore, size: 18),
                 label: const Text('Restore'),
-                onPressed: () => _restore(s.fullName, () => _service.restoreStudent(s.studentId)),
+                onPressed: () => _restore(s.displayName, () => _service.restoreStudent(s.studentId)),
               ),
             ),
           );

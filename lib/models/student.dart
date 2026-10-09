@@ -10,6 +10,7 @@ class Student {
     required this.studentId,
     required this.admissionNo,
     required this.fullName,
+    String? displayName,
     this.gender,
     this.dateOfBirth,
     this.fatherName,
@@ -32,11 +33,14 @@ class Student {
     this.bloodGroup,
     this.admissionDate,
     this.status = 'Active',
-  });
+  }) : displayName = (displayName == null || displayName.trim().isEmpty) ? fullName : displayName;
 
   final int studentId;
   final String admissionNo;
+  /// The name exactly as typed in the student form — keep for editing only.
   final String fullName;
+  /// "Surname StudentName FatherName MotherName" — what every list, card and message shows.
+  final String displayName;
   final String? gender;
   final DateTime? dateOfBirth;
   final String? fatherName;
@@ -64,6 +68,7 @@ class Student {
         studentId: _asInt(j['studentId']),
         admissionNo: _asString(j['admissionNo']),
         fullName: _asString(j['fullName']),
+        displayName: _asStringN(j['displayName']),
         gender: _asStringN(j['gender']),
         dateOfBirth: j['dateOfBirth'] == null ? null : DateTime.tryParse(j['dateOfBirth'].toString()),
         fatherName: _asStringN(j['fatherName']),

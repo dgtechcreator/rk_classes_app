@@ -198,7 +198,7 @@ class ReceiptPdf {
                             children: [
                               pw.Text(
                                 (payment.studentName ??
-                                        student?.fullName ??
+                                        student?.displayName ??
                                         '-')
                                     .toUpperCase(),
                                 style: pw.TextStyle(

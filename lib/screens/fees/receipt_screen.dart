@@ -97,7 +97,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
     if (_pdf == null || _sending) return;
     setState(() => _sending = true);
     try {
-      final name = _p.studentName ?? _info?.student.fullName ?? 'Student';
+      final name = _p.studentName ?? _info?.student.displayName ?? 'Student';
       final contact = await ContactActions.pickContact(context, name, _contacts, 'Send receipt to');
       if (contact == null || !mounted) return;
       // WhatsApp ignores a caption when a chat is targeted directly, so the template text is used for the

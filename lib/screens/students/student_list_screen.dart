@@ -175,9 +175,9 @@ class _StudentTile extends StatelessWidget {
         onTap: onTap,
         leading: CircleAvatar(
           backgroundColor: AppColors.primarySoft,
-          child: Text(student.fullName.isNotEmpty ? student.fullName[0].toUpperCase() : '?', style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
+          child: Text(student.displayName.isNotEmpty ? student.displayName[0].toUpperCase() : '?', style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
         ),
-        title: Text(student.fullName, style: const TextStyle(fontWeight: FontWeight.w600)),
+        title: Text(student.displayName, style: const TextStyle(fontWeight: FontWeight.w600)),
         subtitle: Text('${student.admissionNo} • ${student.classLabel}'),
         trailing: student.status != 'Active' ? StatusBadge(status: student.status) : const Icon(Icons.chevron_right, color: AppColors.textSecondary),
       ),

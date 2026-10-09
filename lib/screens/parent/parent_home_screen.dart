@@ -262,7 +262,7 @@ class _ChildCard extends StatelessWidget {
                 radius: 26,
                 backgroundColor: AppColors.primarySoft,
                 child: Text(
-                  s.fullName.isNotEmpty ? s.fullName[0].toUpperCase() : '?',
+                  s.displayName.isNotEmpty ? s.displayName[0].toUpperCase() : '?',
                   style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold, fontSize: 20),
                 ),
               ),
@@ -271,7 +271,7 @@ class _ChildCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(s.fullName, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
+                    Text(s.displayName, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
                     const SizedBox(height: 3),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
@@ -313,9 +313,9 @@ class _ChildCard extends StatelessWidget {
             ...ctrl.children.map((c) => ListTile(
                   leading: CircleAvatar(
                     backgroundColor: AppColors.primarySoft,
-                    child: Text(c.fullName.isNotEmpty ? c.fullName[0].toUpperCase() : '?', style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
+                    child: Text(c.displayName.isNotEmpty ? c.displayName[0].toUpperCase() : '?', style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
                   ),
-                  title: Text(c.fullName),
+                  title: Text(c.displayName),
                   subtitle: Text(c.classLabel),
                   trailing: c.studentId == ctrl.selected?.studentId ? const Icon(Icons.check_circle, color: AppColors.primary) : null,
                   onTap: () => Navigator.pop(context, c),

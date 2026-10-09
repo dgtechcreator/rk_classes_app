@@ -31,7 +31,7 @@ class ParentFeesScreen extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
             physics: const AlwaysScrollableScrollPhysics(),
             children: [
-              if (!standalone) TabHeader(title: 'Fees', subtitle: ctrl.selected?.fullName),
+              if (!standalone) TabHeader(title: 'Fees', subtitle: ctrl.selected?.displayName),
               _body(context, ctrl),
             ],
           ),
