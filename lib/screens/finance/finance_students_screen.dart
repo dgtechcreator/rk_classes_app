@@ -299,7 +299,9 @@ class _FinanceStudentsScreenState extends State<FinanceStudentsScreen> {
                         const SizedBox(height: 2),
                         Text('${s.admissionNo} · ${s.classLabel}', maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 11.5, color: AppColors.textSecondary)),
                         const SizedBox(height: 6),
-                        Text('Total ${_money.format(s.totalFees - s.discount)}  ·  Paid ${_money.format(s.collected)}${s.discount > 0 ? '  ·  after ${_money.format(s.discount)} disc' : ''}',
+                        Text(s.feeNotSet
+                                ? 'Fee not set  ·  Paid ${_money.format(s.collected)}${s.discount > 0 ? '  ·  disc ${_money.format(s.discount)}' : ''}'
+                                : 'Total ${_money.format(s.totalFees - s.discount)}  ·  Paid ${_money.format(s.collected)}${s.discount > 0 ? '  ·  after ${_money.format(s.discount)} disc' : ''}',
                             style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
                       ],
                     ),
@@ -307,9 +309,9 @@ class _FinanceStudentsScreenState extends State<FinanceStudentsScreen> {
                   const SizedBox(width: 8),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
-                    decoration: BoxDecoration(color: s.hasDue ? AppColors.dangerSoft : AppColors.successSoft, borderRadius: BorderRadius.circular(AppRadius.pill)),
-                    child: Text(s.hasDue ? 'Due ${_money.format(s.balance)}' : 'Paid up',
-                        style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800, color: s.hasDue ? AppColors.danger : AppColors.success)),
+                    decoration: BoxDecoration(color: s.feeNotSet ? AppColors.warningSoft : (s.hasDue ? AppColors.dangerSoft : AppColors.successSoft), borderRadius: BorderRadius.circular(AppRadius.pill)),
+                    child: Text(s.feeNotSet ? 'Fee not set' : (s.hasDue ? 'Due ${_money.format(s.balance)}' : 'Paid up'),
+                        style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800, color: s.feeNotSet ? AppColors.warning : (s.hasDue ? AppColors.danger : AppColors.success))),
                   ),
                 ],
               ),

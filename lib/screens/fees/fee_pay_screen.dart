@@ -128,7 +128,7 @@ class _FeePayScreenState extends State<FeePayScreen> {
           const SizedBox(height: 20),
           const SectionHeader(title: 'Fee Structure'),
           if (info.feeStructures.isEmpty)
-            const EmptyState(message: 'No fee structure configured for this student\'s class.', icon: Icons.receipt_long_outlined)
+            const EmptyState(message: 'Fee is not set for this student - add the fee head for this class / medium in Fee Setup (see Data Health on the web).', icon: Icons.receipt_long_outlined)
           else
             ...info.feeStructures.map((fs) => Card(
                   child: ListTile(

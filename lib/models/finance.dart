@@ -145,6 +145,8 @@ class FinanceStudent {
   final double balance;
 
   bool get hasDue => balance > 0.5;
+  /// No fee row exists for this student (fee head missing) - shown as "Fee not set", never as an amount.
+  bool get feeNotSet => totalFees == 0;
 
   /// "10th · English · Morning" style label, skipping blanks.
   String get classLabel => [className, sectionName, batchName].where((e) => e.trim().isNotEmpty).join(' · ');
