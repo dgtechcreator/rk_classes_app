@@ -30,6 +30,10 @@ class _MarksEntryScreenState extends State<MarksEntryScreen> {
   final _examCtrl = TextEditingController();
   Timer? _examDebounce;
 
+  // "Out of": set once when a NEW test is created; an existing test keeps the total it was created with.
+  final _maxCtrl = TextEditingController(text: '30');
+  bool _maxLocked = false;
+
   bool _loadingFilters = true;
   bool _loadingList = false;
   bool _saving = false;
@@ -45,6 +49,12 @@ class _MarksEntryScreenState extends State<MarksEntryScreen> {
   List<StudentMarkRow> _students = [];
   final Map<int, TextEditingController> _controllers = {};
   final Map<int, bool> _absent = {};
+
+  /// Total marks of the test being entered (always 1..200).
+  int get _maxMarks {
+    final v = int.tryParse(_maxCtrl.text.trim());
+    return v == null || v < 1 ? 30 : (v > 200 ? 200 : v);
+  }
 
   Subject? get _selectedSubject {
     for (final s in _subjects) {
@@ -63,6 +73,7 @@ class _MarksEntryScreenState extends State<MarksEntryScreen> {
   void dispose() {
     _examDebounce?.cancel();
     _examCtrl.dispose();
+    _maxCtrl.dispose();
     for (final c in _controllers.values) {
       c.dispose();
     }
@@ -121,11 +132,19 @@ class _MarksEntryScreenState extends State<MarksEntryScreen> {
       final data = await _service.getEntryData(
         yearId: _yearId, classId: _classId, sectionId: _sectionId, batchId: _batchId,
         subjectId: _subjectId, examName: _examCtrl.text.trim(), testDate: _testDate,
-        maxMarks: _selectedSubject?.maxMarks ?? 100,
+        maxMarks: _maxMarks,
       );
       if (!mounted) return;
       setState(() {
         _students = data.students;
+        // Marks already saved for this test: use (and lock) the total it was created with.
+        final saved = data.students.where((x) => x.marksObtained != null || x.isAbsent).toList();
+        if (saved.isNotEmpty && saved.first.maxMarks > 0) {
+          _maxCtrl.text = '${saved.first.maxMarks}';
+          _maxLocked = true;
+        } else {
+          _maxLocked = false;
+        }
         if (data.examList.isNotEmpty) _examOptions = data.examList;
         _rebuildControllers();
         _loadingList = false;
@@ -179,6 +198,9 @@ class _MarksEntryScreenState extends State<MarksEntryScreen> {
     final examName = _examCtrl.text.trim();
     if (examName.isEmpty) { showSnack(context, 'Enter an exam/test name.', isError: true); return; }
 
+    final outOf = int.tryParse(_maxCtrl.text.trim());
+    if (outOf == null || outOf < 1 || outOf > 200) { showSnack(context, 'Enter the total marks (Out of) between 1 and 200.', isError: true); return; }
+
     final entries = <Map<String, dynamic>>[];
     for (final s in _students) {
       final isAbsent = _absent[s.studentId] ?? false;
@@ -187,8 +209,8 @@ class _MarksEntryScreenState extends State<MarksEntryScreen> {
       if (!isAbsent) {
         if (text.isEmpty) continue;
         marks = double.tryParse(text);
-        if (marks == null || marks < 0 || marks > subject.maxMarks) {
-          showSnack(context, '${s.fullName}: marks must be between 0 and ${subject.maxMarks}.', isError: true);
+        if (marks == null || marks < 0 || marks > outOf) {
+          showSnack(context, '${s.fullName}: marks must be between 0 and $outOf.', isError: true);
           return;
         }
       }
@@ -200,7 +222,7 @@ class _MarksEntryScreenState extends State<MarksEntryScreen> {
     try {
       final message = await _service.save(
         examName: examName, classId: _classId!, yearId: _yearId ?? 0,
-        maxMarks: subject.maxMarks, testDate: _testDate, entries: entries,
+        maxMarks: outOf, testDate: _testDate, entries: entries,
       );
       if (mounted) { showSnack(context, message); _reload(); }
     } on ApiException catch (e) {
@@ -296,7 +318,7 @@ class _MarksEntryScreenState extends State<MarksEntryScreen> {
       isExpanded: true,
               initialValue: _subjects.any((s) => s.subjectId == _subjectId) ? _subjectId : null,
               decoration: const InputDecoration(labelText: 'Subject'),
-              items: _subjects.map((s) => DropdownMenuItem<int?>(value: s.subjectId, child: Text('${s.subjectName} (max ${s.maxMarks})'))).toList(),
+              items: _subjects.map((s) => DropdownMenuItem<int?>(value: s.subjectId, child: Text(s.subjectName, overflow: TextOverflow.ellipsis))).toList(),
               onChanged: _classId == null ? null : (v) { setState(() => _subjectId = v); _reload(); },
             ),
             const SizedBox(height: 12),
@@ -312,6 +334,24 @@ class _MarksEntryScreenState extends State<MarksEntryScreen> {
                 children: examNames.map((n) => ActionChip(label: Text(n), onPressed: () => _pickExam(n))).toList(),
               ),
             ],
+            const SizedBox(height: 12),
+            TextField(
+              controller: _maxCtrl,
+              enabled: !_maxLocked,
+              keyboardType: TextInputType.number,
+              onChanged: (_) => setState(() {}),   // refresh the "/30" hints on the marks boxes
+              decoration: InputDecoration(
+                labelText: 'Out of (total marks)',
+                helperText: _maxLocked ? 'This test was created with this total.' : 'Set once for a new test; marks cannot go above it.',
+                suffixIcon: _maxLocked
+                    ? IconButton(
+                        icon: const Icon(Icons.edit_outlined, size: 18),
+                        tooltip: 'Change total',
+                        onPressed: () => setState(() => _maxLocked = false),
+                      )
+                    : null,
+              ),
+            ),
             const SizedBox(height: 12),
             InkWell(
               onTap: _pickTestDate,
@@ -357,7 +397,7 @@ class _MarksEntryScreenState extends State<MarksEntryScreen> {
             student: s,
             controller: _controllers[s.studentId]!,
             isAbsent: _absent[s.studentId] ?? false,
-            maxMarks: _selectedSubject?.maxMarks ?? s.maxMarks,
+            maxMarks: _maxMarks,
             onAbsentChanged: (v) => setState(() => _absent[s.studentId] = v),
           ),
           const SizedBox(height: 8),

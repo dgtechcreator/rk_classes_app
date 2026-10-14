@@ -1,0 +1,5 @@
+# Copy this file to android/key.properties and fill the real values (key.properties is NOT committed).
+storePassword=YOUR_KEYSTORE_PASSWORD
+keyPassword=YOUR_KEY_PASSWORD
+keyAlias=upload
+storeFile=upload-keystore.jks
