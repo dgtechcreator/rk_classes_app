@@ -34,6 +34,7 @@ class _UserFormScreenState extends State<UserFormScreen> {
   List<Role> _roles = [];
   int? _roleId;
   late bool _isActive = widget.user?.isActive ?? true;
+  late String _gender = widget.user?.gender ?? '';
   bool _saving = false;
 
   @override
@@ -76,6 +77,7 @@ class _UserFormScreenState extends State<UserFormScreen> {
         phone: _phoneCtrl.text.trim().isEmpty ? null : _phoneCtrl.text.trim(),
         roleId: _roleId!,
         isActive: _isActive,
+        gender: _gender,
         newPassword: _passwordCtrl.text.trim().isEmpty ? null : _passwordCtrl.text.trim(),
       );
       if (mounted) {
@@ -143,6 +145,18 @@ class _UserFormScreenState extends State<UserFormScreen> {
                           if (widget.isEdit) return null;
                           return (v ?? '').trim().length < 4 ? 'At least 4 characters' : null;
                         },
+                      ),
+                      const SizedBox(height: 12),
+                      DropdownButtonFormField<String>(
+                        isExpanded: true,
+                        initialValue: _gender,
+                        decoration: const InputDecoration(labelText: "Gender (for Sir / Ma'am greeting)"),
+                        items: const [
+                          DropdownMenuItem(value: '', child: Text('Not set')),
+                          DropdownMenuItem(value: 'Male', child: Text('Male (Sir)')),
+                          DropdownMenuItem(value: 'Female', child: Text("Female (Ma'am)")),
+                        ],
+                        onChanged: (v) => setState(() => _gender = v ?? ''),
                       ),
                       const SizedBox(height: 12),
                       SwitchListTile(

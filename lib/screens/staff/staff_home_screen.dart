@@ -69,7 +69,7 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
                 child: GreetingHeader(
                   greeting: 'Welcome back,',
                   //name: session.fullName.split(' ').first,
-                  name: session.fullName,
+                  name: session.displayName.isEmpty ? session.fullName : session.displayName,
                   subtitle: session.roleName,
                   leadingIcon: Icons.badge_outlined,
                   actions: [
@@ -216,7 +216,7 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
                   ? [_mediumPill('Students', c.studentCount, AppColors.textSecondary, AppColors.background)]
                   : [
                       for (final sec in c.sections)
-                        _mediumPill(_mediumLabel(sec.sectionName), sec.studentCount, _mediumColor(sec.sectionName), _mediumColor(sec.sectionName).withValues(alpha: 0.11)),
+                        _mediumBlock(sec),
                     ],
             ),
           ),
@@ -224,6 +224,27 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
           Text('${c.studentCount}', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14, height: 1.4)),
         ],
       ),
+    );
+  }
+
+  /// One medium: its pill ("English 77") with the batch split underneath ("Morning 40 · Evening 37").
+  Widget _mediumBlock(ClassSectionStrength sec) {
+    final color = _mediumColor(sec.sectionName);
+    final pill = _mediumPill(_mediumLabel(sec.sectionName), sec.studentCount, color, color.withValues(alpha: 0.11));
+    if (sec.batches.isEmpty) return pill;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        pill,
+        Padding(
+          padding: const EdgeInsets.only(left: 6, top: 2),
+          child: Text(
+            sec.batches.map((b) => '${b.batchName} ${b.studentCount}').join(' · '),
+            style: const TextStyle(fontSize: 10.5, color: AppColors.textSecondary, fontWeight: FontWeight.w600),
+          ),
+        ),
+      ],
     );
   }
 

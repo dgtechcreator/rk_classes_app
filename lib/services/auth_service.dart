@@ -5,19 +5,23 @@ class StaffLoginResult {
     required this.token,
     required this.userId,
     required this.fullName,
+    this.displayName,
     required this.username,
     required this.roleId,
     required this.roleName,
     required this.permissions,
+    this.classRep,
   });
 
   final String token;
   final int userId;
   final String fullName;
+  final String? displayName;
   final String username;
   final int roleId;
   final String roleName;
   final Map<String, bool> permissions;
+  final Map<String, dynamic>? classRep;   // set when the login is a Class Representative
 }
 
 class ParentLoginResult {
@@ -41,10 +45,12 @@ class AuthService {
       token: data['token'] as String,
       userId: user['userId'] as int,
       fullName: user['fullName'] as String? ?? '',
+      displayName: user['displayName'] as String?,
       username: user['username'] as String? ?? '',
       roleId: user['roleId'] as int,
       roleName: user['roleName'] as String? ?? '',
       permissions: perms,
+      classRep: data['classRep'] as Map<String, dynamic>?,
     );
   }
 

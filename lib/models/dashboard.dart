@@ -4,14 +4,27 @@ double _asDouble(dynamic v) => v == null ? 0 : (v is num ? v.toDouble() : double
 int _asInt(dynamic v) => v == null ? 0 : (v is int ? v : int.tryParse(v.toString()) ?? 0);
 String _asString(dynamic v) => v?.toString() ?? '';
 
+class ClassBatchStrength {
+  ClassBatchStrength({required this.batchName, required this.studentCount});
+  final String batchName; // Morning / Evening ... (from the Batches master)
+  final int studentCount;
+
+  factory ClassBatchStrength.fromJson(Map<String, dynamic> j) => ClassBatchStrength(
+        batchName: _asString(j['batchName']).trim(),
+        studentCount: _asInt(j['studentCount']),
+      );
+}
+
 class ClassSectionStrength {
-  ClassSectionStrength({required this.sectionName, required this.studentCount});
+  ClassSectionStrength({required this.sectionName, required this.studentCount, this.batches = const []});
   final String sectionName; // Medium, e.g. "English Medium"
   final int studentCount;
+  final List<ClassBatchStrength> batches;
 
   factory ClassSectionStrength.fromJson(Map<String, dynamic> j) => ClassSectionStrength(
         sectionName: _asString(j['sectionName']).trim(),
         studentCount: _asInt(j['studentCount']),
+        batches: (j['batches'] as List? ?? []).map((e) => ClassBatchStrength.fromJson(e as Map<String, dynamic>)).toList(),
       );
 }
 

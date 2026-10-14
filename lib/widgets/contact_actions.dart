@@ -53,8 +53,50 @@ class ContactActions {
     if (!context.mounted) return;
     final template = await pickTemplate(context, templates);
     if (template == null || !context.mounted) return;
-    final ok = await ContactLauncher.whatsapp(contact.whatsappNumber, template.render(vars));
+    final app = await pickWhatsAppApp(context);
+    if (app == null || !context.mounted) return;
+    final ok = await ContactLauncher.whatsapp(contact.whatsappNumber, template.render(vars), app: app);
     if (!ok && context.mounted) showSnack(context, 'Could not open WhatsApp. Is it installed?', isError: true);
+  }
+
+  /// Asks "Normal WhatsApp or WhatsApp Business?" when both are installed (the last choice is listed
+  /// first and tagged). With only one installed it's used without asking; with none detected returns the
+  /// normal app so the generic link still gets a try. Null means the user dismissed the sheet.
+  static Future<WhatsAppApp?> pickWhatsAppApp(BuildContext context) async {
+    final installed = await ContactLauncher.installedWhatsApps();
+    if (installed.length == 1) return installed.first;
+    if (installed.isEmpty) return WhatsAppApp.normal;
+    final last = await ContactLauncher.lastUsedWhatsApp();
+    if (!context.mounted) return null;
+    final options = [
+      if (last != null && installed.contains(last)) last,
+      ...WhatsAppApp.values.where((a) => installed.contains(a) && a != last),
+    ];
+    final picked = await showModalBottomSheet<WhatsAppApp>(
+      context: context,
+      backgroundColor: AppColors.surface,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Padding(
+              padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
+              child: Text('Send from which WhatsApp?', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+            ),
+            for (final a in options)
+              ListTile(
+                leading: Icon(a == WhatsAppApp.business ? Icons.business_center : Icons.chat, color: whatsappGreen),
+                title: Text(a.subtitle, style: const TextStyle(fontWeight: FontWeight.w600)),
+                subtitle: a == last ? const Text('Last used') : null,
+                onTap: () => Navigator.pop(ctx, a),
+              ),
+          ],
+        ),
+      ),
+    );
+    if (picked != null) await ContactLauncher.rememberWhatsApp(picked);
+    return picked;
   }
 
   static Future<ContactNumber?> pickContact(BuildContext context, String name, List<ContactNumber> contacts, String action) async {

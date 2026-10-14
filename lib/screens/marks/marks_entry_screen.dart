@@ -84,6 +84,12 @@ class _MarksEntryScreenState extends State<MarksEntryScreen> {
         _yearId ??= years.firstWhere((y) => y.isActive, orElse: () => years.isNotEmpty ? years.first : LookupItem(id: 0, name: '')).id;
         _loadingFilters = false;
       });
+      // A Class Representative works only in his own class: select it and load its subjects / students.
+      final session = context.read<Session>();
+      if (session.isClassRep && session.crClassId != null) {
+        _testDate = DateUtils.dateOnly(DateTime.now());
+        await _onClassChanged(session.crClassId);
+      }
     } on ApiException catch (e) {
       if (mounted) setState(() { _filtersError = e.message; _loadingFilters = false; });
     }
@@ -157,7 +163,9 @@ class _MarksEntryScreenState extends State<MarksEntryScreen> {
   }
 
   Future<void> _pickTestDate() async {
-    final picked = await showDatePicker(context: context, initialDate: _testDate, firstDate: DateTime(2020), lastDate: DateTime.now());
+    final session = context.read<Session>();
+    final first = session.isClassRep ? session.crEarliestMarksDate : DateTime(2020);
+    final picked = await showDatePicker(context: context, initialDate: _testDate.isBefore(first) ? first : _testDate, firstDate: first, lastDate: DateTime.now());
     if (picked == null) return;
     setState(() => _testDate = picked);
   }
@@ -249,6 +257,7 @@ class _MarksEntryScreenState extends State<MarksEntryScreen> {
   }
 
   Widget _buildFilters() {
+    final isCr = context.watch<Session>().isClassRep;
     final relevantExams = _examOptions.where((e) => _classId == null || e.classId == null || e.classId == _classId).toList();
     final examNames = <String>{...relevantExams.map((e) => e.examName)}.where((n) => n.isNotEmpty).take(8).toList();
 
@@ -258,22 +267,31 @@ class _MarksEntryScreenState extends State<MarksEntryScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Row(
-              children: [
-                Expanded(child: _dropdown('Year', _yearId, _years, (v) { setState(() => _yearId = v); _reload(); })),
-                const SizedBox(width: 12),
-                Expanded(child: _dropdown('Class', _classId, _classes, _onClassChanged)),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(child: _dropdown('Section', _sectionId, _sections, (v) { setState(() => _sectionId = v); _reload(); })),
-                const SizedBox(width: 12),
-                Expanded(child: _dropdown('Batch', _batchId, _batches, (v) { setState(() => _batchId = v); _reload(); })),
-              ],
-            ),
-            const SizedBox(height: 12),
+            if (isCr)
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const CircleAvatar(backgroundColor: AppColors.primarySoft, child: Icon(Icons.shield_outlined, color: AppColors.primary)),
+                title: Text(context.watch<Session>().crLabel.isEmpty ? 'Your class' : context.watch<Session>().crLabel, style: const TextStyle(fontWeight: FontWeight.w800)),
+                subtitle: Text('Tests of the last ${context.watch<Session>().crMarksEditDays} days.'),
+              )
+            else ...[
+              Row(
+                children: [
+                  Expanded(child: _dropdown('Year', _yearId, _years, (v) { setState(() => _yearId = v); _reload(); })),
+                  const SizedBox(width: 12),
+                  Expanded(child: _dropdown('Class', _classId, _classes, _onClassChanged)),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(child: _dropdown('Section', _sectionId, _sections, (v) { setState(() => _sectionId = v); _reload(); })),
+                  const SizedBox(width: 12),
+                  Expanded(child: _dropdown('Batch', _batchId, _batches, (v) { setState(() => _batchId = v); _reload(); })),
+                ],
+              ),
+              const SizedBox(height: 12),
+            ],
             DropdownButtonFormField<int?>(
       isExpanded: true,
               initialValue: _subjects.any((s) => s.subjectId == _subjectId) ? _subjectId : null,

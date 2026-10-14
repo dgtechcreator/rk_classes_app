@@ -109,8 +109,10 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
         medium: _p.sectionName,
         extra: {'receipt': _p.receiptNo, 'amount': ContactActions.money(_p.netAmount)},
       ));
+      final app = await ContactActions.pickWhatsAppApp(context);
+      if (app == null || !mounted) return;
       final file = await ReceiptShare.save(_pdf!, _p.receiptNo);
-      await ReceiptShare.sendToWhatsApp(file: file, whatsappNumber: contact.whatsappNumber, message: message);
+      await ReceiptShare.sendToWhatsApp(file: file, whatsappNumber: contact.whatsappNumber, message: message, app: app.name);
     } catch (_) {
       if (mounted) showSnack(context, 'Could not send the receipt. Please try again.', isError: true);
     } finally {

@@ -15,6 +15,28 @@ class MainActivity : FlutterActivity() {
         // when WhatsApp isn't installed or the intent can't be started, so Dart can fall back to the
         // regular share sheet.
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "rk/whatsapp").setMethodCallHandler { call, result ->
+            if (call.method == "installedApps") {
+                result.success(mapOf("normal" to isInstalled("com.whatsapp"), "business" to isInstalled("com.whatsapp.w4b")))
+                return@setMethodCallHandler
+            }
+            if (call.method == "openChat") {
+                // Opens a chat with prefilled text in the chosen app ("normal" / "business").
+                try {
+                    val phone = (call.argument<String>("phone") ?: "").filter { it.isDigit() }
+                    val text = call.argument<String>("text") ?: ""
+                    val pkg = packageFor(call.argument<String>("app"))
+                    if (pkg == null || phone.isEmpty() || !isInstalled(pkg)) {
+                        result.success(false)
+                        return@setMethodCallHandler
+                    }
+                    val uri = android.net.Uri.parse("https://wa.me/$phone?text=" + android.net.Uri.encode(text))
+                    startActivity(Intent(Intent.ACTION_VIEW, uri).apply { setPackage(pkg) })
+                    result.success(true)
+                } catch (e: Exception) {
+                    result.success(false)
+                }
+                return@setMethodCallHandler
+            }
             if (call.method != "sendFile") {
                 result.notImplemented()
                 return@setMethodCallHandler
@@ -24,7 +46,8 @@ class MainActivity : FlutterActivity() {
                 val phone = (call.argument<String>("phone") ?: "").filter { it.isDigit() }
                 val text = call.argument<String>("text") ?: ""
                 val mime = call.argument<String>("mime") ?: "application/pdf"
-                val pkg = listOf("com.whatsapp", "com.whatsapp.w4b").firstOrNull { isInstalled(it) }
+                val pkg = packageFor(call.argument<String>("app"))?.takeIf { isInstalled(it) }
+                    ?: listOf("com.whatsapp", "com.whatsapp.w4b").firstOrNull { isInstalled(it) }
                 val file = File(path)
                 if (pkg == null || phone.isEmpty() || !file.exists()) {
                     result.success(false)
@@ -45,6 +68,12 @@ class MainActivity : FlutterActivity() {
                 result.success(false)
             }
         }
+    }
+
+    private fun packageFor(app: String?): String? = when (app) {
+        "normal" -> "com.whatsapp"
+        "business" -> "com.whatsapp.w4b"
+        else -> null
     }
 
     private fun isInstalled(pkg: String): Boolean = try {

@@ -15,7 +15,7 @@ class DeletedRecordsScreen extends StatefulWidget {
 
 class _DeletedRecordsScreenState extends State<DeletedRecordsScreen> with SingleTickerProviderStateMixin {
   final _service = DeletedService();
-  late final TabController _tabController = TabController(length: 3, vsync: this);
+  late final TabController _tabController = TabController(length: 5, vsync: this);
   bool _loading = true;
   String? _error;
   DeletedRecordsData? _data;
@@ -75,9 +75,13 @@ class _DeletedRecordsScreenState extends State<DeletedRecordsScreen> with Single
         title: const Text('Deleted Records'),
         bottom: TabBar(
           controller: _tabController,
+          isScrollable: true,
+          tabAlignment: TabAlignment.start,
           tabs: [
             Tab(text: 'Students${d != null ? ' (${d.students.length})' : ''}'),
             Tab(text: 'Faculty${d != null ? ' (${d.faculty.length})' : ''}'),
+            Tab(text: 'Users${d != null ? ' (${d.users.length})' : ''}'),
+            Tab(text: 'Other${d != null ? ' (${d.others.length})' : ''}'),
             Tab(text: 'Receipts${d != null ? ' (${d.receipts.length})' : ''}'),
           ],
         ),
@@ -91,6 +95,8 @@ class _DeletedRecordsScreenState extends State<DeletedRecordsScreen> with Single
                   children: [
                     _studentsTab(d!),
                     _facultyTab(d),
+                    _usersTab(d),
+                    _othersTab(d),
                     _receiptsTab(d),
                   ],
                 ),
@@ -139,6 +145,57 @@ class _DeletedRecordsScreenState extends State<DeletedRecordsScreen> with Single
                 icon: const Icon(Icons.restore, size: 18),
                 label: const Text('Restore'),
                 onPressed: () => _restore(f.fullName, () => _service.restoreFaculty(f.facultyId)),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _usersTab(DeletedRecordsData d) {
+    if (d.users.isEmpty) return const EmptyState(message: 'No deleted users.', icon: Icons.check_circle_outline);
+    return RefreshIndicator(
+      onRefresh: _load,
+      child: ListView.builder(
+        padding: const EdgeInsets.all(16),
+        itemCount: d.users.length,
+        itemBuilder: (_, i) {
+          final u = d.users[i];
+          return Card(
+            child: ListTile(
+              title: Text(u.fullName, style: const TextStyle(fontWeight: FontWeight.w600)),
+              subtitle: Text('${u.username} • ${u.roleName ?? ''}'),
+              trailing: TextButton.icon(
+                icon: const Icon(Icons.restore, size: 18),
+                label: const Text('Restore'),
+                onPressed: () => _restore(u.fullName, () => _service.restoreUser(u.userId)),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _othersTab(DeletedRecordsData d) {
+    if (d.others.isEmpty) return const EmptyState(message: 'No other deleted records.', icon: Icons.check_circle_outline);
+    return RefreshIndicator(
+      onRefresh: _load,
+      child: ListView.builder(
+        padding: const EdgeInsets.all(16),
+        itemCount: d.others.length,
+        itemBuilder: (_, i) {
+          final o = d.others[i];
+          return Card(
+            child: ListTile(
+              title: Text(o.title, style: const TextStyle(fontWeight: FontWeight.w600)),
+              subtitle: Text('${o.kindLabel}\n${o.subtitle}${o.deletedBy != null ? '  •  deleted by ${o.deletedBy}' : ''}'),
+              isThreeLine: true,
+              trailing: TextButton.icon(
+                icon: const Icon(Icons.restore, size: 18),
+                label: const Text('Restore'),
+                onPressed: () => _restore(o.title, () => _service.restoreOther(o.kind, o.id)),
               ),
             ),
           );

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 
 import '../../core/api_client.dart';
+import '../../core/session.dart';
 import '../../models/lookup.dart';
 import '../../models/teacher_attendance.dart';
 import '../../services/teacher_attendance_service.dart';
@@ -55,11 +57,19 @@ class _TeacherAttendanceMarkScreenState extends State<TeacherAttendanceMarkScree
     setState(() { _loading = true; _error = null; });
     try {
       final data = await _service.getIndex();
+      if (!mounted) return;
+      final isCr = context.read<Session>().isClassRep;
       setState(() {
         _teachers = data.teachers;
         _classes = data.classes;
         _batches = data.batches;
         _attendance = data.attendance;
+        // A Class Representative works inside his own class: the server sends back only that class (and
+        // his batch), so they are selected for him and cannot be changed.
+        if (isCr) {
+          _classId = data.classes.length == 1 ? data.classes.first.id : null;
+          _batchId = data.batches.length == 1 ? data.batches.first.id : null;
+        }
         _loading = false;
       });
     } on ApiException catch (e) {
@@ -70,11 +80,16 @@ class _TeacherAttendanceMarkScreenState extends State<TeacherAttendanceMarkScree
   String _formatTimeOfDay(TimeOfDay t) => '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
 
   Future<void> _pickDate() async {
+    final session = context.read<Session>();
+    final first = session.isClassRep ? session.crEarliestDate : DateTime(2020);
+    final last = session.isClassRep ? DateUtils.dateOnly(DateTime.now()) : DateTime.now().add(const Duration(days: 1));
+    var initial = _date.isBefore(first) ? first : _date;
+    if (initial.isAfter(last)) initial = last;
     final picked = await showDatePicker(
       context: context,
-      initialDate: _date,
-      firstDate: DateTime(2020),
-      lastDate: DateTime.now().add(const Duration(days: 1)),
+      initialDate: initial,
+      firstDate: first,
+      lastDate: last,
     );
     if (picked != null) setState(() => _date = picked);
   }
@@ -156,6 +171,7 @@ class _TeacherAttendanceMarkScreenState extends State<TeacherAttendanceMarkScree
   Widget _buildBody() {
     final entriesForDate = _attendance.where((a) => a.isOnDate(_date)).toList();
     final isToday = DateUtils.isSameDay(_date, DateTime.now());
+    final isCr = context.watch<Session>().isClassRep;
 
     return Form(
       key: _formKey,
@@ -166,14 +182,14 @@ class _TeacherAttendanceMarkScreenState extends State<TeacherAttendanceMarkScree
           _dropdown('Faculty *', _facultyId, _teachers, (v) => setState(() => _facultyId = v), validator: true),
           const SizedBox(height: 12),
           Row(children: [
-            Expanded(child: _dropdown('Class', _classId, _classes, (v) => setState(() => _classId = v))),
+            Expanded(child: _dropdown('Class', _classId, _classes, isCr ? null : (v) => setState(() => _classId = v))),
             const SizedBox(width: 12),
-            Expanded(child: _dropdown('Batch', _batchId, _batches, (v) => setState(() => _batchId = v))),
+            Expanded(child: _dropdown('Batch', _batchId, _batches, isCr && _batches.length == 1 ? null : (v) => setState(() => _batchId = v))),
           ]),
           const SizedBox(height: 12),
-          TextFormField(controller: _subjectCtrl, decoration: const InputDecoration(labelText: 'Subject')),
+          TextFormField(controller: _subjectCtrl, maxLength: 100, decoration: const InputDecoration(labelText: 'Subject', counterText: '')),
           const SizedBox(height: 12),
-          TextFormField(controller: _topicCtrl, decoration: const InputDecoration(labelText: 'Topic')),
+          TextFormField(controller: _topicCtrl, maxLength: 500, maxLines: 2, decoration: const InputDecoration(labelText: 'Topic taught', counterText: '')),
           const SizedBox(height: 12),
           _dateField('Date', _date, _pickDate),
           const SizedBox(height: 12),
@@ -218,7 +234,7 @@ class _TeacherAttendanceMarkScreenState extends State<TeacherAttendanceMarkScree
     );
   }
 
-  Widget _dropdown(String label, int? value, List<LookupItem> items, ValueChanged<int?> onChanged, {bool validator = false}) {
+  Widget _dropdown(String label, int? value, List<LookupItem> items, ValueChanged<int?>? onChanged, {bool validator = false}) {
     return DropdownButtonFormField<int?>(
       isExpanded: true,
       initialValue: items.any((e) => e.id == value) ? value : null,

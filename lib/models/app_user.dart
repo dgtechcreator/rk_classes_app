@@ -69,6 +69,7 @@ class AppUser {
     this.roleName,
     this.isActive = true,
     this.permCount = 0,
+    this.gender,
   });
 
   final int userId;
@@ -80,6 +81,7 @@ class AppUser {
   final String? roleName;
   final bool isActive;
   final int permCount;
+  final String? gender; // Male / Female / null - drives the Sir / Ma'am greeting
 
   factory AppUser.fromJson(Map<String, dynamic> j) => AppUser(
         userId: _asInt(j['userId']),
@@ -91,6 +93,7 @@ class AppUser {
         roleName: _asStringN(j['roleName']),
         isActive: j['isActive'] == null ? true : _asBool(j['isActive']),
         permCount: _asInt(j['permCount']),
+        gender: _asStringN(j['gender']),
       );
 }
 

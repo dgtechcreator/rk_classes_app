@@ -79,6 +79,7 @@ class _SplashGateState extends State<_SplashGate> {
         final realtime = context.read<RealtimeNotificationService>();
         realtime.onNotification = showLiveNotificationSnack;
         unawaited(realtime.connect(ApiClient.instance.token!));
+        unawaited(session.refreshFromServer());   // pick up rights changed since last login
       }
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (_) => session.userType == UserType.parent ? const ParentShell() : const StaffShell()),

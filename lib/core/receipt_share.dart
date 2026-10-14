@@ -21,6 +21,7 @@ class ReceiptShare {
     required File file,
     required String whatsappNumber,
     required String message,
+    String? app,
   }) async {
     var ok = false;
     try {
@@ -29,6 +30,7 @@ class ReceiptShare {
             'phone': whatsappNumber,
             'text': message,
             'mime': 'application/pdf',
+            'app': app,
           }) ??
           false;
     } on PlatformException {

@@ -31,6 +31,7 @@ class UserMgmtService {
     required int roleId,
     required bool isActive,
     String? newPassword,
+    String? gender,
   }) async {
     final res = await _client.post('/api/users/save', data: {
       'userId': userId,
@@ -41,6 +42,7 @@ class UserMgmtService {
       'roleId': roleId,
       'isActive': isActive,
       'newPassword': newPassword,
+      'gender': gender ?? '',
     });
     final data = res.data as Map<String, dynamic>;
     return data['userId'] is int ? data['userId'] as int : int.tryParse(data['userId'].toString()) ?? 0;
@@ -75,4 +77,7 @@ class UserMgmtService {
   }
 
   Future<void> toggleActive(int userId) async => _client.post('/api/users/$userId/toggle-active');
+
+  /// Soft delete (admin only) - the user can be restored from Deleted Records.
+  Future<void> deleteUser(int userId) async => _client.post('/api/users/$userId/delete');
 }

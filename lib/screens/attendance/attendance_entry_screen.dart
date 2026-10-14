@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 
 import '../../core/api_client.dart';
+import '../../core/session.dart';
 import '../../models/attendance.dart';
 import '../../services/attendance_service.dart';
 import '../../theme/app_theme.dart';
@@ -133,16 +135,20 @@ class _AttendanceEntryScreenState extends State<AttendanceEntryScreen> {
     final day = DateUtils.dateOnly(d);
     if (day.isAfter(DateUtils.dateOnly(DateTime.now()))) return;
     if (DateUtils.isSameDay(day, _date)) return;
+    final session = context.read<Session>();
+    if (session.isClassRep && day.isBefore(session.crEarliestDate)) return;   // a CR works on the last few days only
     if (!await _confirmDiscard()) return;
     setState(() => _date = day);
     _load();
   }
 
   Future<void> _pickDate() async {
+    final session = context.read<Session>();
+    final first = session.isClassRep ? session.crEarliestDate : DateTime(2020);
     final picked = await showDatePicker(
       context: context,
-      initialDate: _date,
-      firstDate: DateTime(2020),
+      initialDate: _date.isBefore(first) ? first : _date,
+      firstDate: first,
       lastDate: DateTime.now(),
       helpText: 'Attendance date',
     );

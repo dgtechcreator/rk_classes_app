@@ -76,15 +76,19 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
   void _setDate(DateTime d) {
     final day = DateUtils.dateOnly(d);
     if (day.isAfter(DateUtils.dateOnly(DateTime.now())) || DateUtils.isSameDay(day, _date)) return;
+    final session = context.read<Session>();
+    if (session.isClassRep && day.isBefore(session.crEarliestDate)) return;   // a CR works on the last few days only
     setState(() => _date = day);
     _loadBatches();
   }
 
   Future<void> _pickDate() async {
+    final session = context.read<Session>();
+    final first = session.isClassRep ? session.crEarliestDate : DateTime(2020);
     final picked = await showDatePicker(
       context: context,
-      initialDate: _date,
-      firstDate: DateTime(2020),
+      initialDate: _date.isBefore(first) ? first : _date,
+      firstDate: first,
       lastDate: DateTime.now(),
       helpText: 'Attendance date',
     );
@@ -141,6 +145,7 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
       body: Column(
         children: [
           AttendanceDateBar(date: _date, onChanged: _setDate, onPick: _pickDate),
+          if (!session.isClassRep)
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 4, 12, 8),
             child: SizedBox(
@@ -159,7 +164,50 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
               ),
             ),
           ),
-          Expanded(child: _byClass ? _buildClassFilter() : _buildBatches()),
+          Expanded(child: session.isClassRep ? _buildCrClass(session) : (_byClass ? _buildClassFilter() : _buildBatches())),
+        ],
+      ),
+    );
+  }
+
+  // ── Class Representative: his own class only ─────────────────────────────────────────────────
+
+  Future<void> _openMyClass(Session session) async {
+    await Navigator.of(context).push<bool>(MaterialPageRoute(
+      // No filter sent: the server gives a CR exactly his own class, whatever is asked.
+      builder: (_) => AttendanceEntryScreen(title: session.crLabel.isEmpty ? 'My class' : session.crLabel, date: _date),
+    ));
+    if (mounted) _loadBatches();
+  }
+
+  Widget _buildCrClass(Session session) {
+    return RefreshIndicator(
+      onRefresh: _loadBatches,
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(12, 4, 12, 24),
+        children: [
+          Card(
+            child: ListTile(
+              leading: const CircleAvatar(backgroundColor: AppColors.primarySoft, child: Icon(Icons.shield_outlined, color: AppColors.primary)),
+              title: Text(session.crLabel.isEmpty ? 'Your class' : session.crLabel, style: const TextStyle(fontWeight: FontWeight.w800)),
+              subtitle: Text('You can mark today and the last ${session.crEditDays} days.'),
+            ),
+          ),
+          const SizedBox(height: 8),
+          ElevatedButton.icon(
+            onPressed: () => _openMyClass(session),
+            icon: const Icon(Icons.groups_outlined),
+            label: const Text('Take attendance - whole class'),
+          ),
+          if (!_loadingBatches && _batchesError == null && _batches.isNotEmpty) ...[
+            const SizedBox(height: 20),
+            _legend(_batches.where((b) => b.isMarked).length, _batches.length),
+            const SizedBox(height: 8),
+            for (final b in _batches) ...[
+              AttendanceBatchCard(batch: b, onTap: () => _openBatch(b)),
+              const SizedBox(height: 10),
+            ],
+          ],
         ],
       ),
     );

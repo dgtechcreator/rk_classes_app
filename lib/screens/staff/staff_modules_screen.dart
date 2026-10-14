@@ -20,6 +20,7 @@ import '../marks/top_students_screen.dart';
 import '../lectures/lecture_list_screen.dart';
 import '../lectures/lecture_summary_screen.dart';
 import '../lectures/my_lectures_screen.dart';
+import '../users/class_rep_list_screen.dart';
 import '../users/user_list_screen.dart';
 import 'coming_soon_screen.dart';
 import 'tasks_notifications_screen.dart';
@@ -81,8 +82,13 @@ final allModules = [
       visibleWhen: (s) => !s.isAdmin && s.roleName.toLowerCase().contains('teacher')),
   ModuleDef('Masters', Icons.settings_outlined, 'masters_view', 'Admin', screenBuilder: (_) => const MastersScreen()),
   ModuleDef('Users', Icons.admin_panel_settings_outlined, 'users_view', 'Admin', screenBuilder: (_) => const UserListScreen()),
+  ModuleDef('Class Reps', Icons.shield_outlined, 'users_view', 'Admin',
+      screenBuilder: (_) => const ClassRepListScreen(),
+      visibleWhen: (s) => s.isAdmin),   // server side is admin-only too
   ModuleDef('Deleted Records', Icons.restore_from_trash_outlined, 'deleted_records', 'Admin', screenBuilder: (_) => const DeletedRecordsScreen()),
-  ModuleDef('Tasks', Icons.checklist_outlined, null, 'Admin', screenBuilder: (_) => const TasksNotificationsScreen()),
+  ModuleDef('Tasks', Icons.checklist_outlined, null, 'Admin',
+      screenBuilder: (_) => const TasksNotificationsScreen(),
+      visibleWhen: (s) => !s.isClassRep),
 ];
 
 const groupOrder = ['Academics', 'Finance', 'Staff', 'Admin'];

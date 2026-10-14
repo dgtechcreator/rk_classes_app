@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import '../../core/api_client.dart';
+import '../../core/session.dart';
 import '../../models/app_user.dart';
 import '../../services/user_mgmt_service.dart';
 import '../../theme/app_theme.dart';
@@ -54,6 +56,29 @@ class _UserListScreenState extends State<UserListScreen> {
     }
   }
 
+  Future<void> _delete(AppUser u) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete User'),
+        content: Text('Delete ${u.fullName}? They will not be able to login. You can restore them later from Deleted Records.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(ctx, true), style: TextButton.styleFrom(foregroundColor: AppColors.danger), child: const Text('Delete')),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    try {
+      await _service.deleteUser(u.userId);
+      if (mounted) { showSnack(context, '${u.fullName} deleted.'); _load(); }
+    } on ApiException catch (e) {
+      if (mounted) showSnack(context, e.message, isError: true);
+    } catch (e) {
+      if (mounted) showSnack(context, 'Could not delete user. Please try again.', isError: true);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -68,6 +93,7 @@ class _UserListScreenState extends State<UserListScreen> {
   }
 
   Widget _buildBody() {
+    final myId = context.read<Session>().userId;
     if (_users.isEmpty) return const EmptyState(message: 'No staff users found.', icon: Icons.admin_panel_settings_outlined);
     return RefreshIndicator(
       onRefresh: _load,
@@ -93,6 +119,12 @@ class _UserListScreenState extends State<UserListScreen> {
                       icon: const Icon(Icons.security_outlined),
                       tooltip: 'Permissions',
                       onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => UserPermissionsScreen(service: _service, userId: u.userId))),
+                    ),
+                  if (u.userId != 1 && u.userId != myId)
+                    IconButton(
+                      icon: const Icon(Icons.delete_outline, color: AppColors.danger),
+                      tooltip: 'Delete',
+                      onPressed: () => _delete(u),
                     ),
                   Switch(value: u.isActive, onChanged: (_) => _toggleActive(u), activeThumbColor: AppColors.success),
                 ],

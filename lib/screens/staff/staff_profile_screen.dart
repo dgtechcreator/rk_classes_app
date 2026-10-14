@@ -62,7 +62,7 @@ class StaffProfileScreen extends StatelessWidget {
                       child: Text(initial, style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.w800)),
                     ),
                     const SizedBox(height: 14),
-                    Text(session.fullName, style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w800)),
+                    Text(session.displayName.isEmpty ? session.fullName : session.displayName, style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w800)),
                     const SizedBox(height: 4),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
