@@ -5,7 +5,9 @@ import '../../core/api_client.dart';
 import '../../models/faculty.dart';
 import '../../services/faculty_service.dart';
 import '../../theme/app_theme.dart';
+import '../../services/photo_service.dart';
 import '../../widgets/common.dart';
+import '../../widgets/profile_avatar.dart';
 
 class FacultyFormScreen extends StatefulWidget {
   const FacultyFormScreen({super.key, this.faculty});
@@ -39,6 +41,10 @@ class _FacultyFormScreenState extends State<FacultyFormScreen> {
   DateTime? _dateOfJoining;
   int? _designationId;
   String _status = 'Active';
+
+  // Photo: applied after the record is saved (needs the faculty id), same as the website form.
+  String? _pickedPhoto;
+  bool _removePhoto = false;
 
   bool _loadingLookups = true;
   bool _saving = false;
@@ -121,9 +127,22 @@ class _FacultyFormScreenState extends State<FacultyFormScreen> {
         'status': _status,
         'remarks': _remarks.text.trim(),
       };
-      await _service.save(json);
+      final id = await _service.save(json);
+      var photoFailed = false;
+      if (id > 0 && (_pickedPhoto != null || _removePhoto)) {
+        try {
+          if (_pickedPhoto != null) {
+            await PhotoService().upload(PhotoOwner.faculty, id, _pickedPhoto!);
+          } else {
+            await PhotoService().remove(PhotoOwner.faculty, id);
+          }
+        } on ApiException catch (e) {
+          photoFailed = true;
+          if (mounted) showSnack(context, 'Faculty saved, but the photo failed: ${e.message}', isError: true);
+        }
+      }
       if (mounted) {
-        showSnack(context, widget.isEdit ? 'Faculty updated.' : 'Faculty created.');
+        if (!photoFailed) showSnack(context, widget.isEdit ? 'Faculty updated.' : 'Faculty created.');
         Navigator.of(context).pop(true);
       }
     } on ApiException catch (e) {
@@ -144,6 +163,14 @@ class _FacultyFormScreenState extends State<FacultyFormScreen> {
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
                 children: [
+                  PhotoPickerField(
+                    name: _fullName.text,
+                    serverPath: widget.faculty?.profilePicPath,
+                    pickedFile: _pickedPhoto,
+                    removed: _removePhoto,
+                    onChanged: (file, removed) => setState(() { _pickedPhoto = file; _removePhoto = removed; }),
+                  ),
+                  const SizedBox(height: 16),
                   const SectionHeader(title: 'Basic Info'),
                   TextFormField(controller: _fullName, decoration: const InputDecoration(labelText: 'Full Name *'), validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null),
                   const SizedBox(height: 12),

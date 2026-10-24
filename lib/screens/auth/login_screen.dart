@@ -68,7 +68,7 @@ class _LoginScreenState extends State<LoginScreen> {
       if (!mounted) return;
       await context.read<Session>().applyStaffLogin(
             token: r.token, userId: r.userId, fullName: r.fullName, displayName: r.displayName, username: r.username,
-            roleId: r.roleId, roleName: r.roleName, permissions: r.permissions, classRep: r.classRep,
+            roleId: r.roleId, roleName: r.roleName, profilePicPath: r.profilePicPath, permissions: r.permissions, classRep: r.classRep,
           );
       if (!mounted) return;
       final realtime = context.read<RealtimeNotificationService>();

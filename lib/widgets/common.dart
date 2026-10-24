@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../theme/app_theme.dart';
+import 'profile_avatar.dart';
 
 class StatCard extends StatelessWidget {
   const StatCard({super.key, required this.label, required this.value, required this.color, this.icon, this.onTap});
@@ -436,8 +437,10 @@ class DateStrip extends StatelessWidget {
 /// decorative circle motif (common in top-tier consumer app headers) instead of a flat gradient
 /// slab, and a bigger initials avatar so the header reads as a genuine "home" moment, not a title bar.
 class GreetingHeader extends StatelessWidget {
-  const GreetingHeader({super.key, required this.greeting, required this.name, this.subtitle, this.leadingIcon = Icons.person_outline, this.actions = const []});
+  const GreetingHeader({super.key, required this.greeting, required this.name, this.subtitle, this.leadingIcon = Icons.person_outline, this.actions = const [], this.photoPath, this.onAvatarTap});
   final String greeting;
+  final String? photoPath;       // the signed-in person's photo (site-relative path); initials when empty
+  final VoidCallback? onAvatarTap;
   final String name;
   final String? subtitle;
   final IconData leadingIcon;
@@ -474,16 +477,26 @@ class GreetingHeader extends StatelessWidget {
             ),
             Row(
               children: [
-                Container(
-                  width: 46,
-                  height: 46,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.16),
-                    shape: BoxShape.circle,
-                    border: Border.all(color: Colors.white.withValues(alpha: 0.35), width: 1.4),
-                  ),
-                  alignment: Alignment.center,
-                  child: Text(initial, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w800)),
+                GestureDetector(
+                  onTap: onAvatarTap,
+                  child: (photoPath ?? '').isNotEmpty
+                      ? ProfileAvatar(
+                          name: name,
+                          photoPath: photoPath,
+                          size: 46,
+                          border: Border.all(color: Colors.white.withValues(alpha: 0.6), width: 1.6),
+                        )
+                      : Container(
+                          width: 46,
+                          height: 46,
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.16),
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white.withValues(alpha: 0.35), width: 1.4),
+                          ),
+                          alignment: Alignment.center,
+                          child: Text(initial, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w800)),
+                        ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(

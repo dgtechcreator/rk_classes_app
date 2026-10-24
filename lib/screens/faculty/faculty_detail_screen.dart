@@ -6,7 +6,9 @@ import '../../core/api_client.dart';
 import '../../core/session.dart';
 import '../../services/faculty_service.dart';
 import '../../theme/app_theme.dart';
+import '../../services/photo_service.dart';
 import '../../widgets/common.dart';
+import '../../widgets/profile_avatar.dart';
 import 'faculty_form_screen.dart';
 
 class FacultyDetailScreen extends StatefulWidget {
@@ -102,10 +104,14 @@ class _FacultyDetailScreenState extends State<FacultyDetailScreen> {
               padding: const EdgeInsets.all(16),
               child: Row(
                 children: [
-                  CircleAvatar(
-                    radius: 32,
-                    backgroundColor: AppColors.primarySoft,
-                    child: Text(f.fullName.isNotEmpty ? f.fullName[0].toUpperCase() : '?', style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold, fontSize: 22)),
+                  EditableAvatar(
+                    name: f.fullName,
+                    photoPath: f.profilePicPath,
+                    owner: PhotoOwner.faculty,
+                    id: f.facultyId,
+                    size: 72,
+                    canEdit: context.read<Session>().isAdmin || context.read<Session>().hasEditPerm('faculty'),
+                    onChanged: (_) => _load(),
                   ),
                   const SizedBox(width: 14),
                   Expanded(

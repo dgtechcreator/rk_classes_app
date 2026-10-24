@@ -70,6 +70,8 @@ class AppUser {
     this.isActive = true,
     this.permCount = 0,
     this.gender,
+    this.profilePicPath,
+    this.facultyId,
   });
 
   final int userId;
@@ -82,6 +84,8 @@ class AppUser {
   final bool isActive;
   final int permCount;
   final String? gender; // Male / Female / null - drives the Sir / Ma'am greeting
+  final String? profilePicPath;
+  final int? facultyId; // explicitly linked Faculty profile (null = matched automatically by phone / name)
 
   factory AppUser.fromJson(Map<String, dynamic> j) => AppUser(
         userId: _asInt(j['userId']),
@@ -94,6 +98,8 @@ class AppUser {
         isActive: j['isActive'] == null ? true : _asBool(j['isActive']),
         permCount: _asInt(j['permCount']),
         gender: _asStringN(j['gender']),
+        profilePicPath: _asStringN(j['profilePicPath']),
+        facultyId: j['facultyId'] == null ? null : _asInt(j['facultyId']),
       );
 }
 
@@ -124,5 +130,40 @@ class UserRights {
         userId: _asInt(j['userId']),
         userName: _asString(j['userName']),
         modules: (j['modules'] as List? ?? []).map((e) => AppModule.fromJson(e as Map<String, dynamic>)).toList(),
+      );
+}
+
+/// One Faculty profile offered in the "Linked Faculty profile" dropdown of the user form.
+class FacultyOption {
+  FacultyOption({required this.facultyId, required this.fullName, this.designationName, this.phone, this.linkedUserId, this.linkedUserName});
+  final int facultyId;
+  final String fullName;
+  final String? designationName;
+  final String? phone;
+  final int? linkedUserId;
+  final String? linkedUserName;
+
+  String get label => [fullName, designationName, phone].where((e) => e != null && e.isNotEmpty).join(' · ');
+
+  factory FacultyOption.fromJson(Map<String, dynamic> j) => FacultyOption(
+        facultyId: _asInt(j['facultyId']),
+        fullName: _asString(j['fullName']),
+        designationName: _asStringN(j['designationName']),
+        phone: _asStringN(j['phone']),
+        linkedUserId: j['linkedUserId'] == null ? null : _asInt(j['linkedUserId']),
+        linkedUserName: _asStringN(j['linkedUserName']),
+      );
+}
+
+class FacultyOptions {
+  FacultyOptions({required this.faculties, this.autoFacultyId, this.autoFacultyName});
+  final List<FacultyOption> faculties;
+  final int? autoFacultyId;
+  final String? autoFacultyName;
+
+  factory FacultyOptions.fromJson(Map<String, dynamic> j) => FacultyOptions(
+        faculties: (j['faculties'] as List? ?? []).map((e) => FacultyOption.fromJson(e as Map<String, dynamic>)).toList(),
+        autoFacultyId: j['autoFacultyId'] == null ? null : _asInt(j['autoFacultyId']),
+        autoFacultyName: _asStringN(j['autoFacultyName']),
       );
 }

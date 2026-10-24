@@ -17,6 +17,12 @@ class UserMgmtService {
     return (res.data as List).map((e) => Role.fromJson(e as Map<String, dynamic>)).toList();
   }
 
+  /// Faculty profiles an admin can link a login to (+ what automatic matching finds for [userId], 0 = new user).
+  Future<FacultyOptions> getFacultyOptions(int userId) async {
+    final res = await _client.get('/api/users/faculty-options', query: {'userId': userId});
+    return FacultyOptions.fromJson(res.data as Map<String, dynamic>);
+  }
+
   Future<UserDetail> getById(int id) async {
     final res = await _client.get('/api/users/$id');
     return UserDetail.fromJson(res.data as Map<String, dynamic>);
@@ -32,6 +38,7 @@ class UserMgmtService {
     required bool isActive,
     String? newPassword,
     String? gender,
+    int? facultyId, // null = leave as is, 0 = automatic matching, >0 = link to that Faculty profile
   }) async {
     final res = await _client.post('/api/users/save', data: {
       'userId': userId,
@@ -43,6 +50,7 @@ class UserMgmtService {
       'isActive': isActive,
       'newPassword': newPassword,
       'gender': gender ?? '',
+      'facultyId': facultyId ?? -1,
     });
     final data = res.data as Map<String, dynamic>;
     return data['userId'] is int ? data['userId'] as int : int.tryParse(data['userId'].toString()) ?? 0;

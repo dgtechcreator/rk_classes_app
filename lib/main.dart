@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'core/api_client.dart';
+import 'core/maintenance_controller.dart';
+import 'widgets/app_gate.dart';
 import 'core/realtime_notification_service.dart';
 import 'core/session.dart';
 import 'models/task_notification.dart';
@@ -40,12 +42,19 @@ class RkClassesApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => Session()),
         ChangeNotifierProvider(create: (_) => RealtimeNotificationService()),
+        ChangeNotifierProvider(create: (_) {
+          final m = MaintenanceController();
+          ApiClient.onMaintenance = m.markActive;
+          return m;
+        }),
       ],
       child: MaterialApp(
         title: 'RK Classes',
         debugShowCheckedModeBanner: false,
         scaffoldMessengerKey: rootScaffoldMessengerKey,
         theme: AppTheme.light(),
+        // Maintenance mode (website > App Settings) covers every screen, login included.
+        builder: (context, child) => AppGate(child: child ?? const SizedBox.shrink()),
         home: const _SplashGate(),
       ),
     );

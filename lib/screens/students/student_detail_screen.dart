@@ -11,6 +11,8 @@ import '../../services/student_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/common.dart';
 import '../../widgets/contact_actions.dart';
+import '../../widgets/profile_avatar.dart';
+import '../../services/photo_service.dart';
 import '../fees/receipt_screen.dart';
 import 'student_form_screen.dart';
 
@@ -132,7 +134,15 @@ class _StudentDetailScreenState extends State<StudentDetailScreen> {
               child: Column(children: [
               Row(
                 children: [
-                  CircleAvatar(radius: 32, backgroundColor: AppColors.primarySoft, child: Text(s.displayName.isNotEmpty ? s.displayName[0].toUpperCase() : '?', style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold, fontSize: 22))),
+                  EditableAvatar(
+                    name: s.displayName,
+                    photoPath: s.profilePicPath,
+                    owner: PhotoOwner.student,
+                    id: s.studentId,
+                    size: 72,
+                    canEdit: context.read<Session>().isAdmin || context.read<Session>().hasEditPerm('student'),
+                    onChanged: (_) => _load(),
+                  ),
                   const SizedBox(width: 14),
                   Expanded(
                     child: Column(

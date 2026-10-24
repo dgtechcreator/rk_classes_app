@@ -9,6 +9,7 @@ class StaffLoginResult {
     required this.username,
     required this.roleId,
     required this.roleName,
+    this.profilePicPath,
     required this.permissions,
     this.classRep,
   });
@@ -20,6 +21,7 @@ class StaffLoginResult {
   final String username;
   final int roleId;
   final String roleName;
+  final String? profilePicPath;
   final Map<String, bool> permissions;
   final Map<String, dynamic>? classRep;   // set when the login is a Class Representative
 }
@@ -49,6 +51,7 @@ class AuthService {
       username: user['username'] as String? ?? '',
       roleId: user['roleId'] as int,
       roleName: user['roleName'] as String? ?? '',
+      profilePicPath: user['profilePicPath'] as String?,
       permissions: perms,
       classRep: data['classRep'] as Map<String, dynamic>?,
     );

@@ -7,6 +7,7 @@ import '../../models/app_user.dart';
 import '../../services/user_mgmt_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/common.dart';
+import '../../widgets/profile_avatar.dart';
 import 'user_form_screen.dart';
 import 'user_permissions_screen.dart';
 
@@ -105,9 +106,12 @@ class _UserListScreenState extends State<UserListScreen> {
           return Card(
             child: ListTile(
               onTap: () => _openForm(user: u),
-              leading: CircleAvatar(
-                backgroundColor: u.isActive ? AppColors.primarySoft : AppColors.border,
-                child: Text(u.fullName.isNotEmpty ? u.fullName[0].toUpperCase() : '?', style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
+              leading: ProfileAvatar(
+                name: u.fullName,
+                photoPath: u.profilePicPath,
+                size: 42,
+                background: u.isActive ? AppColors.primarySoft : AppColors.border,
+                foreground: AppColors.primary,
               ),
               title: Text(u.fullName, style: const TextStyle(fontWeight: FontWeight.w600)),
               subtitle: Text('${u.username} • ${u.roleName ?? ''}${u.roleId != 1 ? ' • ${u.permCount} modules' : ''}'),

@@ -77,7 +77,10 @@ class _StaffShellState extends State<StaffShell> with WidgetsBindingObserver {
       body: IndexedStack(index: _index, children: screens),
       bottomNavigationBar: PremiumBottomNav(
         currentIndex: _index,
-        onTap: (i) => setState(() => _index = i),
+        onTap: (i) {
+          setState(() => _index = i);
+          if (i == 3) context.read<Session>().refreshFromServer();   // latest photo / rights when Profile opens
+        },
         items: [
           const PremiumNavItem(icon: Icons.home_outlined, selectedIcon: Icons.home_rounded, label: 'Home'),
           const PremiumNavItem(icon: Icons.apps_outlined, selectedIcon: Icons.apps_rounded, label: 'Modules'),
@@ -95,7 +98,10 @@ class _StaffShellState extends State<StaffShell> with WidgetsBindingObserver {
       body: IndexedStack(index: i, children: const [CrHomeScreen(), StaffProfileScreen()]),
       bottomNavigationBar: PremiumBottomNav(
         currentIndex: i,
-        onTap: (v) => setState(() => _index = v),
+        onTap: (v) {
+          setState(() => _index = v);
+          if (v == 1) context.read<Session>().refreshFromServer();
+        },
         items: const [
           PremiumNavItem(icon: Icons.home_outlined, selectedIcon: Icons.home_rounded, label: 'Home'),
           PremiumNavItem(icon: Icons.person_outline_rounded, selectedIcon: Icons.person_rounded, label: 'Profile'),

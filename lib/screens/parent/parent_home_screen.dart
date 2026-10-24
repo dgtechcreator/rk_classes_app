@@ -9,6 +9,7 @@ import '../../theme/app_theme.dart';
 import '../../theme/subject_visuals.dart';
 import '../../widgets/attendance_ring.dart';
 import '../../widgets/common.dart';
+import '../../widgets/profile_avatar.dart';
 import '../fees/receipt_screen.dart';
 import 'parent_fees_screen.dart';
 import 'parent_grades_screen.dart';
@@ -258,13 +259,9 @@ class _ChildCard extends StatelessWidget {
           const SizedBox(height: 12),
           Row(
             children: [
-              CircleAvatar(
-                radius: 26,
-                backgroundColor: AppColors.primarySoft,
-                child: Text(
-                  s.displayName.isNotEmpty ? s.displayName[0].toUpperCase() : '?',
-                  style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold, fontSize: 20),
-                ),
+              GestureDetector(
+                onTap: () => showPhotoPreview(context, name: s.displayName, photoPath: s.profilePicPath),
+                child: ProfileAvatar(name: s.displayName, photoPath: s.profilePicPath, size: 52, background: AppColors.primarySoft, foreground: AppColors.primary),
               ),
               const SizedBox(width: 14),
               Expanded(

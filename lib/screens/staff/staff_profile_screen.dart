@@ -3,7 +3,9 @@ import 'package:provider/provider.dart';
 
 import '../../core/realtime_notification_service.dart';
 import '../../core/session.dart';
+import '../../services/photo_service.dart';
 import '../../theme/app_theme.dart';
+import '../../widgets/profile_avatar.dart';
 import '../auth/login_screen.dart';
 import 'staff_modules_screen.dart';
 
@@ -37,7 +39,6 @@ class StaffProfileScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final session = context.watch<Session>();
-    final initial = session.fullName.trim().isNotEmpty ? session.fullName.trim()[0].toUpperCase() : '?';
     final grantedGroups = groupOrder.where((g) {
       final mods = allModules.where((m) => m.group == g).toList();
       return mods.any((m) => m.permKey == null || session.hasPerm(m.permKey!));
@@ -54,12 +55,14 @@ class StaffProfileScreen extends StatelessWidget {
                 padding: const EdgeInsets.fromLTRB(16, 20, 16, 8),
                 child: Column(
                   children: [
-                    Container(
-                      width: 84,
-                      height: 84,
-                      decoration: const BoxDecoration(gradient: AppGradients.primarySheen, shape: BoxShape.circle).copyWith(boxShadow: AppShadows.header),
-                      alignment: Alignment.center,
-                      child: Text(initial, style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.w800)),
+                    EditableAvatar(
+                      name: session.fullName,
+                      photoPath: session.profilePicPath,
+                      owner: PhotoOwner.user,
+                      id: session.userId,
+                      size: 96,
+                      border: Border.all(color: Colors.white, width: 3),
+                      onChanged: (path) => session.setProfilePic(path),
                     ),
                     const SizedBox(height: 14),
                     Text(session.displayName.isEmpty ? session.fullName : session.displayName, style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w800)),

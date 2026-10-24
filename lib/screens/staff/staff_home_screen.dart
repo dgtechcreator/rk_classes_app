@@ -71,6 +71,7 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
                   //name: session.fullName.split(' ').first,
                   name: session.displayName.isEmpty ? session.fullName : session.displayName,
                   subtitle: session.roleName,
+                  photoPath: session.profilePicPath,
                   leadingIcon: Icons.badge_outlined,
                   actions: [
                     Stack(

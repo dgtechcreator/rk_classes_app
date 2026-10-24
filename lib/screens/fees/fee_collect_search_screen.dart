@@ -6,6 +6,7 @@ import '../../core/api_client.dart';
 import '../../services/fees_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/common.dart';
+import '../../widgets/profile_avatar.dart';
 import 'fee_pay_screen.dart';
 import 'fee_summary_screen.dart';
 
@@ -99,10 +100,7 @@ class _FeeCollectSearchScreenState extends State<FeeCollectSearchScreen> {
         final s = _results[i];
         return Card(
           child: ListTile(
-            leading: CircleAvatar(
-              backgroundColor: AppColors.primarySoft,
-              child: Text(s.fullName.isNotEmpty ? s.fullName[0].toUpperCase() : '?', style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
-            ),
+            leading: ProfileAvatar(name: s.fullName, photoPath: s.profilePicPath, size: 42, background: AppColors.primarySoft, foreground: AppColors.primary),
             title: Text(s.fullName, style: const TextStyle(fontWeight: FontWeight.w600)),
             subtitle: Text('${s.admissionNo} • ${s.classLabel}'),
             trailing: const Icon(Icons.chevron_right),

@@ -25,6 +25,7 @@ class Session extends ChangeNotifier {
   String username = '';
   int roleId = 0;
   String roleName = '';
+  String? profilePicPath;    // site-relative path of the login's own photo (shared with the web app)
   Map<String, bool> permissions = {};
 
   // Class Representative (CR / Monitor): a student login limited to his own class. Set from the server.
@@ -54,6 +55,7 @@ class Session extends ChangeNotifier {
   static const _kUsername = 'session_username';
   static const _kRoleId = 'session_roleId';
   static const _kRoleName = 'session_roleName';
+  static const _kProfilePic = 'session_profilePic';
   static const _kPermissions = 'session_permissions';
   static const _kClassRep = 'session_classRep';
   static const _kParentId = 'session_parentId';
@@ -76,6 +78,7 @@ class Session extends ChangeNotifier {
     username = prefs.getString(_kUsername) ?? '';
     roleId = prefs.getInt(_kRoleId) ?? 0;
     roleName = prefs.getString(_kRoleName) ?? '';
+    profilePicPath = prefs.getString(_kProfilePic);
     final permJson = prefs.getString(_kPermissions);
     permissions = permJson == null ? {} : Map<String, bool>.from(jsonDecode(permJson) as Map);
     _readClassRep(prefs.getString(_kClassRep));
@@ -95,6 +98,7 @@ class Session extends ChangeNotifier {
     required String username,
     required int roleId,
     required String roleName,
+    String? profilePicPath,
     required Map<String, bool> permissions,
     Map<String, dynamic>? classRep,
   }) async {
@@ -107,6 +111,7 @@ class Session extends ChangeNotifier {
     await prefs.setString(_kUsername, username);
     await prefs.setInt(_kRoleId, roleId);
     await prefs.setString(_kRoleName, roleName);
+    await _storePic(prefs, profilePicPath);
     await prefs.setString(_kPermissions, jsonEncode(permissions));
     await prefs.setString(_kClassRep, classRep == null ? '' : jsonEncode(classRep));
 
@@ -117,9 +122,25 @@ class Session extends ChangeNotifier {
     this.username = username;
     this.roleId = roleId;
     this.roleName = roleName;
+    this.profilePicPath = (profilePicPath ?? '').isEmpty ? null : profilePicPath;
     this.permissions = permissions;
     _readClassRep(classRep == null ? null : jsonEncode(classRep));
     status = AuthStatus.signedIn;
+    notifyListeners();
+  }
+
+  Future<void> _storePic(SharedPreferences prefs, String? path) async {
+    if (path == null || path.isEmpty) {
+      await prefs.remove(_kProfilePic);
+    } else {
+      await prefs.setString(_kProfilePic, path);
+    }
+  }
+
+  /// Called right after the logged-in user uploads / removes their own photo (null or '' = removed).
+  Future<void> setProfilePic(String? path) async {
+    profilePicPath = (path ?? '').isEmpty ? null : path;
+    await _storePic(await SharedPreferences.getInstance(), profilePicPath);
     notifyListeners();
   }
 
@@ -158,6 +179,11 @@ class Session extends ChangeNotifier {
       if (dn.isNotEmpty) {
         await prefs.setString(_kDisplayName, dn);
         displayName = dn;
+      }
+      if (user.containsKey('profilePicPath')) {   // an older server does not send it - keep what we have then
+        final pic = user['profilePicPath'] as String?;
+        await _storePic(prefs, pic);
+        profilePicPath = (pic ?? '').isEmpty ? null : pic;
       }
       await prefs.setInt(_kRoleId, (user['roleId'] as num).toInt());
       await prefs.setString(_kRoleName, user['roleName'] as String? ?? '');
@@ -207,6 +233,7 @@ class Session extends ChangeNotifier {
     username = '';
     roleId = 0;
     roleName = '';
+    profilePicPath = null;
     permissions = {};
     isClassRep = false;
     crLabel = '';

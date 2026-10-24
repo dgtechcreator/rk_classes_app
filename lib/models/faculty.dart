@@ -54,9 +54,8 @@ class FacultySubject {
       );
 }
 
-/// Mirrors SchoolMS.Domain.Faculty. Note: profile picture upload is deferred server-side (Save is
-/// JSON-only, no IFormFile) — there's deliberately no field here for picking/uploading a new photo,
-/// only for displaying `profilePicPath` if one already exists from the web app.
+/// Mirrors SchoolMS.Domain.Faculty. `profilePicPath` is the site-relative photo path shared with the web app;
+/// the photo itself is changed through POST/DELETE /api/faculty/{id}/photo (see PhotoService), not through Save.
 class Faculty {
   Faculty({
     required this.facultyId,

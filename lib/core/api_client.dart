@@ -22,6 +22,15 @@ class ApiConfig {
   static const String _liveUrl = 'https://rkclasses.jmmportal.com';
   // --dart-define=API_BASE=... still overrides both.
   static const String baseUrl = String.fromEnvironment('API_BASE', defaultValue: useLocalBackend ? _localUrl : _liveUrl);
+
+  /// Photos are stored as site-relative paths ("/images/students/x.jpg") in the same DB column the web app uses.
+  /// This turns one into a loadable URL (null / blank stays null so callers can fall back to initials).
+  static String? absoluteUrl(String? path) {
+    if (path == null || path.trim().isEmpty) return null;
+    final p = path.trim();
+    if (p.startsWith('http://') || p.startsWith('https://')) return p;
+    return '$baseUrl${p.startsWith('/') ? '' : '/'}$p';
+  }
   // Same-machine dev/testing only (Flutter web preview + local dotnet run against RKClassesLive).
   // static const String baseUrl = 'http://127.0.0.1:5299';
 }
@@ -51,6 +60,11 @@ class ApiClient {
   }
 
   static final ApiClient instance = ApiClient._internal();
+
+  /// Set by the app: called with the server's message when a request is refused because the admin switched on
+  /// maintenance mode (HTTP 503 + `maintenance: true`), so the maintenance page appears at once.
+  static void Function(String? message)? onMaintenance;
+
   late final Dio _dio;
   String? _token;
 
@@ -83,6 +97,12 @@ class ApiClient {
   Future<Response<T>> post<T>(String path, {Map<String, dynamic>? data}) =>
       _wrap(() => _dio.post<T>(path, data: data));
 
+  /// Multipart upload of one local file (used for profile photos). [field] must match the API parameter name.
+  Future<Response<T>> uploadFile<T>(String path, {required String filePath, String field = 'photo', String? fileName}) async {
+    final form = FormData.fromMap({field: await MultipartFile.fromFile(filePath, filename: fileName)});
+    return _wrap(() => _dio.post<T>(path, data: form, options: Options(sendTimeout: const Duration(seconds: 60), receiveTimeout: const Duration(seconds: 60))));
+  }
+
   Future<Response<T>> put<T>(String path, {Map<String, dynamic>? data}) =>
       _wrap(() => _dio.put<T>(path, data: data));
 
@@ -108,6 +128,10 @@ class ApiClient {
         case DioExceptionType.connectionError:
           throw ApiException('Could not connect to server. Please check your internet connection.');
         case DioExceptionType.badResponse:
+          final body = e.response?.data;
+          if (e.response?.statusCode == 503 && body is Map && body['maintenance'] == true) {
+            onMaintenance?.call(body['error']?.toString());
+          }
           throw ApiException(extractMessage(e.response?.data, 'Server error. Please try again later.'),
               statusCode: e.response?.statusCode);
         case DioExceptionType.cancel:

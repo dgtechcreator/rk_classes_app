@@ -9,6 +9,7 @@ import '../../models/faculty.dart';
 import '../../services/faculty_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/common.dart';
+import '../../widgets/profile_avatar.dart';
 import 'faculty_detail_screen.dart';
 import 'faculty_form_screen.dart';
 
@@ -207,10 +208,7 @@ class _FacultyTile extends StatelessWidget {
     return Card(
       child: ListTile(
         onTap: onTap,
-        leading: CircleAvatar(
-          backgroundColor: AppColors.primarySoft,
-          child: Text(faculty.fullName.isNotEmpty ? faculty.fullName[0].toUpperCase() : '?', style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
-        ),
+        leading: ProfileAvatar(name: faculty.fullName, photoPath: faculty.profilePicPath, size: 42, background: AppColors.primarySoft, foreground: AppColors.primary),
         title: Text(faculty.fullName, style: const TextStyle(fontWeight: FontWeight.w600)),
         subtitle: Text(subtitle.isEmpty ? faculty.employeeCode : subtitle),
         trailing: faculty.status != 'Active' ? StatusBadge(status: faculty.status) : const Icon(Icons.chevron_right, color: AppColors.textSecondary),

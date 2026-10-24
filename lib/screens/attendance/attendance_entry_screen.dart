@@ -8,6 +8,7 @@ import '../../models/attendance.dart';
 import '../../services/attendance_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/common.dart';
+import '../../widgets/profile_avatar.dart';
 import '../../widgets/contact_actions.dart';
 import '../../models/contact_number.dart';
 
@@ -524,13 +525,7 @@ class _StudentAttendanceTile extends StatelessWidget {
           children: [
             Row(
               children: [
-                CircleAvatar(
-                  backgroundColor: AppColors.primarySoft,
-                  child: Text(
-                    record.fullName.isNotEmpty ? record.fullName[0].toUpperCase() : '?',
-                    style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold),
-                  ),
-                ),
+                ProfileAvatar(name: record.fullName, photoPath: record.profilePicPath, size: 40, background: AppColors.primarySoft, foreground: AppColors.primary),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(

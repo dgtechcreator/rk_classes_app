@@ -13,11 +13,13 @@ class StudentQuickResult {
     this.className,
     this.sectionId,
     this.sectionName,
+    this.profilePicPath,
   });
 
   final int studentId;
   final String fullName;
   final String admissionNo;
+  final String? profilePicPath;
   final int? classId;
   final String? className;
   final int? sectionId;
@@ -31,6 +33,7 @@ class StudentQuickResult {
         className: j['className']?.toString(),
         sectionId: j['sectionId'] == null ? null : (j['sectionId'] is int ? j['sectionId'] as int : int.tryParse(j['sectionId'].toString())),
         sectionName: j['sectionName']?.toString(),
+        profilePicPath: j['profilePicPath']?.toString(),
       );
 
   String get classLabel => [className, sectionName].where((e) => e != null && e.isNotEmpty).join(' / ');
