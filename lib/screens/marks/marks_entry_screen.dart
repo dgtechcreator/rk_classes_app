@@ -12,6 +12,7 @@ import '../../services/lookup_service.dart';
 import '../../services/marks_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/common.dart';
+import 'new_test_sheet.dart';
 
 /// Marks entry — mirrors MarksController.Index + Save. Pick year/class/section/batch/subject/exam
 /// (typing a new exam name starts a new test; picking a suggestion reloads any marks already entered
@@ -122,7 +123,10 @@ class _MarksEntryScreenState extends State<MarksEntryScreen> {
     _reload();
   }
 
+  int _reloadSeq = 0;
+
   Future<void> _reload() async {
+    final seq = ++_reloadSeq;
     if (_classId == null) {
       setState(() { _students = []; _listError = null; });
       return;
@@ -134,7 +138,7 @@ class _MarksEntryScreenState extends State<MarksEntryScreen> {
         subjectId: _subjectId, examName: _examCtrl.text.trim(), testDate: _testDate,
         maxMarks: _maxMarks,
       );
-      if (!mounted) return;
+      if (!mounted || seq != _reloadSeq) return;
       setState(() {
         _students = data.students;
         // Marks already saved for this test: use (and lock) the total it was created with.
@@ -150,8 +154,40 @@ class _MarksEntryScreenState extends State<MarksEntryScreen> {
         _loadingList = false;
       });
     } on ApiException catch (e) {
-      if (mounted) setState(() { _listError = e.message; _loadingList = false; });
+      if (mounted && seq == _reloadSeq) setState(() { _listError = e.message; _loadingList = false; });
     }
+  }
+
+  /// "New Test": collect name / Std / subject / date / total in a sheet, then open the grid for it.
+  Future<void> _newTest() async {
+    final result = await showModalBottomSheet<NewTestResult>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (_) => NewTestSheet(
+        classes: _classes,
+        sections: _sections,
+        batches: _batches,
+        existing: _examOptions,
+        loadSubjects: _lookup.getSubjects,
+        initialClassId: _classId,
+        initialSectionId: _sectionId,
+        initialBatchId: _batchId,
+      ),
+    );
+    if (result == null || !mounted) return;
+    if (_classId != result.classId) await _onClassChanged(result.classId);
+    if (!mounted) return;
+    setState(() {
+      _sectionId = result.sectionId;
+      _batchId = result.batchId;
+      _subjectId = result.subjectId;
+      _examCtrl.text = result.name;
+      _testDate = result.date;
+      _maxCtrl.text = '${result.maxMarks}';
+      _maxLocked = false;
+    });
+    await _reload();
   }
 
   void _rebuildControllers() {
@@ -254,6 +290,14 @@ class _MarksEntryScreenState extends State<MarksEntryScreen> {
                       child: ListView(
                         padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
                         children: [
+                          if (!session.isClassRep) ...[
+                            FilledButton.icon(
+                              onPressed: _newTest,
+                              icon: const Icon(Icons.add_rounded),
+                              label: const Text('New Test'),
+                            ),
+                            const SizedBox(height: 12),
+                          ],
                           _buildFilters(),
                           const SizedBox(height: 12),
                           _buildBody(),
