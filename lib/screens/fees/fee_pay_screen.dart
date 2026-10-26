@@ -121,6 +121,13 @@ class _FeePayScreenState extends State<FeePayScreen> {
               style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
             ),
           ],
+          if (info.agreedDiscount > 0) ...[
+            const SizedBox(height: 4),
+            Text(
+              'Agreed discount ${_fmt.format(info.agreedDiscount)}${(info.agreedDiscountReason ?? '').trim().isEmpty ? '' : ' - ${info.agreedDiscountReason}'} (included above)',
+              style: const TextStyle(color: AppColors.warning, fontSize: 12, fontWeight: FontWeight.w600),
+            ),
+          ],
           if (info.dueDate != null) ...[
             const SizedBox(height: 8),
             Text('Due date: ${DateFormat.yMMMd().format(info.dueDate!)}', style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),

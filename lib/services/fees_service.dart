@@ -51,6 +51,8 @@ class FeePayInfo {
     required this.feeStructures,
     required this.paymentHistory,
     required this.existingDiscount,
+    this.agreedDiscount = 0,
+    this.agreedDiscountReason,
     this.additionalCharges = 0,
     double? netTotal,
   }) : netTotal = netTotal ?? (actualFee + additionalCharges - existingDiscount);
@@ -63,6 +65,10 @@ class FeePayInfo {
   final List<FeeStructure> feeStructures;
   final List<FeePayment> paymentHistory;
   final double existingDiscount;
+
+  /// The part of [existingDiscount] agreed at admission (with its reason); the rest was given on payments.
+  final double agreedDiscount;
+  final String? agreedDiscountReason;
 
   /// Charges added at payment time (kept in the payment remarks by the server).
   final double additionalCharges;
@@ -107,6 +113,8 @@ class FeesService {
       feeStructures: (data['feeStructures'] as List? ?? []).map((e) => FeeStructure.fromJson(e as Map<String, dynamic>)).toList(),
       paymentHistory: (data['paymentHistory'] as List? ?? []).map((e) => FeePayment.fromJson(e as Map<String, dynamic>)).toList(),
       existingDiscount: _asDouble(data['existingDiscount']),
+      agreedDiscount: _asDouble(data['agreedDiscount']),
+      agreedDiscountReason: data['agreedDiscountReason']?.toString(),
       additionalCharges: _asDouble(data['additionalCharges']),
       // Older servers don't send netTotal/additionalCharges: derive the charges from the balance so
       // total - paid = balance still reconciles (exact whenever a balance is due).

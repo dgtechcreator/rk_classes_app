@@ -172,6 +172,18 @@ class ParentHomeScreen extends StatelessWidget {
               ],
             ),
           ),
+          if (d.balance > 0.5 && d.dueDate != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Row(
+                children: [
+                  const Icon(Icons.event_outlined, size: 16, color: AppColors.warning),
+                  const SizedBox(width: 6),
+                  Text('Next installment: ${DateFormat('dd MMM yyyy').format(d.dueDate!)}',
+                      style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: AppColors.warning)),
+                ],
+              ),
+            ),
           if (d.feeHistory.isNotEmpty) ...[
             const SizedBox(height: 14),
             ...d.feeHistory.take(3).map((p) => Padding(

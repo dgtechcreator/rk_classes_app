@@ -20,6 +20,8 @@ class Student {
     this.motherPhone,
     this.email,
     this.address,
+    this.agreedDiscount = 0,
+    this.agreedDiscountReason,
     this.profilePicPath,
     this.academicYearId,
     this.yearName,
@@ -50,6 +52,10 @@ class Student {
   final String? motherPhone;
   final String? email;
   final String? address;
+
+  /// Discount agreed at admission (class fee 16,000, agreed 15,000 -> 1,000); already counted in every fee total.
+  final double agreedDiscount;
+  final String? agreedDiscountReason;
   final String? profilePicPath;
   final int? academicYearId;
   final String? yearName;
@@ -78,6 +84,8 @@ class Student {
         motherPhone: _asStringN(j['motherPhone']),
         email: _asStringN(j['email']),
         address: _asStringN(j['address']),
+        agreedDiscount: _asDouble(j['agreedDiscount']),
+        agreedDiscountReason: _asStringN(j['agreedDiscountReason']),
         profilePicPath: _asStringN(j['profilePicPath']),
         academicYearId: _asIntN(j['academicYearId']),
         yearName: _asStringN(j['yearName']),

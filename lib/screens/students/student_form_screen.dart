@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import 'package:provider/provider.dart';
+
 import '../../core/api_client.dart';
+import '../../core/session.dart';
 import '../../models/lookup.dart';
 import '../../models/student.dart';
 import '../../services/lookup_service.dart';
@@ -36,6 +39,8 @@ class _StudentFormScreenState extends State<StudentFormScreen> {
   late final TextEditingController _motherPhone;
   late final TextEditingController _email;
   late final TextEditingController _address;
+  late final TextEditingController _agreedDiscount;
+  late final TextEditingController _agreedReason;
 
   String? _gender;
   DateTime? _dateOfBirth;
@@ -66,6 +71,8 @@ class _StudentFormScreenState extends State<StudentFormScreen> {
     _motherPhone = TextEditingController(text: s?.motherPhone ?? '');
     _email = TextEditingController(text: s?.email ?? '');
     _address = TextEditingController(text: s?.address ?? '');
+    _agreedDiscount = TextEditingController(text: (s?.agreedDiscount ?? 0) > 0 ? _plain(s!.agreedDiscount) : '');
+    _agreedReason = TextEditingController(text: s?.agreedDiscountReason ?? '');
     _gender = s?.gender;
     _dateOfBirth = s?.dateOfBirth;
     _admissionDate = s?.admissionDate;
@@ -80,7 +87,7 @@ class _StudentFormScreenState extends State<StudentFormScreen> {
 
   @override
   void dispose() {
-    for (final c in [_fullName, _admissionNo, _rollNo, _fatherName, _motherName, _phone, _fatherPhone, _motherPhone, _email, _address]) {
+    for (final c in [_fullName, _admissionNo, _rollNo, _fatherName, _motherName, _phone, _fatherPhone, _motherPhone, _email, _address, _agreedDiscount, _agreedReason]) {
       c.dispose();
     }
     super.dispose();
@@ -114,8 +121,17 @@ class _StudentFormScreenState extends State<StudentFormScreen> {
     setState(() { if (isDob) { _dateOfBirth = picked; } else { _admissionDate = picked; } });
   }
 
+  static String _plain(double v) => v == v.roundToDouble() ? v.toStringAsFixed(0) : v.toString();
+
+  double get _agreedAmount => double.tryParse(_agreedDiscount.text.trim()) ?? 0;
+
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
+    final canDiscount = context.read<Session>().hasPerm('fee_collection');
+    if (canDiscount && _agreedAmount > 0 && _agreedReason.text.trim().isEmpty) {
+      showSnack(context, 'Please enter the reason for the agreed discount.', isError: true);
+      return;
+    }
     setState(() => _saving = true);
     try {
       final json = {
@@ -141,6 +157,18 @@ class _StudentFormScreenState extends State<StudentFormScreen> {
         'status': _status,
       };
       final id = await _service.save(json);
+      // Agreed discount goes through its own call so an older app build can never wipe it by editing a student.
+      if (id > 0 && canDiscount) {
+        final old = widget.student;
+        final changed = _agreedAmount != (old?.agreedDiscount ?? 0) || (_agreedAmount > 0 && _agreedReason.text.trim() != (old?.agreedDiscountReason ?? '').trim());
+        if (changed) {
+          try {
+            await _service.setAgreedDiscount(id, _agreedAmount, _agreedReason.text.trim());
+          } on ApiException catch (e) {
+            if (mounted) showSnack(context, 'Student saved, but the agreed discount was not saved: ${e.message}', isError: true);
+          }
+        }
+      }
       var photoFailed = false;
       if (id > 0 && (_pickedPhoto != null || _removePhoto)) {
         try {
@@ -227,6 +255,28 @@ class _StudentFormScreenState extends State<StudentFormScreen> {
                   _dropdown('Batch', _batchId, _batches, (v) => setState(() => _batchId = v)),
                   const SizedBox(height: 12),
                   _dateField('Admission Date', _admissionDate, () => _pickDate(isDob: false)),
+                  if (context.read<Session>().hasPerm('fee_collection')) ...[
+                    const SizedBox(height: 20),
+                    const SectionHeader(title: 'Agreed Discount'),
+                    const Text(
+                      'Fee settled at admission, e.g. class fee ₹16,000 agreed at ₹15,000 → enter 1000. It counts in the total, balance and Finance straight away.',
+                      style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                    ),
+                    const SizedBox(height: 10),
+                    TextFormField(
+                      controller: _agreedDiscount,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      decoration: const InputDecoration(labelText: 'Discount Amount', prefixText: '₹ '),
+                      validator: (v) => (double.tryParse((v ?? '').trim().isEmpty ? '0' : v!.trim()) ?? -1) < 0 ? 'Enter a valid amount' : null,
+                      onChanged: (_) => setState(() {}),
+                    ),
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: _agreedReason,
+                      maxLength: 200,
+                      decoration: InputDecoration(labelText: _agreedAmount > 0 ? 'Reason *' : 'Reason', hintText: 'e.g. Sibling / early admission / negotiated fee'),
+                    ),
+                  ],
                   const SizedBox(height: 20),
                   const SectionHeader(title: 'Contact'),
                   TextFormField(controller: _phone, keyboardType: TextInputType.phone, decoration: const InputDecoration(labelText: 'Student Phone')),

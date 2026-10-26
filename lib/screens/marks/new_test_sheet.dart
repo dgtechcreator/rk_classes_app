@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 
 import '../../core/api_client.dart';
@@ -187,7 +188,7 @@ class _NewTestSheetState extends State<NewTestSheet> {
                       key: ValueKey('subject-$_classId-${_subjects.length}'),
                       isExpanded: true,
                       initialValue: _subjects.any((s) => s.subjectId == _subjectId) ? _subjectId : null,
-                      decoration: InputDecoration(labelText: 'Subject *', helperText: _loadingSubjects ? 'Loading...' : null),
+                      decoration: InputDecoration(labelText: 'Subject *', helperText: _loadingSubjects ? 'Loading...' : (_classId != null && _subjects.isEmpty ? 'No subjects found' : null)),
                       items: _subjects.map((s) => DropdownMenuItem<int?>(value: s.subjectId, child: Text(s.subjectName, overflow: TextOverflow.ellipsis))).toList(),
                       onChanged: _classId == null ? null : (v) => setState(() { _subjectId = v; _error = null; }),
                     ),
@@ -214,7 +215,15 @@ class _NewTestSheetState extends State<NewTestSheet> {
               TextField(
                 controller: _max,
                 keyboardType: TextInputType.number,
-                decoration: const InputDecoration(labelText: 'Total marks (out of) *'),
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(3)],
+                onChanged: (_) => setState(() => _error = null),
+                decoration: InputDecoration(
+                  labelText: 'Total marks (out of) *',
+                  errorText: (() {
+                    final v = int.tryParse(_max.text.trim());
+                    return (v == null || v < 1 || v > 200) ? 'Enter a number from 1 to 200' : null;
+                  })(),
+                ),
               ),
               const SizedBox(height: 8),
               Wrap(

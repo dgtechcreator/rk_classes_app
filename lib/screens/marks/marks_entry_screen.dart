@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
@@ -57,6 +58,15 @@ class _MarksEntryScreenState extends State<MarksEntryScreen> {
     return v == null || v < 1 ? 30 : (v > 200 ? 200 : v);
   }
 
+  /// Live message for the "Out of" box (null = fine): a whole number from 1 to 200.
+  String? get _totalProblem {
+    final v = int.tryParse(_maxCtrl.text.trim());
+    return (v == null || v < 1 || v > 200) ? 'Enter a number from 1 to 200' : null;
+  }
+
+  /// Students whose typed marks are not acceptable right now.
+  int get _invalidCount => _students.where((s) => !(_absent[s.studentId] ?? false) && markProblem(_controllers[s.studentId]?.text ?? '', _maxMarks) != null).length;
+
   Subject? get _selectedSubject {
     for (final s in _subjects) {
       if (s.subjectId == _subjectId) return s;
@@ -107,11 +117,25 @@ class _MarksEntryScreenState extends State<MarksEntryScreen> {
     }
   }
 
+  List<Subject>? _allSubjects;
+
+  /// Subjects offered for a Std. The per-Std list is empty when the school's subjects are not tied to a Std - the website then lists
+  /// every subject - so fall back to that same list (GET /api/marks returns it), de-duplicated by name.
+  Future<List<Subject>> _subjectsForClass(int classId) async {
+    final own = await _lookup.getSubjects(classId);
+    if (own.isNotEmpty) return own;
+    _allSubjects ??= (await _service.getEntryData()).subjects.where((s) => s.isActive).toList();
+    final all = _allSubjects!;
+    final tied = all.where((s) => s.classId == classId || s.classId == null || s.classId == 0).toList();
+    final seen = <String>{};
+    return (tied.isNotEmpty ? tied : all).where((s) => seen.add(s.subjectName.trim().toLowerCase())).toList();
+  }
+
   Future<void> _onClassChanged(int? v) async {
     setState(() { _classId = v; _sectionId = null; _batchId = null; _subjectId = null; _subjects = []; _students = []; });
     if (v == null) return;
     try {
-      final subs = await _lookup.getSubjects(v);
+      final subs = await _subjectsForClass(v);
       if (!mounted) return;
       setState(() {
         _subjects = subs;
@@ -169,7 +193,7 @@ class _MarksEntryScreenState extends State<MarksEntryScreen> {
         sections: _sections,
         batches: _batches,
         existing: _examOptions,
-        loadSubjects: _lookup.getSubjects,
+        loadSubjects: _subjectsForClass,
         initialClassId: _classId,
         initialSectionId: _sectionId,
         initialBatchId: _batchId,
@@ -311,11 +335,22 @@ class _MarksEntryScreenState extends State<MarksEntryScreen> {
           : SafeArea(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-                child: ElevatedButton(
-                  onPressed: _saving ? null : _saveAll,
-                  child: _saving
-                      ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                      : Text('Save All ($_enteredCount / ${_students.length})'),
+                child: ListenableBuilder(
+                  listenable: Listenable.merge([..._controllers.values, _maxCtrl]),
+                  builder: (context, _) {
+                    final invalid = _invalidCount;
+                    final badTotal = _totalProblem != null;
+                    return ElevatedButton(
+                      onPressed: (_saving || invalid > 0 || badTotal) ? null : _saveAll,
+                      child: _saving
+                          ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                          : Text(badTotal
+                              ? 'Fix the total marks (1 to 200)'
+                              : invalid > 0
+                                  ? 'Fix $invalid mark${invalid == 1 ? '' : 's'} above $_maxMarks'
+                                  : 'Save All ($_enteredCount / ${_students.length})'),
+                    );
+                  },
                 ),
               ),
             ),
@@ -383,9 +418,11 @@ class _MarksEntryScreenState extends State<MarksEntryScreen> {
               controller: _maxCtrl,
               enabled: !_maxLocked,
               keyboardType: TextInputType.number,
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(3)],
               onChanged: (_) => setState(() {}),   // refresh the "/30" hints on the marks boxes
               decoration: InputDecoration(
                 labelText: 'Out of (total marks)',
+                errorText: _totalProblem,
                 helperText: _maxLocked ? 'This test was created with this total.' : 'Set once for a new test; marks cannot go above it.',
                 suffixIcon: _maxLocked
                     ? IconButton(
@@ -451,6 +488,16 @@ class _MarksEntryScreenState extends State<MarksEntryScreen> {
   }
 }
 
+/// Why a typed mark is not acceptable (null = fine or empty). Marks must be a number from 0 up to the test's total.
+String? markProblem(String text, int maxMarks) {
+  final t = text.trim();
+  if (t.isEmpty) return null;
+  final v = double.tryParse(t);
+  if (v == null) return 'Not a number';
+  if (v < 0 || v > maxMarks) return 'Max $maxMarks';
+  return null;
+}
+
 class _MarkEntryTile extends StatelessWidget {
   const _MarkEntryTile({
     required this.student, required this.controller, required this.isAbsent, required this.maxMarks, required this.onAbsentChanged,
@@ -479,13 +526,26 @@ class _MarkEntryTile extends StatelessWidget {
               ),
             ),
             SizedBox(
-              width: 72,
-              child: TextField(
-                controller: controller,
-                enabled: !isAbsent,
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                textAlign: TextAlign.center,
-                decoration: InputDecoration(hintText: '/$maxMarks', isDense: true, contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8)),
+              width: 84,
+              child: ValueListenableBuilder<TextEditingValue>(
+                valueListenable: controller,
+                builder: (context, value, _) {
+                  final problem = isAbsent ? null : markProblem(value.text, maxMarks);
+                  return TextField(
+                    controller: controller,
+                    enabled: !isAbsent,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d{0,3}(\.\d{0,2})?$'))],   // digits, one dot, 2 decimals
+                    textAlign: TextAlign.center,
+                    decoration: InputDecoration(
+                      hintText: '/$maxMarks',
+                      isDense: true,
+                      errorText: problem,
+                      errorStyle: const TextStyle(fontSize: 10.5, height: 1.1),
+                      contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+                    ),
+                  );
+                },
               ),
             ),
             const SizedBox(width: 8),

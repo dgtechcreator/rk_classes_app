@@ -43,5 +43,9 @@ class StudentService {
     return data['studentId'] as int? ?? 0;
   }
 
+  /// Discount agreed at admission (0 clears it). Needs the fee permission; the server also checks the reason / fee limit.
+  Future<void> setAgreedDiscount(int id, double amount, String? reason) async =>
+      _client.post('/api/students/$id/agreed-discount', data: {'amount': amount, 'reason': reason});
+
   Future<void> delete(int id) async => _client.post('/api/students/$id/delete');
 }
