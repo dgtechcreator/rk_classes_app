@@ -2,12 +2,14 @@ int _asInt(dynamic v) => v == null ? 0 : (v is int ? v : int.tryParse(v.toString
 String _asString(dynamic v) => v?.toString() ?? '';
 
 class LookupItem {
-  LookupItem({required this.id, required this.name, this.isActive = true});
+  LookupItem({required this.id, required this.name, this.isActive = true, this.isCurrent = false});
   final int id;
   final String name;
   final bool isActive;
+  /// Academic years only: the one marked Current in Masters.
+  final bool isCurrent;
 
-  factory LookupItem.fromYear(Map<String, dynamic> j) => LookupItem(id: _asInt(j['yearId']), name: _asString(j['yearName']), isActive: j['isActive'] != false);
+  factory LookupItem.fromYear(Map<String, dynamic> j) => LookupItem(id: _asInt(j['yearId']), name: _asString(j['yearName']), isActive: j['isActive'] != false, isCurrent: j['isCurrent'] == true);
   factory LookupItem.fromClass(Map<String, dynamic> j) => LookupItem(id: _asInt(j['classId']), name: _asString(j['className']), isActive: j['isActive'] != false);
   factory LookupItem.fromSection(Map<String, dynamic> j) => LookupItem(id: _asInt(j['sectionId']), name: _asString(j['sectionName']), isActive: j['isActive'] != false);
   factory LookupItem.fromBatch(Map<String, dynamic> j) => LookupItem(id: _asInt(j['batchId']), name: _asString(j['batchName']), isActive: j['isActive'] != false);

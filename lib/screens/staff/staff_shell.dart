@@ -48,6 +48,7 @@ class _StaffShellState extends State<StaffShell> with WidgetsBindingObserver {
   }
 
   void _goToTasks() => setState(() => _index = 2);
+  void _goToModules() => setState(() => _index = 1);
 
   @override
   Widget build(BuildContext context) {
@@ -66,7 +67,7 @@ class _StaffShellState extends State<StaffShell> with WidgetsBindingObserver {
 
     final unread = context.watch<RealtimeNotificationService>().unreadCount;
     final screens = [
-      StaffHomeScreen(onOpenTasks: _goToTasks),
+      StaffHomeScreen(onOpenTasks: _goToTasks, onOpenModules: _goToModules),
       const StaffModulesScreen(),
       const TasksNotificationsScreen(),
       const StaffProfileScreen(),

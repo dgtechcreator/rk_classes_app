@@ -10,9 +10,8 @@ class PremiumNavItem {
   final int badge;
 }
 
-/// Floating, edge-to-edge rounded nav bar with an animated pill indicator that slides between tabs —
-/// replaces the stock [NavigationBar]/[BottomNavigationBar] look with something closer to the polish
-/// of top consumer apps (soft shadow lifted off the content, bouncy selection, badge dots).
+/// Rounded bottom bar: icon with its label underneath, the selected tab sits in a soft pill of the brand colour.
+/// Tabs share the width equally, so it works for 2 tabs (class rep) up to 6 (parent) on any screen size.
 class PremiumBottomNav extends StatelessWidget {
   const PremiumBottomNav({super.key, required this.currentIndex, required this.onTap, required this.items});
 
@@ -26,97 +25,90 @@ class PremiumBottomNav extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(AppRadius.xl)),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
         boxShadow: AppShadows.navBar,
       ),
-      padding: EdgeInsets.fromLTRB(6, 10, 6, bottomInset > 0 ? bottomInset - 4 : 10),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: [
-          for (var i = 0; i < items.length; i++)
-            _NavTile(item: items[i], selected: i == currentIndex, onTap: () => onTap(i)),
-        ],
+      padding: EdgeInsets.fromLTRB(10, 10, 10, bottomInset > 0 ? bottomInset + 2 : 12),
+      child: Center(
+        heightFactor: 1,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 560),
+          child: Row(
+            children: [
+              for (var i = 0; i < items.length; i++)
+                Expanded(child: _NavTile(item: items[i], selected: i == currentIndex, compact: items.length > 4, onTap: () => onTap(i))),
+            ],
+          ),
+        ),
       ),
     );
   }
 }
 
 class _NavTile extends StatelessWidget {
-  const _NavTile({required this.item, required this.selected, required this.onTap});
+  const _NavTile({required this.item, required this.selected, required this.compact, required this.onTap});
   final PremiumNavItem item;
   final bool selected;
+  final bool compact;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 260),
-        curve: Curves.easeOutCubic,
-        margin: const EdgeInsets.symmetric(horizontal: 2),
-        padding: EdgeInsets.symmetric(horizontal: selected ? 10 : 6, vertical: 9),
-        decoration: BoxDecoration(
-          color: selected ? AppColors.primarySoft : Colors.transparent,
-          borderRadius: BorderRadius.circular(AppRadius.pill),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Stack(
-              clipBehavior: Clip.none,
-              children: [
-                AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 180),
-                  transitionBuilder: (child, anim) => ScaleTransition(scale: anim, child: child),
-                  child: Icon(
-                    selected ? item.selectedIcon : item.icon,
-                    key: ValueKey(selected),
-                    color: selected ? AppColors.primary : AppColors.textMuted,
-                    size: 24,
-                  ),
-                ),
-                if (item.badge > 0)
-                  Positioned(
-                    top: -4,
-                    right: -8,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 4.5, vertical: 1),
-                      constraints: const BoxConstraints(minWidth: 15),
-                      decoration: BoxDecoration(
-                        color: AppColors.danger,
-                        borderRadius: BorderRadius.circular(AppRadius.pill),
-                        border: Border.all(color: AppColors.surface, width: 1.5),
-                      ),
-                      child: Text(
-                        item.badge > 9 ? '9+' : '${item.badge}',
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.w800),
+    final color = selected ? AppColors.primary : AppColors.textMuted;
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: item.label,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 220),
+          curve: Curves.easeOutCubic,
+          margin: const EdgeInsets.symmetric(horizontal: 3),
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          decoration: BoxDecoration(
+            color: selected ? AppColors.primarySoft : Colors.transparent,
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Icon(selected ? item.selectedIcon : item.icon, color: color, size: compact ? 24 : 27),
+                  if (item.badge > 0)
+                    Positioned(
+                      top: -4,
+                      right: -9,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 4.5, vertical: 1),
+                        constraints: const BoxConstraints(minWidth: 15),
+                        decoration: BoxDecoration(
+                          color: AppColors.danger,
+                          borderRadius: BorderRadius.circular(AppRadius.pill),
+                          border: Border.all(color: AppColors.surface, width: 1.5),
+                        ),
+                        child: Text(
+                          item.badge > 9 ? '9+' : '${item.badge}',
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.w800),
+                        ),
                       ),
                     ),
-                  ),
-              ],
-            ),
-            if (selected)
-              Flexible(
-                child: AnimatedSize(
-                  duration: const Duration(milliseconds: 220),
-                  curve: Curves.easeOutCubic,
-                  child: Padding(
-                    padding: const EdgeInsets.only(left: 6),
-                    child: Text(
-                      item.label,
-                      maxLines: 1,
-                      softWrap: false,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(color: AppColors.primary, fontSize: 11.5, fontWeight: FontWeight.w700),
-                    ),
-                  ),
-                ),
+                ],
               ),
-          ],
+              const SizedBox(height: 3),
+              Text(
+                item.label,
+                maxLines: 1,
+                softWrap: false,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(color: color, fontSize: compact ? 10.5 : 12, fontWeight: selected ? FontWeight.w700 : FontWeight.w500),
+              ),
+            ],
+          ),
         ),
       ),
     );
