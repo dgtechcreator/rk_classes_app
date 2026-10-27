@@ -287,6 +287,7 @@ class ParentDashboardData {
     required this.balance,
     this.discount = 0,
     this.additionalCharges = 0,
+    this.previousDue = 0,
     double? netTotal,
     this.dueDate,
     this.feeStructures = const [],
@@ -302,6 +303,9 @@ class ParentDashboardData {
   final double balance;
   final double discount;
   final double additionalCharges;
+
+  /// Part of the balance still owed from EARLIER academic years (shown so old dues are never forgotten).
+  final double previousDue;
 
   /// Fee + additional charges - discount (what the family actually owes in total).
   final double netTotal;
@@ -321,6 +325,7 @@ class ParentDashboardData {
         balance: _asDouble(j['balance']),
         discount: _asDouble(j['discount']),
         additionalCharges: _asDouble(j['additionalCharges']),
+        previousDue: _asDouble(j['previousDue']),
         netTotal: j['netTotal'] != null ? _asDouble(j['netTotal']) : null,
         dueDate: j['dueDate'] == null ? null : DateTime.tryParse(j['dueDate'].toString()),
         feeStructures: (j['feeStructures'] as List? ?? []).map((e) => FeeStructure.fromJson(e as Map<String, dynamic>)).toList(),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/api_client.dart';
@@ -186,6 +187,16 @@ class _UserCard extends StatelessWidget {
                           style: TextStyle(fontSize: 14.5, fontWeight: FontWeight.w800, color: u.isActive ? AppColors.textPrimary : AppColors.textMuted)),
                       const SizedBox(height: 1),
                       Text('@${u.username}', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                      if (!u.isActive)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 2),
+                          child: Text(
+                            u.deactivatedByName == null && u.deactivatedAt == null
+                                ? 'Switched off (who / when was not recorded)'
+                                : 'Switched off by ${u.deactivatedByName ?? '—'}${u.deactivatedAt == null ? '' : ' • ${DateFormat('d MMM yyyy, h:mm a').format(u.deactivatedAt!)}'}',
+                            style: const TextStyle(fontSize: 11.5, color: AppColors.danger),
+                          ),
+                        ),
                       const SizedBox(height: 5),
                       Wrap(
                         spacing: 6,

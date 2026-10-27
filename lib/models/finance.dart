@@ -128,6 +128,7 @@ class FinanceStudent {
     required this.collected,
     required this.discount,
     required this.balance,
+    this.previousDue = 0,
   });
 
   final int studentId;
@@ -143,6 +144,8 @@ class FinanceStudent {
   final double collected;
   final double discount;
   final double balance;
+  /// Part of the balance owed from earlier academic years.
+  final double previousDue;
 
   bool get hasDue => balance > 0.5;
   /// No fee row exists for this student (fee head missing) - shown as "Fee not set", never as an amount.
@@ -165,6 +168,7 @@ class FinanceStudent {
         collected: _asDouble(j['collected']),
         discount: _asDouble(j['discount']),
         balance: _asDouble(j['balance']),
+        previousDue: _asDouble(j['previousDue']),
       );
 }
 

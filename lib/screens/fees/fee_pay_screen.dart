@@ -44,6 +44,48 @@ class _FeePayScreenState extends State<FeePayScreen> {
     }
   }
 
+  /// Dues of EARLIER years (9th / 10th / 11th...) that were never in the system: staff types the amount once.
+  Future<void> _editPreviousDues() async {
+    final info = _info;
+    if (info == null) return;
+    final amount = TextEditingController(text: info.previousDuesAmount > 0 ? info.previousDuesAmount.toStringAsFixed(0) : '');
+    final note = TextEditingController(text: info.previousDuesNote ?? '');
+    final saved = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text("Previous years' dues"),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('Fees of earlier years that are still unpaid. Added to this student\'s fee, balance and all Finance totals (parents see it too). Enter 0 to clear.',
+                style: TextStyle(fontSize: 12.5, color: AppColors.textSecondary)),
+            const SizedBox(height: 12),
+            TextField(controller: amount, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Amount (₹)', prefixText: '₹ ')),
+            const SizedBox(height: 10),
+            TextField(controller: note, maxLength: 500, decoration: const InputDecoration(labelText: 'Note (which years / classes)', counterText: '', hintText: 'e.g. 9th 10000 + 10th 12000')),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Save')),
+        ],
+      ),
+    );
+    final value = double.tryParse(amount.text.trim().isEmpty ? '0' : amount.text.trim());
+    amount.dispose();
+    final text = note.text;
+    note.dispose();
+    if (saved != true) return;
+    if (value == null || value < 0) return showSnack(context, 'Enter a valid amount.', isError: true);
+    try {
+      await _service.setPreviousDues(widget.studentId, value, text);
+      if (mounted) showSnack(context, value > 0 ? 'Previous dues saved.' : 'Previous dues cleared.');
+      _load();
+    } on ApiException catch (e) {
+      if (mounted) showSnack(context, e.message, isError: true);
+    }
+  }
+
   Future<void> _openCollectSheet() async {
     final info = _info;
     if (info == null) return;
@@ -110,6 +152,42 @@ class _FeePayScreenState extends State<FeePayScreen> {
             color: info.balance > 0 ? AppColors.warning : AppColors.success,
             icon: Icons.account_balance_wallet_outlined,
           ),
+          const SizedBox(height: 8),
+          InkWell(
+            borderRadius: BorderRadius.circular(AppRadius.md),
+            onTap: _editPreviousDues,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(color: AppColors.dangerSoft, borderRadius: BorderRadius.circular(AppRadius.md)),
+              child: Row(
+                children: [
+                  const Icon(Icons.history_rounded, size: 20, color: AppColors.danger),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          info.previousDuesAmount > 0 ? "Previous years' dues: ${_fmt.format(info.previousDuesAmount)}" : "Previous years' dues: not entered",
+                          style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w800, color: AppColors.danger),
+                        ),
+                        if ((info.previousDuesNote ?? '').isNotEmpty)
+                          Text(info.previousDuesNote!, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                        if (info.previousDuesAt != null)
+                          Text('Set by ${info.previousDuesBy ?? '—'} · ${DateFormat('d MMM yyyy, h:mm a').format(info.previousDuesAt!)}', style: const TextStyle(fontSize: 11, color: AppColors.textMuted)),
+                      ],
+                    ),
+                  ),
+                  const Icon(Icons.edit_outlined, size: 18, color: AppColors.danger),
+                ],
+              ),
+            ),
+          ),
+          if (info.previousDue > 0.5) ...[
+            const SizedBox(height: 8),
+            Text('Includes ${_fmt.format(info.previousDue)} still due from earlier years',
+                style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: AppColors.danger)),
+          ],
           if (info.additionalCharges > 0 || info.existingDiscount > 0) ...[
             const SizedBox(height: 8),
             Text(

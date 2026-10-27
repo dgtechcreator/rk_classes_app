@@ -54,6 +54,11 @@ class FeePayInfo {
     this.agreedDiscount = 0,
     this.agreedDiscountReason,
     this.additionalCharges = 0,
+    this.previousDue = 0,
+    this.previousDuesAmount = 0,
+    this.previousDuesNote,
+    this.previousDuesBy,
+    this.previousDuesAt,
     double? netTotal,
   }) : netTotal = netTotal ?? (actualFee + additionalCharges - existingDiscount);
 
@@ -75,6 +80,15 @@ class FeePayInfo {
 
   /// What the student really has to pay: fee + additional charges - discount. [balance] = this - paid.
   final double netTotal;
+
+  /// Part of [balance] still owed from earlier academic years.
+  final double previousDue;
+
+  /// The dues of earlier years typed in by staff (already inside [actualFee] / [balance]); amount 0 = none entered.
+  final double previousDuesAmount;
+  final String? previousDuesNote;
+  final String? previousDuesBy;
+  final DateTime? previousDuesAt;
 }
 
 double _legacyNetTotal(Map<String, dynamic> d) {
@@ -101,6 +115,11 @@ class FeesService {
     return (res.data as List).map((e) => StudentQuickResult.fromJson(e as Map<String, dynamic>)).toList();
   }
 
+  /// Sets the dues of earlier years for a student (0 clears). Added to the student's fee, balance and all Finance totals.
+  Future<void> setPreviousDues(int studentId, double amount, String? note) async {
+    await _client.post('/api/fees/previous-dues', data: {'studentId': studentId, 'amount': amount, 'note': note});
+  }
+
   Future<FeePayInfo> getPayInfo(int studentId) async {
     final res = await _client.get('/api/fees/pay/$studentId');
     final data = res.data as Map<String, dynamic>;
@@ -116,6 +135,11 @@ class FeesService {
       agreedDiscount: _asDouble(data['agreedDiscount']),
       agreedDiscountReason: data['agreedDiscountReason']?.toString(),
       additionalCharges: _asDouble(data['additionalCharges']),
+      previousDue: _asDouble(data['previousDue']),
+      previousDuesAmount: _asDouble((data['previousDuesEntry'] as Map?)?['amount']),
+      previousDuesNote: (data['previousDuesEntry'] as Map?)?['note']?.toString(),
+      previousDuesBy: (data['previousDuesEntry'] as Map?)?['updatedByName']?.toString(),
+      previousDuesAt: DateTime.tryParse(((data['previousDuesEntry'] as Map?)?['updatedAt'] ?? '').toString()),
       // Older servers don't send netTotal/additionalCharges: derive the charges from the balance so
       // total - paid = balance still reconciles (exact whenever a balance is due).
       netTotal: data['netTotal'] != null ? _asDouble(data['netTotal']) : _legacyNetTotal(data),

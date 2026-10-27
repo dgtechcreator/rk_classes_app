@@ -311,7 +311,7 @@ class _FinanceStudentsScreenState extends State<FinanceStudentsScreen> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
                     decoration: BoxDecoration(color: s.feeNotSet ? AppColors.warningSoft : (s.hasDue ? AppColors.dangerSoft : AppColors.successSoft), borderRadius: BorderRadius.circular(AppRadius.pill)),
-                    child: Text(s.feeNotSet ? 'Fee not set' : (s.hasDue ? 'Due ${_money.format(s.balance)}' : 'Paid up'),
+                    child: Text(s.feeNotSet ? 'Fee not set' : (s.hasDue ? 'Due ${_money.format(s.balance)}${s.previousDue > 0.5 ? ' · old ${_money.format(s.previousDue)}' : ''}' : 'Paid up'),
                         style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800, color: s.feeNotSet ? AppColors.warning : (s.hasDue ? AppColors.danger : AppColors.success))),
                   ),
                 ],

@@ -72,6 +72,8 @@ class AppUser {
     this.gender,
     this.profilePicPath,
     this.facultyId,
+    this.deactivatedByName,
+    this.deactivatedAt,
   });
 
   final int userId;
@@ -85,6 +87,8 @@ class AppUser {
   final int permCount;
   final String? gender; // Male / Female / null - drives the Sir / Ma'am greeting
   final String? profilePicPath;
+  final String? deactivatedByName; // who switched the login off (Inactive) ...
+  final DateTime? deactivatedAt; // ... and when; null for logins switched off before this was recorded
   final int? facultyId; // explicitly linked Faculty profile (null = matched automatically by phone / name)
 
   factory AppUser.fromJson(Map<String, dynamic> j) => AppUser(
@@ -100,6 +104,8 @@ class AppUser {
         gender: _asStringN(j['gender']),
         profilePicPath: _asStringN(j['profilePicPath']),
         facultyId: j['facultyId'] == null ? null : _asInt(j['facultyId']),
+        deactivatedByName: _asStringN(j['deactivatedByName']),
+        deactivatedAt: j['deactivatedAt'] == null ? null : DateTime.tryParse(j['deactivatedAt'].toString()),
       );
 }
 

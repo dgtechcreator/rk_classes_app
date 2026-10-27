@@ -83,6 +83,7 @@ class ParentFeesScreen extends StatelessWidget {
           runSpacing: 6,
           children: [
             _pill(due ? 'Balance due ${money.format(d.balance)}' : 'All fees paid', due ? AppColors.dangerSoft : AppColors.successSoft, due ? AppColors.danger : AppColors.success),
+            if (due && d.previousDue > 0) _pill('Includes ${money.format(d.previousDue)} of earlier years', AppColors.dangerSoft, AppColors.danger),
             if (due && d.dueDate != null) _pill('Next installment: ${DateFormat('dd MMM yyyy').format(d.dueDate!)}', AppColors.warningSoft, AppColors.warning),
             if (d.discount > 0) _pill('Discount ${money.format(d.discount)}', AppColors.infoSoft, AppColors.info),
             if (d.additionalCharges > 0) _pill('Extra charges ${money.format(d.additionalCharges)}', AppColors.violetSoft, AppColors.violet),

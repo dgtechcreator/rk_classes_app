@@ -115,7 +115,8 @@ class _DeletedRecordsScreenState extends State<DeletedRecordsScreen> with Single
           return Card(
             child: ListTile(
               title: Text(s.displayName, style: const TextStyle(fontWeight: FontWeight.w600)),
-              subtitle: Text('${s.admissionNo} • ${s.classLabel}'),
+              subtitle: Text('${s.admissionNo} • ${s.classLabel}\n${(d.studentStamps[s.studentId] ?? const ActionStamp(null, null)).label}'),
+              isThreeLine: true,
               trailing: TextButton.icon(
                 icon: const Icon(Icons.restore, size: 18),
                 label: const Text('Restore'),
@@ -140,7 +141,8 @@ class _DeletedRecordsScreenState extends State<DeletedRecordsScreen> with Single
           return Card(
             child: ListTile(
               title: Text(f.fullName, style: const TextStyle(fontWeight: FontWeight.w600)),
-              subtitle: Text(f.employeeCode),
+              subtitle: Text('${f.employeeCode}\n${(d.facultyStamps[f.facultyId] ?? const ActionStamp(null, null)).label}'),
+              isThreeLine: true,
               trailing: TextButton.icon(
                 icon: const Icon(Icons.restore, size: 18),
                 label: const Text('Restore'),
@@ -165,7 +167,8 @@ class _DeletedRecordsScreenState extends State<DeletedRecordsScreen> with Single
           return Card(
             child: ListTile(
               title: Text(u.fullName, style: const TextStyle(fontWeight: FontWeight.w600)),
-              subtitle: Text('${u.username} • ${u.roleName ?? ''}'),
+              subtitle: Text('${u.username} • ${u.roleName ?? ''}\n${(d.userStamps[u.userId] ?? const ActionStamp(null, null)).label}'),
+              isThreeLine: true,
               trailing: TextButton.icon(
                 icon: const Icon(Icons.restore, size: 18),
                 label: const Text('Restore'),
@@ -190,7 +193,7 @@ class _DeletedRecordsScreenState extends State<DeletedRecordsScreen> with Single
           return Card(
             child: ListTile(
               title: Text(o.title, style: const TextStyle(fontWeight: FontWeight.w600)),
-              subtitle: Text('${o.kindLabel}\n${o.subtitle}${o.deletedBy != null ? '  •  deleted by ${o.deletedBy}' : ''}'),
+              subtitle: Text('${o.kindLabel}\n${o.subtitle}\n${ActionStamp(o.deletedBy, o.deletedAt).label}'),
               isThreeLine: true,
               trailing: TextButton.icon(
                 icon: const Icon(Icons.restore, size: 18),
@@ -216,7 +219,8 @@ class _DeletedRecordsScreenState extends State<DeletedRecordsScreen> with Single
           return Card(
             child: ListTile(
               title: Text(p.studentName ?? p.receiptNo, style: const TextStyle(fontWeight: FontWeight.w600)),
-              subtitle: Text('${p.receiptNo} • ${DateFormat.yMMMd().format(p.paymentDate)} • ${_fmt.format(p.netAmount)}'),
+              subtitle: Text('${p.receiptNo} • ${DateFormat.yMMMd().format(p.paymentDate)} • ${_fmt.format(p.netAmount)}\n${(d.receiptStamps[p.paymentId] ?? const ActionStamp(null, null)).label}'),
+              isThreeLine: true,
               trailing: TextButton.icon(
                 icon: const Icon(Icons.restore, size: 18),
                 label: const Text('Restore'),
