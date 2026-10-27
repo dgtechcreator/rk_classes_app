@@ -31,6 +31,12 @@ class StudentService {
     );
   }
 
+  /// Staff report of one student (needs the "Student 360 View" right) - same shape as the parent dashboard.
+  Future<ParentDashboardData> getReport(int id) async {
+    final res = await _client.get('/api/students/$id/report');
+    return ParentDashboardData.fromJson(res.data as Map<String, dynamic>);
+  }
+
   Future<StudentDetail> getById(int id) async {
     final res = await _client.get('/api/students/$id');
     final data = res.data as Map<String, dynamic>;

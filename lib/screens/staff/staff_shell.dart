@@ -69,7 +69,7 @@ class _StaffShellState extends State<StaffShell> with WidgetsBindingObserver {
     final screens = [
       StaffHomeScreen(onOpenTasks: _goToTasks, onOpenModules: _goToModules),
       const StaffModulesScreen(),
-      const TasksNotificationsScreen(),
+      TasksNotificationsScreen(active: _index == 2),
       const StaffProfileScreen(),
     ];
 

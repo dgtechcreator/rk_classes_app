@@ -24,6 +24,7 @@ class _UserListScreenState extends State<UserListScreen> {
   bool _loading = true;
   String? _error;
   List<AppUser> _users = [];
+  String _query = '';
 
   @override
   void initState() {
@@ -45,6 +46,9 @@ class _UserListScreenState extends State<UserListScreen> {
     final saved = await Navigator.of(context).push<bool>(MaterialPageRoute(builder: (_) => UserFormScreen(service: _service, user: user)));
     if (saved == true) _load();
   }
+
+  void _openPermissions(AppUser u) =>
+      Navigator.of(context).push(MaterialPageRoute(builder: (_) => UserPermissionsScreen(service: _service, userId: u.userId)));
 
   Future<void> _toggleActive(AppUser u) async {
     try {
@@ -96,47 +100,144 @@ class _UserListScreenState extends State<UserListScreen> {
   Widget _buildBody() {
     final myId = context.read<Session>().userId;
     if (_users.isEmpty) return const EmptyState(message: 'No staff users found.', icon: Icons.admin_panel_settings_outlined);
-    return RefreshIndicator(
-      onRefresh: _load,
-      child: ListView.builder(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
-        itemCount: _users.length,
-        itemBuilder: (_, i) {
-          final u = _users[i];
-          return Card(
-            child: ListTile(
-              onTap: () => _openForm(user: u),
-              leading: ProfileAvatar(
-                name: u.fullName,
-                photoPath: u.profilePicPath,
-                size: 42,
-                background: u.isActive ? AppColors.primarySoft : AppColors.border,
-                foreground: AppColors.primary,
-              ),
-              title: Text(u.fullName, style: const TextStyle(fontWeight: FontWeight.w600)),
-              subtitle: Text('${u.username} • ${u.roleName ?? ''}${u.roleId != 1 ? ' • ${u.permCount} modules' : ''}'),
-              trailing: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (u.roleId != 1)
-                    IconButton(
-                      icon: const Icon(Icons.security_outlined),
-                      tooltip: 'Permissions',
-                      onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => UserPermissionsScreen(service: _service, userId: u.userId))),
-                    ),
-                  if (u.userId != 1 && u.userId != myId)
-                    IconButton(
-                      icon: const Icon(Icons.delete_outline, color: AppColors.danger),
-                      tooltip: 'Delete',
-                      onPressed: () => _delete(u),
-                    ),
-                  Switch(value: u.isActive, onChanged: (_) => _toggleActive(u), activeThumbColor: AppColors.success),
-                ],
-              ),
+    final q = _query.trim().toLowerCase();
+    final shown = q.isEmpty
+        ? _users
+        : _users.where((u) => u.fullName.toLowerCase().contains(q) || u.username.toLowerCase().contains(q) || (u.roleName ?? '').toLowerCase().contains(q)).toList();
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(14, 12, 14, 4),
+          child: TextField(
+            onChanged: (v) => setState(() => _query = v),
+            textInputAction: TextInputAction.search,
+            decoration: const InputDecoration(
+              hintText: 'Search name, username or role',
+              prefixIcon: Icon(Icons.search_rounded),
+              isDense: true,
+              contentPadding: EdgeInsets.symmetric(vertical: 12),
             ),
-          );
-        },
+          ),
+        ),
+        Expanded(
+          child: RefreshIndicator(
+            onRefresh: _load,
+            child: shown.isEmpty
+                ? ListView(children: const [Padding(padding: EdgeInsets.only(top: 40), child: EmptyState(message: 'No user matches your search.', icon: Icons.search_off_rounded))])
+                : ListView.separated(
+                    padding: const EdgeInsets.fromLTRB(14, 8, 14, 90),
+                    itemCount: shown.length,
+                    separatorBuilder: (_, _) => const SizedBox(height: 8),
+                    itemBuilder: (_, i) => _UserCard(
+                      user: shown[i],
+                      canDelete: shown[i].userId != 1 && shown[i].userId != myId,
+                      onTap: () => _openForm(user: shown[i]),
+                      onToggle: () => _toggleActive(shown[i]),
+                      onPermissions: () => _openPermissions(shown[i]),
+                      onDelete: () => _delete(shown[i]),
+                    ),
+                  ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _UserCard extends StatelessWidget {
+  const _UserCard({required this.user, required this.canDelete, required this.onTap, required this.onToggle, required this.onPermissions, required this.onDelete});
+  final AppUser user;
+  final bool canDelete;
+  final VoidCallback onTap;
+  final VoidCallback onToggle;
+  final VoidCallback onPermissions;
+  final VoidCallback onDelete;
+
+  @override
+  Widget build(BuildContext context) {
+    final u = user;
+    final isAdmin = u.roleId == 1;
+    return Material(
+      color: Colors.transparent,
+      child: Ink(
+        decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(AppRadius.md), boxShadow: AppShadows.soft),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(AppRadius.md),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(12, 10, 4, 10),
+            child: Row(
+              children: [
+                ProfileAvatar(
+                  name: u.fullName,
+                  photoPath: u.profilePicPath,
+                  size: 44,
+                  background: u.isActive ? AppColors.primarySoft : AppColors.borderNeutral,
+                  foreground: u.isActive ? AppColors.primary : AppColors.textMuted,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(u.fullName,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(fontSize: 14.5, fontWeight: FontWeight.w800, color: u.isActive ? AppColors.textPrimary : AppColors.textMuted)),
+                      const SizedBox(height: 1),
+                      Text('@${u.username}', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                      const SizedBox(height: 5),
+                      Wrap(
+                        spacing: 6,
+                        runSpacing: 4,
+                        children: [
+                          if ((u.roleName ?? '').isNotEmpty) _pill(u.roleName!, isAdmin ? AppColors.violet : AppColors.info),
+                          if (!isAdmin) _pill('${u.permCount} ${u.permCount == 1 ? 'module' : 'modules'}', AppColors.teal),
+                          if (!u.isActive) _pill('Inactive', AppColors.danger),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Transform.scale(
+                      scale: 0.85,
+                      child: Switch(value: u.isActive, onChanged: (_) => onToggle(), activeThumbColor: AppColors.success),
+                    ),
+                  ],
+                ),
+                PopupMenuButton<String>(
+                  tooltip: 'More',
+                  icon: const Icon(Icons.more_vert_rounded, color: AppColors.textSecondary),
+                  onSelected: (v) {
+                    if (v == 'edit') onTap();
+                    if (v == 'perm') onPermissions();
+                    if (v == 'delete') onDelete();
+                  },
+                  itemBuilder: (_) => [
+                    const PopupMenuItem(value: 'edit', child: ListTile(dense: true, contentPadding: EdgeInsets.zero, leading: Icon(Icons.edit_outlined), title: Text('Edit'))),
+                    if (!isAdmin)
+                      const PopupMenuItem(value: 'perm', child: ListTile(dense: true, contentPadding: EdgeInsets.zero, leading: Icon(Icons.security_outlined), title: Text('Permissions'))),
+                    if (canDelete)
+                      const PopupMenuItem(
+                        value: 'delete',
+                        child: ListTile(dense: true, contentPadding: EdgeInsets.zero, leading: Icon(Icons.delete_outline, color: AppColors.danger), title: Text('Delete', style: TextStyle(color: AppColors.danger))),
+                      ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
+
+  Widget _pill(String text, Color c) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+        decoration: BoxDecoration(color: c.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(AppRadius.pill)),
+        child: Text(text, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: c)),
+      );
 }

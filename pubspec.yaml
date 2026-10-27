@@ -2,7 +2,7 @@ name: rk_classes_app
 description: "RK Classes — student, parent and staff mobile app."
 publish_to: 'none'
 
-version: 1.0.2+7
+version: 1.0.2+9
 
 environment:
   sdk: ^3.12.2
@@ -27,6 +27,7 @@ dependencies:
   share_plus: ^13.3.1
   path_provider: ^2.1.6
   image_picker: ^1.1.2
+  file_picker: ^13.3.0
 
 dev_dependencies:
   flutter_test:
@@ -44,3 +45,4 @@ flutter:
   assets:
     - assets/images/rk_logo_full.png
     - assets/images/rk_logo_icon.png
+    - assets/images/rk_logo_wordmark.png

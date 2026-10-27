@@ -11,7 +11,7 @@ import '../../services/lookup_service.dart';
 import '../../services/student_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/common.dart';
-import '../../widgets/profile_avatar.dart';
+import '../../widgets/person_card.dart';
 import 'student_detail_screen.dart';
 import 'student_form_screen.dart';
 
@@ -130,7 +130,7 @@ class _StudentListScreenState extends State<StudentListScreen> {
               controller: _searchCtrl,
               onChanged: _onSearchChanged,
               decoration: InputDecoration(
-                hintText: 'Search by name or admission no...',
+                hintText: 'Name, father, mother, admission no. or phone',
                 prefixIcon: const Icon(Icons.search),
                 suffixIcon: _searchCtrl.text.isNotEmpty
                     ? IconButton(icon: const Icon(Icons.close), onPressed: () { _searchCtrl.clear(); _load(); })
@@ -171,14 +171,19 @@ class _StudentTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: ListTile(
-        onTap: onTap,
-        leading: ProfileAvatar(name: student.displayName, photoPath: student.profilePicPath, size: 42, background: AppColors.primarySoft, foreground: AppColors.primary),
-        title: Text(student.displayName, style: const TextStyle(fontWeight: FontWeight.w600)),
-        subtitle: Text('${student.admissionNo} • ${student.classLabel}'),
-        trailing: student.status != 'Active' ? StatusBadge(status: student.status) : const Icon(Icons.chevron_right, color: AppColors.textSecondary),
-      ),
+    String clean(String? s) => (s ?? '').trim();
+    final cls = clean(student.className), med = clean(student.sectionName), batch = clean(student.batchName);
+    return PersonCard(
+      name: student.displayName,
+      photoPath: student.profilePicPath,
+      onTap: onTap,
+      line: student.admissionNo,
+      pills: [
+        if (cls.isNotEmpty) PersonPill(cls, AppColors.info),
+        if (med.isNotEmpty) PersonPill(med, med.toLowerCase().contains('hindi') ? AppColors.warning : AppColors.teal),
+        if (batch.isNotEmpty) PersonPill(batch, AppColors.violet),
+      ],
+      trailing: student.status != 'Active' ? StatusBadge(status: student.status) : null,
     );
   }
 }

@@ -6,7 +6,7 @@ import '../../core/api_client.dart';
 import '../../services/fees_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/common.dart';
-import '../../widgets/profile_avatar.dart';
+import '../../widgets/person_card.dart';
 import 'fee_pay_screen.dart';
 import 'fee_summary_screen.dart';
 
@@ -77,7 +77,7 @@ class _FeeCollectSearchScreenState extends State<FeeCollectSearchScreen> {
               autofocus: true,
               onChanged: _onChanged,
               decoration: const InputDecoration(
-                labelText: 'Search student name or admission no.',
+                labelText: 'Student / father / mother name or admission no.',
                 prefixIcon: Icon(Icons.search),
               ),
             ),
@@ -93,19 +93,23 @@ class _FeeCollectSearchScreenState extends State<FeeCollectSearchScreen> {
     if (_error != null) return ErrorView(message: _error!, onRetry: () => _search(_searchCtrl.text));
     if (!_searched) return const EmptyState(message: 'Type at least 2 characters to search for a student.', icon: Icons.search);
     if (_results.isEmpty) return const EmptyState(message: 'No students found.', icon: Icons.person_off_outlined);
-    return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+    return ListView.separated(
+      padding: const EdgeInsets.fromLTRB(14, 8, 14, 24),
       itemCount: _results.length,
+      separatorBuilder: (_, _) => const SizedBox(height: 8),
       itemBuilder: (_, i) {
         final s = _results[i];
-        return Card(
-          child: ListTile(
-            leading: ProfileAvatar(name: s.fullName, photoPath: s.profilePicPath, size: 42, background: AppColors.primarySoft, foreground: AppColors.primary),
-            title: Text(s.fullName, style: const TextStyle(fontWeight: FontWeight.w600)),
-            subtitle: Text('${s.admissionNo} • ${s.classLabel}'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => FeePayScreen(studentId: s.studentId, studentName: s.fullName))),
-          ),
+        String clean(String? v) => (v ?? '').trim();
+        final cls = clean(s.className), med = clean(s.sectionName);
+        return PersonCard(
+          name: s.fullName,
+          photoPath: s.profilePicPath,
+          line: s.admissionNo,
+          pills: [
+            if (cls.isNotEmpty) PersonPill(cls, AppColors.info),
+            if (med.isNotEmpty) PersonPill(med, med.toLowerCase().contains('hindi') ? AppColors.warning : AppColors.teal),
+          ],
+          onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => FeePayScreen(studentId: s.studentId, studentName: s.fullName))),
         );
       },
     );

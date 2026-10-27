@@ -138,113 +138,138 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final top = MediaQuery.of(context).padding.top;
+    final registering = _tab == _LoginTab.parent && _showRegister;
+    final heading = registering ? 'Create account' : (_tab == _LoginTab.staff ? 'Welcome back' : 'Hello!');
+    final sub = registering
+        ? 'Use the phone number given to the school'
+        : (_tab == _LoginTab.staff ? 'Sign in to manage your classes' : 'Attendance, marks, fees and updates');
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: Stack(
-        children: [
-          Positioned(
-            top: -110,
-            right: -90,
-            child: Container(
-              width: 260, height: 260,
-              decoration: BoxDecoration(gradient: AppGradients.primarySheen.scale(0.12), shape: BoxShape.circle),
+      body: SingleChildScrollView(
+        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+        child: Stack(
+          children: [
+            // blue hero with soft discs, the same band as the Home header
+            ClipRRect(
+              borderRadius: const BorderRadius.vertical(bottom: Radius.circular(40)),
+              child: Container(
+                height: top + 270,
+                width: double.infinity,
+                decoration: const BoxDecoration(gradient: AppGradients.primarySheen),
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    Positioned(top: -70, right: -60, child: _disc(220, 0.08)),
+                    Positioned(top: 90, left: -80, child: _disc(190, 0.06)),
+                    Positioned(bottom: -50, right: 40, child: _disc(120, 0.07)),
+                    Positioned(top: top + 30, left: 26, child: Icon(Icons.auto_stories_rounded, size: 34, color: Colors.white.withValues(alpha: 0.18))),
+                    Positioned(top: top + 70, right: 28, child: Icon(Icons.school_rounded, size: 40, color: Colors.white.withValues(alpha: 0.16))),
+                  ],
+                ),
+              ),
             ),
-          ),
-          Positioned(
-            top: -60,
-            right: -40,
-            child: Container(
-              width: 180, height: 180,
-              decoration: BoxDecoration(color: AppColors.primary.withValues(alpha: 0.06), shape: BoxShape.circle),
-            ),
-          ),
-          SafeArea(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+            Padding(
+              padding: EdgeInsets.fromLTRB(22, top + 22, 22, 24),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const SizedBox(height: 20),
                   Center(
                     child: Container(
-                      padding: const EdgeInsets.all(18),
+                      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
                       decoration: BoxDecoration(
                         color: AppColors.surface,
-                        shape: BoxShape.circle,
-                        boxShadow: AppShadows.floating,
+                        borderRadius: BorderRadius.circular(22),
+                        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.18), blurRadius: 22, offset: const Offset(0, 10))],
                       ),
-                      child: Image.asset('assets/images/rk_logo_icon.png', height: 56, width: 56, fit: BoxFit.contain),
+                      // the school's own logo + "RK Classes" lettering (red / blue), as on the signboard
+                      child: Image.asset('assets/images/rk_logo_wordmark.png', width: 270, fit: BoxFit.contain),
                     ),
                   ),
-                  const SizedBox(height: 18),
-                  const Text('RK Classes', textAlign: TextAlign.center, style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: AppColors.textPrimary)),
-                  const SizedBox(height: 4),
-                  const Text('Sign in to continue', textAlign: TextAlign.center, style: TextStyle(fontSize: 13.5, color: AppColors.textSecondary)),
-                  const SizedBox(height: 28),
-                  Container(
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      color: AppColors.surface,
-                      borderRadius: BorderRadius.circular(AppRadius.xl),
-                      boxShadow: AppShadows.card,
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        _buildTabToggle(),
-                        const SizedBox(height: 22),
-                        AnimatedSize(
-                          duration: const Duration(milliseconds: 220),
-                          curve: Curves.easeOutCubic,
-                          alignment: Alignment.topCenter,
-                          child: _error == null
-                              ? const SizedBox(width: double.infinity)
-                              : Padding(
-                                  padding: const EdgeInsets.only(bottom: 16),
-                                  child: Container(
-                                    padding: const EdgeInsets.all(12),
-                                    decoration: BoxDecoration(color: AppColors.dangerSoft, borderRadius: BorderRadius.circular(AppRadius.sm)),
-                                    child: Row(
-                                      children: [
-                                        const Icon(Icons.error_outline_rounded, color: AppColors.danger, size: 18),
-                                        const SizedBox(width: 8),
-                                        Expanded(child: Text(_error ?? '', style: const TextStyle(color: AppColors.danger, fontSize: 12.5))),
-                                      ],
+                  const SizedBox(height: 12),
+                  Text('Empowering Brighter Futures', textAlign: TextAlign.center, style: TextStyle(fontSize: 12.5, color: Colors.white.withValues(alpha: 0.85), fontStyle: FontStyle.italic)),
+                  const SizedBox(height: 26),
+                  Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 460),
+                      child: Container(
+                        padding: const EdgeInsets.fromLTRB(20, 20, 20, 18),
+                        decoration: BoxDecoration(
+                          color: AppColors.surface,
+                          borderRadius: BorderRadius.circular(AppRadius.xl),
+                          boxShadow: [BoxShadow(color: AppColors.primaryDark.withValues(alpha: 0.16), blurRadius: 30, offset: const Offset(0, 14))],
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            _buildTabToggle(),
+                            const SizedBox(height: 20),
+                            Text(heading, style: const TextStyle(fontSize: 21, fontWeight: FontWeight.w800, color: AppColors.textPrimary)),
+                            const SizedBox(height: 2),
+                            Text(sub, style: const TextStyle(fontSize: 13, color: AppColors.textSecondary)),
+                            const SizedBox(height: 18),
+                            AnimatedSize(
+                              duration: const Duration(milliseconds: 220),
+                              curve: Curves.easeOutCubic,
+                              alignment: Alignment.topCenter,
+                              child: _error == null
+                                  ? const SizedBox(width: double.infinity)
+                                  : Padding(
+                                      padding: const EdgeInsets.only(bottom: 14),
+                                      child: Container(
+                                        padding: const EdgeInsets.all(12),
+                                        decoration: BoxDecoration(color: AppColors.dangerSoft, borderRadius: BorderRadius.circular(AppRadius.sm)),
+                                        child: Row(
+                                          children: [
+                                            const Icon(Icons.error_outline_rounded, color: AppColors.danger, size: 18),
+                                            const SizedBox(width: 8),
+                                            Expanded(child: Text(_error ?? '', style: const TextStyle(color: AppColors.danger, fontSize: 12.5))),
+                                          ],
+                                        ),
+                                      ),
                                     ),
-                                  ),
-                                ),
+                            ),
+                            AnimatedSwitcher(
+                              duration: const Duration(milliseconds: 220),
+                              child: KeyedSubtree(
+                                key: ValueKey('$_tab-$_showRegister'),
+                                child: _tab == _LoginTab.staff ? _buildStaffForm() : _buildParentForm(),
+                              ),
+                            ),
+                          ],
                         ),
-                        AnimatedSwitcher(
-                          duration: const Duration(milliseconds: 220),
-                          child: KeyedSubtree(
-                            key: ValueKey('$_tab-$_showRegister'),
-                            child: _tab == _LoginTab.staff ? _buildStaffForm() : _buildParentForm(),
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
                   ),
-                  const SizedBox(height: 24),
-                  const Center(
-                    child: Text('Powered by RK Classes', style: TextStyle(fontSize: 11.5, color: AppColors.textMuted)),
+                  const SizedBox(height: 22),
+                  const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.verified_user_outlined, size: 14, color: AppColors.textMuted),
+                      SizedBox(width: 5),
+                      Text('Secure sign in  •  RK Classes', style: TextStyle(fontSize: 11.5, color: AppColors.textMuted)),
+                    ],
                   ),
                 ],
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
+  static Widget _disc(double size, double alpha) =>
+      Container(width: size, height: size, decoration: BoxDecoration(color: Colors.white.withValues(alpha: alpha), shape: BoxShape.circle));
+
   Widget _buildTabToggle() {
     return Container(
       padding: const EdgeInsets.all(4),
-      decoration: BoxDecoration(color: AppColors.background, borderRadius: BorderRadius.circular(AppRadius.md)),
+      decoration: BoxDecoration(color: AppColors.primarySoft, borderRadius: BorderRadius.circular(AppRadius.md)),
       child: Row(
         children: [
           Expanded(child: _tabButton('Staff', Icons.badge_outlined, _LoginTab.staff)),
-          Expanded(child: _tabButton('Parent', Icons.family_restroom_rounded, _LoginTab.parent)),
+          Expanded(child: _tabButton('Parent / Student', Icons.family_restroom_rounded, _LoginTab.parent)),
         ],
       ),
     );
@@ -345,7 +370,7 @@ class _LoginScreenState extends State<LoginScreen> {
             onSubmitted: (_) => _submitParentRegister(),
           ),
           const SizedBox(height: 8),
-          const Text('Use the same phone number registered as father/mother contact for your child.',
+          const Text("Use the phone number given to the school: father, mother or the student's own number.",
               style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
           const SizedBox(height: 20),
           ElevatedButton(
@@ -360,7 +385,7 @@ class _LoginScreenState extends State<LoginScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        TextField(controller: _parentPhone, keyboardType: TextInputType.phone, decoration: const InputDecoration(labelText: 'Phone Number', prefixIcon: Icon(Icons.phone_outlined))),
+        TextField(controller: _parentPhone, keyboardType: TextInputType.phone, decoration: const InputDecoration(labelText: 'Phone number', prefixIcon: Icon(Icons.phone_outlined))),
         const SizedBox(height: 14),
         _passwordField(
           controller: _parentPassword,

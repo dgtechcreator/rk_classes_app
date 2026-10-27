@@ -15,50 +15,50 @@ class StatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Compact horizontal tile (icon badge left, value + label right) - the same look as the Admin Home cards.
     final card = Container(
-      padding: const EdgeInsets.all(14),
+      constraints: const BoxConstraints(minHeight: 56),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(AppRadius.lg),
+        borderRadius: BorderRadius.circular(AppRadius.md),
         boxShadow: AppShadows.soft,
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
+      child: Row(
         children: [
-          Row(
-            children: [
-              if (icon != null)
-                Container(
-                  width: 34,
-                  height: 34,
-                  decoration: BoxDecoration(color: color.withValues(alpha: 0.13), shape: BoxShape.circle),
-                  child: Icon(icon, size: 17, color: color),
+          if (icon != null) ...[
+            Container(
+              width: 34,
+              height: 34,
+              decoration: BoxDecoration(color: color.withValues(alpha: 0.13), borderRadius: BorderRadius.circular(11)),
+              child: Icon(icon, size: 18, color: color),
+            ),
+            const SizedBox(width: 9),
+          ],
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(value, maxLines: 1, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: AppColors.textPrimary, height: 1.15)),
                 ),
-              const Spacer(),
-              if (onTap != null)
-                Container(
-                  padding: const EdgeInsets.all(3),
-                  decoration: BoxDecoration(color: AppColors.background, shape: BoxShape.circle),
-                  child: Icon(Icons.arrow_outward_rounded, size: 12, color: color.withValues(alpha: 0.75)),
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(label, maxLines: 1, style: const TextStyle(fontSize: 11.5, color: AppColors.textSecondary, fontWeight: FontWeight.w500, height: 1.2)),
                 ),
-            ],
+              ],
+            ),
           ),
-          const SizedBox(height: 10),
-          Text(value,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: AppColors.textPrimary)),
-          const SizedBox(height: 3),
-          Text(label,
-              style: const TextStyle(fontSize: 12, color: AppColors.textSecondary, fontWeight: FontWeight.w500),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis),
+          if (onTap != null) const Icon(Icons.chevron_right_rounded, size: 18, color: AppColors.textMuted),
         ],
       ),
     );
     if (onTap == null) return card;
-    return InkWell(borderRadius: BorderRadius.circular(AppRadius.lg), onTap: onTap, child: card);
+    return InkWell(borderRadius: BorderRadius.circular(AppRadius.md), onTap: onTap, child: card);
   }
 }
 
@@ -273,7 +273,7 @@ class IconTile extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 8),
-            Text(label, textAlign: TextAlign.center, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600), maxLines: 2, overflow: TextOverflow.ellipsis),
+            Text(label, textAlign: TextAlign.center, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, height: 1.15), maxLines: 2, overflow: TextOverflow.ellipsis),
           ],
         ),
       ),

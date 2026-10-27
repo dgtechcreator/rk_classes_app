@@ -17,6 +17,7 @@ import '../teacher_attendance/teacher_attendance_mark_screen.dart';
 import '../teacher_payment/teacher_payment_list_screen.dart';
 import '../attendance/attendance_mark_screen.dart';
 import '../marks/top_students_screen.dart';
+import '../notes/notes_list_screen.dart';
 import '../lectures/lecture_list_screen.dart';
 import '../lectures/lecture_summary_screen.dart';
 import '../lectures/my_lectures_screen.dart';
@@ -65,6 +66,7 @@ final allModules = [
   ModuleDef('Attendance', Icons.event_available_outlined, 'attendance_entry', 'Academics', screenBuilder: (_) => const AttendanceMarkScreen()),
   ModuleDef('Marks', Icons.grade_outlined, 'marks_entry', 'Academics', screenBuilder: (_) => const MarksEntryScreen()),
   ModuleDef('Top Students', Icons.emoji_events_outlined, 'marks_topstudents', 'Academics', screenBuilder: (_) => const TopStudentsScreen()),
+  ModuleDef('Notes & Papers', Icons.description_outlined, 'class_notes', 'Academics', screenBuilder: (_) => const NotesListScreen()),
   ModuleDef('Lecture Schedule', Icons.calendar_view_week_outlined, 'lecture_schedule', 'Academics', screenBuilder: (_) => const LectureListScreen()),
   ModuleDef('Lecture Summary', Icons.pie_chart_outline, 'lecture_summary', 'Academics', screenBuilder: (_) => const LectureSummaryScreen()),
   ModuleDef('My Lectures', Icons.menu_book_outlined, null, 'Academics',
@@ -198,7 +200,7 @@ class _StaffModulesScreenState extends State<StaffModulesScreen> {
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
         itemCount: items.length,
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3, mainAxisSpacing: 12, crossAxisSpacing: 12, childAspectRatio: 0.9),
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3, mainAxisSpacing: 10, crossAxisSpacing: 10, childAspectRatio: 1.12),
         itemBuilder: (_, i) => _ModuleTile(module: items[i]),
       ),
       const SizedBox(height: 10),

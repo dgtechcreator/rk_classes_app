@@ -3,21 +3,39 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/parent_data_controller.dart';
+import '../../core/parent_notification_controller.dart';
 import '../../core/session.dart';
 import '../../models/student.dart';
 import '../../theme/app_theme.dart';
 import '../../theme/subject_visuals.dart';
 import '../../widgets/attendance_ring.dart';
 import '../../widgets/common.dart';
+import '../../widgets/notification_bell.dart';
 import '../../widgets/profile_avatar.dart';
+import '../../services/parent_service.dart';
 import '../fees/receipt_screen.dart';
+import '../students/student_report_screen.dart';
 import 'parent_fees_screen.dart';
 import 'parent_grades_screen.dart';
+import 'parent_notes_screen.dart';
+import 'parent_notifications_screen.dart';
 
 /// Pushed routes sit outside the shell's provider, so hand the controller to them explicitly.
 Future<T?> _pushWithController<T>(BuildContext context, Widget page) {
   final ctrl = context.read<ParentDataController>();
   return Navigator.of(context).push<T>(MaterialPageRoute(builder: (_) => ChangeNotifierProvider.value(value: ctrl, child: page)));
+}
+
+/// The notifications list is a pushed route, so it needs both controllers handed over (like [_pushWithController]).
+Future<void> _openNotifications(BuildContext context) {
+  final data = context.read<ParentDataController>();
+  final notifs = context.read<ParentNotificationController>();
+  return Navigator.of(context).push(MaterialPageRoute(
+    builder: (_) => MultiProvider(
+      providers: [ChangeNotifierProvider.value(value: data), ChangeNotifierProvider.value(value: notifs)],
+      child: const ParentNotificationsScreen(),
+    ),
+  ));
 }
 
 class ParentHomeScreen extends StatelessWidget {
@@ -41,6 +59,12 @@ class ParentHomeScreen extends StatelessWidget {
                   greeting: 'Hello,',
                   name: parentName.isEmpty ? 'Parent' : parentName.split(' ').first,
                   leadingIcon: Icons.family_restroom,
+                  actions: [
+                    NotificationBell(
+                      count: context.watch<ParentNotificationController>().unread,
+                      onTap: () => _openNotifications(context),
+                    ),
+                  ],
                 ),
               ),
               SliverToBoxAdapter(
@@ -77,6 +101,33 @@ class ParentHomeScreen extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _ChildCard(ctrl: ctrl),
+        if (ctrl.selected != null) ...[
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(44), padding: const EdgeInsets.symmetric(horizontal: 8)),
+                  icon: const Icon(Icons.pie_chart_rounded, size: 18),
+                  label: const FittedBox(fit: BoxFit.scaleDown, child: Text('Full report')),
+                  onPressed: () {
+                    final sid = ctrl.selected!.studentId;
+                    Navigator.of(context).push(MaterialPageRoute(builder: (_) => StudentReportScreen(loader: () => ParentService().getDashboard(sid), title: 'Report')));
+                  },
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(44), padding: const EdgeInsets.symmetric(horizontal: 8)),
+                  icon: const Icon(Icons.description_rounded, size: 18),
+                  label: const FittedBox(fit: BoxFit.scaleDown, child: Text('Notes & papers')),
+                  onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => ParentNotesScreen(studentId: ctrl.selected!.studentId))),
+                ),
+              ),
+            ],
+          ),
+        ],
         if (d != null) ...[
           const SizedBox(height: 20),
           Container(

@@ -1,22 +1,23 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-/// Matches the RK Classes web app's own brand exactly (SchoolMS.Web/wwwroot/css/app.css :root — --p /
-/// --p2), so the app reads as the same brand as the web portal, not a mismatched color slapped on top.
+/// App palette: royal blue (the Admin Home design). Every screen reads these tokens, so changing the brand colour is a
+/// change in this block only. Red is kept for danger / absent only.
 class AppColors {
-  static const Color primary = Color(0xFFF40B12);
-  static const Color primaryDark = Color(0xFFC20009);
-  static const Color primaryLight = Color(0xFFFF5A54);
-  static const Color primarySoft = Color(0xFFFFF0F0);
-  static const Color background = Color(0xFFF5F5FA);
+  static const Color primary = Color(0xFF2352D8);
+  static const Color primaryDark = Color(0xFF15329A);
+  static const Color primaryLight = Color(0xFF4A7BF2);
+  static const Color primarySoft = Color(0xFFEBF1FF);
+  static const Color background = Color(0xFFF4F6FC);
   static const Color surface = Color(0xFFFFFFFF);
   static const Color surfaceAlt = Color(0xFFFBFAFC);
   static const Color textPrimary = Color(0xFF1A1035);
   static const Color textSecondary = Color(0xFF6B7280);
   static const Color textMuted = Color(0xFF9CA3AF);
-  static const Color border = Color(0xFFF5C6C6);
-  static const Color borderNeutral = Color(0xFFEDEDF2);
+  static const Color border = Color(0xFFCBD9FB);
+  static const Color borderNeutral = Color(0xFFE6EAF3);
 
   static const Color success = Color(0xFF059669);
   static const Color successSoft = Color(0xFFE7F7F1);
@@ -113,13 +114,40 @@ class AppTheme {
 
     return base.copyWith(
       textTheme: textTheme,
+      // Every page header is the same royal-blue band as the Admin Home, with rounded bottom corners.
       appBarTheme: AppBarTheme(
-        backgroundColor: AppColors.background,
-        foregroundColor: AppColors.textPrimary,
+        backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
         elevation: 0,
+        scrolledUnderElevation: 0,
         centerTitle: false,
         surfaceTintColor: Colors.transparent,
-        titleTextStyle: textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700, fontSize: 18),
+        systemOverlayStyle: SystemUiOverlayStyle.light,
+        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(bottom: Radius.circular(AppRadius.lg))),
+        titleTextStyle: textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800, fontSize: 18, color: Colors.white),
+      ),
+      tabBarTheme: const TabBarThemeData(
+        labelColor: Colors.white,
+        unselectedLabelColor: Color(0xB3FFFFFF),
+        indicatorColor: Colors.white,
+        dividerColor: Colors.transparent,
+        labelStyle: TextStyle(fontWeight: FontWeight.w700, fontSize: 13.5),
+        unselectedLabelStyle: TextStyle(fontWeight: FontWeight.w600, fontSize: 13.5),
+      ),
+      segmentedButtonTheme: SegmentedButtonThemeData(
+        style: ButtonStyle(
+          backgroundColor: WidgetStateProperty.resolveWith((s) => s.contains(WidgetState.selected) ? AppColors.primary : AppColors.surface),
+          foregroundColor: WidgetStateProperty.resolveWith((s) => s.contains(WidgetState.selected) ? Colors.white : AppColors.textSecondary),
+          iconColor: WidgetStateProperty.resolveWith((s) => s.contains(WidgetState.selected) ? Colors.white : AppColors.textSecondary),
+          side: const WidgetStatePropertyAll(BorderSide(color: AppColors.borderNeutral)),
+          textStyle: const WidgetStatePropertyAll(TextStyle(fontWeight: FontWeight.w700, fontSize: 13.5)),
+        ),
+      ),
+      floatingActionButtonTheme: FloatingActionButtonThemeData(
+        backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
+        elevation: 4,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.md + 2)),
       ),
       cardTheme: CardThemeData(
         color: AppColors.surface,

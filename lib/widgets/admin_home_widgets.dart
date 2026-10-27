@@ -60,7 +60,7 @@ class AdminHomeHeader extends StatelessWidget {
       borderRadius: const BorderRadius.vertical(bottom: Radius.circular(34)),
       child: Container(
         width: double.infinity,
-        padding: EdgeInsets.fromLTRB(20, top + 14, 16, 22),
+        padding: EdgeInsets.fromLTRB(18, top + 8, 14, 14),
         decoration: BoxDecoration(gradient: AppGradients.primarySheen, boxShadow: AppShadows.header),
         child: Stack(
           clipBehavior: Clip.none,
@@ -79,17 +79,17 @@ class AdminHomeHeader extends StatelessWidget {
                       padding: const EdgeInsets.all(3),
                       decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: Colors.white.withValues(alpha: 0.85), width: 2)),
                       child: (photoPath ?? '').isNotEmpty
-                          ? ProfileAvatar(name: name, photoPath: photoPath, size: 52)
+                          ? ProfileAvatar(name: name, photoPath: photoPath, size: 46)
                           : Container(
-                              width: 52,
-                              height: 52,
+                              width: 46,
+                              height: 46,
                               alignment: Alignment.center,
                               decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.16), shape: BoxShape.circle),
-                              child: Text(initial, style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w700)),
+                              child: Text(initial, style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w700)),
                             ),
                     ),
                   ),
-                  const SizedBox(width: 14),
+                  const SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -98,15 +98,15 @@ class AdminHomeHeader extends StatelessWidget {
                         FittedBox(
                           fit: BoxFit.scaleDown,
                           alignment: Alignment.centerLeft,
-                          child: Text('Welcome back,', maxLines: 1, style: TextStyle(color: Colors.white.withValues(alpha: 0.85), fontSize: 13, height: 1.1)),
+                          child: Text('Welcome back,', maxLines: 1, style: TextStyle(color: Colors.white.withValues(alpha: 0.85), fontSize: 12.5, height: 1.1)),
                         ),
-                        const SizedBox(height: 2),
+                        const SizedBox(height: 1),
                         Text(name, maxLines: 1, overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w800, height: 1.15)),
+                            style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w800, height: 1.15)),
                         if (roleLabel.isNotEmpty) ...[
-                          const SizedBox(height: 6),
+                          const SizedBox(height: 4),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
                             decoration: BoxDecoration(
                               color: Colors.white.withValues(alpha: 0.16),
                               borderRadius: BorderRadius.circular(AppRadius.pill),
@@ -116,12 +116,12 @@ class AdminHomeHeader extends StatelessWidget {
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 if (isAdmin) ...[
-                                  const Icon(Icons.workspace_premium_rounded, size: 15, color: Color(0xFFFFD66B)),
-                                  const SizedBox(width: 5),
+                                  const Icon(Icons.workspace_premium_rounded, size: 14, color: Color(0xFFFFD66B)),
+                                  const SizedBox(width: 4),
                                 ],
                                 Flexible(
                                   child: Text(roleLabel, maxLines: 1, overflow: TextOverflow.ellipsis,
-                                      style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600)),
+                                      style: const TextStyle(color: Colors.white, fontSize: 12.5, fontWeight: FontWeight.w600)),
                                 ),
                               ],
                             ),
@@ -138,7 +138,7 @@ class AdminHomeHeader extends StatelessWidget {
                 right: showTagline ? 102 : 40,
                 top: 0,
                 bottom: 0,
-                child: const Center(child: SizedBox(width: 80, height: 70, child: CustomPaint(painter: _CapAndBooksPainter()))),
+                child: const Center(child: SizedBox(width: 72, height: 62, child: CustomPaint(painter: _CapAndBooksPainter()))),
               ),
             if (showTagline)
               Positioned(
@@ -277,10 +277,10 @@ class AdminSectionTitle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(2, 22, 2, 12),
+      padding: const EdgeInsets.fromLTRB(2, 14, 2, 8),
       child: Row(
         children: [
-          Text(title, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800, height: 1.1)),
+          Text(title, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800, height: 1.1)),
           if (trailing != null) ...[const SizedBox(width: 12), Expanded(child: trailing!)] else const Spacer(),
         ],
       ),
@@ -299,9 +299,9 @@ class AdminYearPill extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
-        Icon(icon, size: 18, color: AppColors.primary),
-        const SizedBox(width: 6),
-        Flexible(child: FittedBox(fit: BoxFit.scaleDown, child: Text(label, maxLines: 1, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.textPrimary)))),
+        Icon(icon, size: 16, color: AppColors.primary),
+        const SizedBox(width: 5),
+        Flexible(child: FittedBox(fit: BoxFit.scaleDown, child: Text(label, maxLines: 1, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: AppColors.textPrimary)))),
       ],
     );
   }
@@ -334,18 +334,18 @@ class AdminStatCard extends StatelessWidget {
           onTap: onTap,
           child: LayoutBuilder(builder: (context, c) {
             final compact = c.maxWidth < 170;   // small phones: smaller icon, no arrow, so the numbers keep their size
-            final box = compact ? 38.0 : 44.0;
+            final box = compact ? 34.0 : 38.0;
             return Padding(
-              padding: EdgeInsets.symmetric(horizontal: compact ? 8 : 10, vertical: 8),
+              padding: EdgeInsets.symmetric(horizontal: compact ? 8 : 9, vertical: 5),
               child: Row(
                 children: [
                   Container(
                     width: box,
                     height: box,
-                    decoration: BoxDecoration(color: color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(compact ? 12 : 14)),
-                    child: Icon(icon, color: color, size: compact ? 21 : 24),
+                    decoration: BoxDecoration(color: color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(compact ? 10 : 12)),
+                    child: Icon(icon, color: color, size: compact ? 19 : 22),
                   ),
-                  SizedBox(width: compact ? 8 : 10),
+                  SizedBox(width: compact ? 7 : 9),
                   Expanded(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -354,18 +354,18 @@ class AdminStatCard extends StatelessWidget {
                         FittedBox(
                           fit: BoxFit.scaleDown,
                           alignment: Alignment.centerLeft,
-                          child: Text(value, maxLines: 1, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800, height: 1.1)),
+                          child: Text(value, maxLines: 1, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800, height: 1.1)),
                         ),
                         const SizedBox(height: 1),
                         FittedBox(
                           fit: BoxFit.scaleDown,
                           alignment: Alignment.centerLeft,
-                          child: Text(label, maxLines: 1, style: const TextStyle(fontSize: 13, color: AppColors.textSecondary, height: 1.15)),
+                          child: Text(label, maxLines: 1, style: const TextStyle(fontSize: 12.5, color: AppColors.textSecondary, height: 1.15)),
                         ),
                       ],
                     ),
                   ),
-                  if (onTap != null && !compact) const Icon(Icons.chevron_right_rounded, color: AppColors.primary, size: 20),
+                  if (onTap != null && !compact) const Icon(Icons.chevron_right_rounded, color: AppColors.primary, size: 18),
                 ],
               ),
             );
@@ -386,14 +386,14 @@ class AdminStatGrid extends StatelessWidget {
     return LayoutBuilder(builder: (context, c) {
       final cols = c.maxWidth >= 560 ? 3 : 2;
       // narrow phones: a little taller so the number never has to shrink
-      final extent = c.maxWidth < 340 ? 66.0 : 70.0;
+      final extent = c.maxWidth < 340 ? 54.0 : 56.0;
       return GridView.count(
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
         crossAxisCount: cols,
-        mainAxisSpacing: 12,
-        crossAxisSpacing: 12,
-        childAspectRatio: (c.maxWidth - (cols - 1) * 12) / cols / extent,
+        mainAxisSpacing: 8,
+        crossAxisSpacing: 8,
+        childAspectRatio: (c.maxWidth - (cols - 1) * 8) / cols / extent,
         children: children,
       );
     });
@@ -420,41 +420,41 @@ class AdminFeeCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(22),
           onTap: onTap,
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
+            padding: const EdgeInsets.fromLTRB(14, 11, 14, 11),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   children: [
-                    const Expanded(child: FittedBox(fit: BoxFit.scaleDown, alignment: Alignment.centerLeft, child: Text('Fee Collection (Overall)', maxLines: 1, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)))),
-                    Text('${(pct * 100).round()}%', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppColors.success)),
+                    const Expanded(child: FittedBox(fit: BoxFit.scaleDown, alignment: Alignment.centerLeft, child: Text('Fee Collection (Overall)', maxLines: 1, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)))),
+                    Text('${(pct * 100).round()}%', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: AppColors.success)),
                     if (MediaQuery.of(context).size.width >= 350) ...[   // very narrow phones keep the title on one line instead
-                      const SizedBox(width: 10),
+                      const SizedBox(width: 8),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                         decoration: BoxDecoration(color: AppColors.infoSoft, borderRadius: BorderRadius.circular(AppRadius.pill)),
-                        child: Text(periodLabel, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.info)),
+                        child: Text(periodLabel, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.info)),
                       ),
                     ],
                   ],
                 ),
-                const SizedBox(height: 14),
+                const SizedBox(height: 9),
                 ClipRRect(
                   borderRadius: BorderRadius.circular(8),
                   child: Stack(
                     children: [
-                      Container(height: 11, color: AppColors.borderNeutral),
+                      Container(height: 9, color: AppColors.borderNeutral),
                       FractionallySizedBox(
                         widthFactor: pct,
                         child: Container(
-                          height: 11,
+                          height: 9,
                           decoration: const BoxDecoration(gradient: LinearGradient(colors: [Color(0xFF10B981), Color(0xFF059669)])),
                         ),
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 10),
                 IntrinsicHeight(
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -477,21 +477,21 @@ class AdminFeeCard extends StatelessWidget {
 
   Widget _figure(NumberFormat fmt, String label, double v, Color c, {bool pad = false}) {
     return Padding(
-      padding: EdgeInsets.only(left: pad ? 12 : 0, right: 4),
+      padding: EdgeInsets.only(left: pad ? 10 : 0, right: 4),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Row(children: [
-            Container(width: 11, height: 11, decoration: BoxDecoration(color: c, shape: BoxShape.circle)),
-            const SizedBox(width: 6),
-            Flexible(child: FittedBox(fit: BoxFit.scaleDown, alignment: Alignment.centerLeft, child: Text(label, maxLines: 1, style: const TextStyle(fontSize: 14, color: AppColors.textSecondary)))),
+            Container(width: 9, height: 9, decoration: BoxDecoration(color: c, shape: BoxShape.circle)),
+            const SizedBox(width: 5),
+            Flexible(child: FittedBox(fit: BoxFit.scaleDown, alignment: Alignment.centerLeft, child: Text(label, maxLines: 1, style: const TextStyle(fontSize: 13, color: AppColors.textSecondary)))),
           ]),
-          const SizedBox(height: 6),
+          const SizedBox(height: 3),
           FittedBox(
             fit: BoxFit.scaleDown,
             alignment: Alignment.centerLeft,
-            child: Text(fmt.format(v), maxLines: 1, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
+            child: Text(fmt.format(v), maxLines: 1, style: const TextStyle(fontSize: 15.5, fontWeight: FontWeight.w800)),
           ),
         ],
       ),
@@ -510,29 +510,29 @@ class AdminClassCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final total = stats.classStrengths.fold<int>(0, (a, b) => a + b.studentCount);
     return Container(
-      padding: const EdgeInsets.fromLTRB(18, 16, 18, 8),
+      padding: const EdgeInsets.fromLTRB(14, 11, 14, 2),
       decoration: _cardDecoration(22),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const Expanded(child: Text('Students by Class', maxLines: 2, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, height: 1.15))),
+              const Expanded(child: Text('Students by Class', maxLines: 2, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, height: 1.15))),
               InkWell(
                 borderRadius: BorderRadius.circular(AppRadius.pill),
                 onTap: onTotalTap,
                 child: Container(
-                  padding: const EdgeInsets.fromLTRB(14, 6, 8, 6),
+                  padding: const EdgeInsets.fromLTRB(12, 4, 6, 4),
                   decoration: BoxDecoration(color: AppColors.infoSoft, borderRadius: BorderRadius.circular(AppRadius.pill)),
                   child: Row(mainAxisSize: MainAxisSize.min, children: [
-                    Text('Total $total', style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700, color: AppColors.info)),
-                    const Icon(Icons.chevron_right_rounded, size: 20, color: AppColors.info),
+                    Text('Total $total', style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: AppColors.info)),
+                    const Icon(Icons.chevron_right_rounded, size: 18, color: AppColors.info),
                   ]),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 2),
           for (var i = 0; i < stats.classStrengths.length; i++) ...[
             if (i > 0) const Divider(height: 1, thickness: 1, color: AppColors.borderNeutral),
             _ClassRow(c: stats.classStrengths[i]),
@@ -550,28 +550,28 @@ class _ClassRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 12),
+      padding: const EdgeInsets.symmetric(vertical: 7),
       child: IntrinsicHeight(
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             SizedBox(
-              width: 42,
-              child: Align(alignment: Alignment.centerLeft, child: Text(c.className.trim(), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800))),
+              width: 44,
+              child: Align(alignment: Alignment.centerLeft, child: FittedBox(fit: BoxFit.scaleDown, child: Text(c.className.trim(), maxLines: 1, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)))),
             ),
             const VerticalDivider(width: 1, thickness: 1, color: AppColors.borderNeutral),
-            const SizedBox(width: 12),
+            const SizedBox(width: 10),
             Expanded(
               child: Wrap(
                 spacing: 6,
-                runSpacing: 8,
+                runSpacing: 5,
                 children: c.sections.isEmpty
                     ? [_pill('Students', c.studentCount, AppColors.textSecondary)]
                     : [for (final s in c.sections) _medium(s)],
               ),
             ),
             const SizedBox(width: 8),
-            Align(alignment: Alignment.centerRight, child: Text('${c.studentCount}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800))),
+            Align(alignment: Alignment.centerRight, child: Text('${c.studentCount}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800))),
           ],
         ),
       ),
@@ -588,9 +588,9 @@ class _ClassRow extends StatelessWidget {
       children: [
         pill,
         Padding(
-          padding: const EdgeInsets.only(left: 8, top: 3),
+          padding: const EdgeInsets.only(left: 8, top: 2),
           child: Text(s.batches.map((b) => '${b.batchName} ${b.studentCount}').join(' · '),
-              style: const TextStyle(fontSize: 11.5, color: AppColors.textSecondary, height: 1.2)),
+              style: const TextStyle(fontSize: 11, color: AppColors.textSecondary, height: 1.2)),
         ),
       ],
     );
@@ -598,11 +598,11 @@ class _ClassRow extends StatelessWidget {
 
   Widget _pill(String label, int count, Color color) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
       decoration: BoxDecoration(color: color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(AppRadius.pill)),
       child: Text.rich(TextSpan(children: [
-        TextSpan(text: '$label  ', style: TextStyle(fontSize: 12.5, color: color, fontWeight: FontWeight.w500)),
-        TextSpan(text: '$count', style: TextStyle(fontSize: 12.5, color: color, fontWeight: FontWeight.w800)),
+        TextSpan(text: '$label  ', style: TextStyle(fontSize: 12, color: color, fontWeight: FontWeight.w500)),
+        TextSpan(text: '$count', style: TextStyle(fontSize: 12, color: color, fontWeight: FontWeight.w800)),
       ])),
     );
   }
@@ -643,31 +643,31 @@ class AdminQuickTile extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       child: Ink(
-        decoration: _cardDecoration(18),
+        decoration: _cardDecoration(16),
         child: InkWell(
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(16),
           onTap: onTap,
           child: LayoutBuilder(builder: (context, c) {
             final roomy = c.maxWidth >= 140;   // tablets: also show the arrow
             return Padding(
-              padding: EdgeInsets.symmetric(horizontal: roomy ? 12 : 7, vertical: 8),
+              padding: EdgeInsets.symmetric(horizontal: roomy ? 10 : 6, vertical: 5),
               child: Row(
                 children: [
                   Container(
-                    width: 36,
-                    height: 36,
-                    decoration: BoxDecoration(color: color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(12)),
-                    child: Icon(icon, color: color, size: 20),
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(color: color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(10)),
+                    child: Icon(icon, color: color, size: 18),
                   ),
-                  SizedBox(width: roomy ? 10 : 6),
+                  SizedBox(width: roomy ? 8 : 6),
                   Expanded(
                     child: FittedBox(
                       fit: BoxFit.scaleDown,
                       alignment: Alignment.centerLeft,
-                      child: Text(_wrap(label), maxLines: 2, style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, height: 1.15)),
+                      child: Text(_wrap(label), maxLines: 2, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, height: 1.15)),
                     ),
                   ),
-                  if (roomy) const Icon(Icons.chevron_right_rounded, size: 18, color: AppColors.textMuted),
+                  if (roomy) const Icon(Icons.chevron_right_rounded, size: 16, color: AppColors.textMuted),
                 ],
               ),
             );
@@ -686,7 +686,7 @@ class AdminQuickGrid extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(builder: (context, c) {
       final cols = c.maxWidth >= 560 ? 4 : (c.maxWidth < 300 ? 2 : 3);
-      const gap = 10.0, extent = 58.0;
+      const gap = 8.0, extent = 46.0;
       return GridView.count(
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),

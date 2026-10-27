@@ -99,7 +99,7 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 720),
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 28),
+                    padding: const EdgeInsets.fromLTRB(14, 0, 14, 20),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
@@ -178,10 +178,10 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
           AdminStatCard(label: 'Balance Overall', value: money.format(s.balanceOverall), color: s.balanceOverall > 0 ? AppColors.warning : AppColors.success, icon: Icons.account_balance_wallet_outlined, onTap: () => _push(const FinanceDashboardScreen())),
         ],
       ),
-      const SizedBox(height: 16),
+      const SizedBox(height: 10),
       if (s.totalFeesOverall > 0) ...[
         AdminFeeCard(stats: s, onTap: () => _push(const FinanceDashboardScreen())),
-        const SizedBox(height: 16),
+        const SizedBox(height: 10),
       ],
       if (s.classStrengths.isNotEmpty) AdminClassCard(stats: s, onTotalTap: _openStudents),
     ];

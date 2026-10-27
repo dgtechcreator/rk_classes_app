@@ -92,7 +92,8 @@ class _FinanceStudentsScreenState extends State<FinanceStudentsScreen> {
         case FinanceFilter.all:
           break;
       }
-      return q.isEmpty || s.fullName.toLowerCase().contains(q) || s.admissionNo.toLowerCase().contains(q);
+      final hay = '${s.fullName} ${s.admissionNo}'.toLowerCase();
+      return q.isEmpty || q.split(RegExp(r'[\s,.]+')).where((t) => t.isNotEmpty).every(hay.contains);
     }).toList();
     int cmp(FinanceStudent a, FinanceStudent b) {
       switch (widget.sort) {
@@ -212,7 +213,7 @@ class _FinanceStudentsScreenState extends State<FinanceStudentsScreen> {
           TextField(
             controller: _searchCtrl,
             onChanged: (v) => setState(() => _query = v),
-            decoration: const InputDecoration(hintText: 'Search name or admission no.', prefixIcon: Icon(Icons.search_rounded), isDense: true),
+            decoration: const InputDecoration(hintText: 'Search name, father, mother or admission no.', prefixIcon: Icon(Icons.search_rounded), isDense: true),
           ),
           const SizedBox(height: 10),
           Row(

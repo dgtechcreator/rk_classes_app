@@ -103,6 +103,10 @@ class ApiClient {
     return _wrap(() => _dio.post<T>(path, data: form, options: Options(sendTimeout: const Duration(seconds: 60), receiveTimeout: const Duration(seconds: 60))));
   }
 
+  /// Multipart POST of a ready-made form (fields + files), e.g. class notes.
+  Future<Response<T>> postForm<T>(String path, FormData form) =>
+      _wrap(() => _dio.post<T>(path, data: form, options: Options(sendTimeout: const Duration(seconds: 120), receiveTimeout: const Duration(seconds: 60))));
+
   Future<Response<T>> put<T>(String path, {Map<String, dynamic>? data}) =>
       _wrap(() => _dio.put<T>(path, data: data));
 

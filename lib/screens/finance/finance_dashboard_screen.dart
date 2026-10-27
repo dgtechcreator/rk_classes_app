@@ -228,7 +228,7 @@ class _FinanceDashboardScreenState extends State<FinanceDashboardScreen> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                   decoration: BoxDecoration(color: AppColors.infoSoft, borderRadius: BorderRadius.circular(AppRadius.pill)),
-                  child: Text('${row.studentCount} students', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.info)),
+                  child: Text('${row.studentCount} ${row.studentCount == 1 ? 'student' : 'students'}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.info)),
                 ),
                 const Icon(Icons.chevron_right_rounded, color: AppColors.textMuted),
               ],

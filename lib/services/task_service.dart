@@ -39,6 +39,7 @@ class TaskService {
 
   Future<void> completeTask(int taskId) async => _client.post('/api/tasks/$taskId/complete');
   Future<void> deleteTask(int taskId) async => _client.post('/api/tasks/$taskId/delete');
+  Future<void> markAllNotificationsRead() async => _client.post('/api/tasks/notifications/read-all');
   Future<void> markNotificationRead(int notificationId) async => _client.post('/api/tasks/notifications/$notificationId/read');
   Future<void> dismissNotification(int notificationId) async => _client.post('/api/tasks/notifications/$notificationId/dismiss');
 }

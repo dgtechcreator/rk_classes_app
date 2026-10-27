@@ -20,7 +20,7 @@ class RealtimeNotificationService extends ChangeNotifier {
   bool get isConnected => _connection?.state == HubConnectionState.Connected;
 
   Future<void> connect(String token) async {
-    await _refreshInitialState();
+    await refresh();
 
     if (_connection != null) return;
     final url = '${ApiConfig.baseUrl}/hubs/notifications';
@@ -38,7 +38,8 @@ class RealtimeNotificationService extends ChangeNotifier {
     }
   }
 
-  Future<void> _refreshInitialState() async {
+  /// Re-reads the list + unread count from the server (also used after the Tasks tab marked everything read).
+  Future<void> refresh() async {
     try {
       final data = await TaskService().getNotifications();
       notifications

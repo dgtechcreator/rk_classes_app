@@ -15,6 +15,7 @@ import '../../widgets/profile_avatar.dart';
 import '../../services/photo_service.dart';
 import '../fees/receipt_screen.dart';
 import 'student_form_screen.dart';
+import 'student_report_screen.dart';
 
 class StudentDetailScreen extends StatefulWidget {
   const StudentDetailScreen({super.key, required this.studentId});
@@ -104,12 +105,20 @@ class _StudentDetailScreenState extends State<StudentDetailScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Student Profile'),
-        actions: canEdit && _detail != null
-            ? [
-                IconButton(icon: const Icon(Icons.edit_outlined), onPressed: _edit),
-                IconButton(icon: const Icon(Icons.delete_outline, color: AppColors.danger), onPressed: _delete),
-              ]
-            : null,
+        actions: _detail == null
+            ? null
+            : [
+                if (session.hasPerm('student_profile'))
+                  IconButton(
+                    tooltip: 'Report (attendance, marks, fees)',
+                    icon: const Icon(Icons.pie_chart_rounded),
+                    onPressed: () => Navigator.of(context).push(MaterialPageRoute(
+                      builder: (_) => StudentReportScreen(loader: () => StudentService().getReport(widget.studentId), title: 'Student Report'),
+                    )),
+                  ),
+                if (canEdit) IconButton(icon: const Icon(Icons.edit_outlined), onPressed: _edit),
+                if (canEdit) IconButton(icon: const Icon(Icons.delete_outline, color: Colors.white), onPressed: _delete),
+              ],
       ),
       body: _loading
           ? const LoadingView()

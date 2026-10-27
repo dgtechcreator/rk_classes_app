@@ -4,13 +4,17 @@ import 'package:provider/provider.dart';
 
 import '../../core/api_client.dart';
 import '../../core/realtime_notification_service.dart';
+import '../../models/student_activity.dart';
 import '../../models/task_notification.dart';
 import '../../services/task_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/common.dart';
 
 class TasksNotificationsScreen extends StatefulWidget {
-  const TasksNotificationsScreen({super.key});
+  /// [active] is false while the screen sits hidden in the bottom-tab stack: it still loads (so the list is ready), but only
+  /// marks the notifications as read once the tab is actually opened.
+  const TasksNotificationsScreen({super.key, this.active = true});
+  final bool active;
 
   @override
   State<TasksNotificationsScreen> createState() => _TasksNotificationsScreenState();
@@ -24,6 +28,8 @@ class _TasksNotificationsScreenState extends State<TasksNotificationsScreen> wit
   String? _error;
   List<AppNotification> _notifications = [];
   List<TaskItem> _tasks = [];
+  int _liveCount = -1;
+  final _newIds = <int>{};   // unread when this visit began: keep them highlighted although the server already marked them read
 
   @override
   void initState() {
@@ -33,19 +39,41 @@ class _TasksNotificationsScreenState extends State<TasksNotificationsScreen> wit
   }
 
   @override
+  void didUpdateWidget(covariant TasksNotificationsScreen old) {
+    super.didUpdateWidget(old);
+    if (!old.active && widget.active) _load();   // tab just opened: show the latest and mark it read
+    if (old.active && !widget.active) _newIds.clear();   // leaving the tab: what was new has been seen
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // a notification arrived over SignalR (a lecture given to this teacher...): reload the list
+    final live = context.watch<RealtimeNotificationService>().notifications.length;
+    if (_liveCount != -1 && live != _liveCount) WidgetsBinding.instance.addPostFrameCallback((_) { if (mounted) _load(); });
+    _liveCount = live;
+  }
+
+  @override
   void dispose() {
     _tabController.dispose();
     super.dispose();
   }
 
   Future<void> _load() async {
-    setState(() { _loading = true; _error = null; });
+    setState(() { _loading = _notifications.isEmpty && _tasks.isEmpty; _error = null; });
     try {
       final data = await _service.getNotifications();
-      setState(() { _notifications = data.notifications; _tasks = data.tasks; _loading = false; });
-      if (mounted) context.read<RealtimeNotificationService>().markAllReadLocally();
+      if (!mounted) return;
+      final fresh = data.notifications.where((n) => n.isUnread).map((n) => n.notificationId);
+      setState(() { _notifications = data.notifications; _tasks = data.tasks; _loading = false; _newIds.addAll(fresh); });
+      if (widget.active && data.notifications.any((n) => n.isUnread)) {
+        final live = context.read<RealtimeNotificationService>();
+        live.markAllReadLocally();
+        _service.markAllNotificationsRead().then((_) => live.refresh()).catchError((_) {});
+      }
     } on ApiException catch (e) {
-      setState(() { _error = e.message; _loading = false; });
+      if (mounted) setState(() { _error = e.message; _loading = false; });
     }
   }
 
@@ -101,7 +129,7 @@ class _TasksNotificationsScreenState extends State<TasksNotificationsScreen> wit
     return Scaffold(
       appBar: AppBar(
         title: const Text('Tasks & Notifications'),
-        bottom: TabBar(controller: _tabController, labelColor: AppColors.primary, unselectedLabelColor: AppColors.textSecondary, tabs: const [
+        bottom: TabBar(controller: _tabController, tabs: const [
           Tab(text: 'Notifications'),
           Tab(text: 'Tasks'),
         ]),
@@ -115,6 +143,13 @@ class _TasksNotificationsScreenState extends State<TasksNotificationsScreen> wit
     );
   }
 
+  static ActivityLook _lookOf(String type) => switch (type) {
+        'Lecture' => ActivityLook.of('lecture'),
+        'FeesDue' => ActivityLook.of('fee'),
+        'Attendance' => ActivityLook.of('absent'),
+        _ => const ActivityLook(Icons.notifications_rounded, AppColors.info, AppColors.infoSoft, ActivityGroup.attendance),
+      };
+
   Widget _buildNotificationsTab() {
     if (_notifications.isEmpty) return const EmptyState(message: 'No notifications yet.', icon: Icons.notifications_none);
     return RefreshIndicator(
@@ -125,14 +160,42 @@ class _TasksNotificationsScreenState extends State<TasksNotificationsScreen> wit
         separatorBuilder: (_, _) => const SizedBox(height: 8),
         itemBuilder: (_, i) {
           final n = _notifications[i];
-          return Card(
-            color: n.isUnread ? AppColors.primarySoft : AppColors.surface,
-            child: ListTile(
-              title: Text(n.title, style: const TextStyle(fontWeight: FontWeight.w600)),
-              subtitle: Text('${n.message}\n${DateFormat.yMMMd().add_jm().format(n.createdAt)}'),
-              isThreeLine: true,
+          final look = _lookOf(n.type);
+          final isNew = n.isUnread || _newIds.contains(n.notificationId);
+          return Container(
+            padding: const EdgeInsets.fromLTRB(10, 10, 2, 10),
+            decoration: BoxDecoration(
+              color: isNew ? AppColors.primarySoft : AppColors.surface,
+              borderRadius: BorderRadius.circular(AppRadius.md),
+              border: Border.all(color: isNew ? AppColors.border : AppColors.borderNeutral),
+            ),
+            child: InkWell(
               onTap: () => _markRead(n),
-              trailing: IconButton(icon: const Icon(Icons.close, size: 18), onPressed: () => _dismiss(n)),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 38,
+                    height: 38,
+                    decoration: BoxDecoration(color: look.soft, borderRadius: BorderRadius.circular(12)),
+                    child: Icon(look.icon, color: look.color, size: 20),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(n.title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800)),
+                        const SizedBox(height: 2),
+                        Text(n.message, style: const TextStyle(fontSize: 13, height: 1.35)),
+                        const SizedBox(height: 4),
+                        Text(DateFormat('d MMM, h:mm a').format(n.createdAt), style: const TextStyle(fontSize: 11.5, color: AppColors.textMuted)),
+                      ],
+                    ),
+                  ),
+                  IconButton(visualDensity: VisualDensity.compact, icon: const Icon(Icons.close, size: 18), onPressed: () => _dismiss(n)),
+                ],
+              ),
             ),
           );
         },
