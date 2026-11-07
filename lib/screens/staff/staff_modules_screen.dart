@@ -22,6 +22,7 @@ import '../lectures/lecture_list_screen.dart';
 import '../lectures/lecture_summary_screen.dart';
 import '../lectures/my_lectures_screen.dart';
 import '../users/class_rep_list_screen.dart';
+import '../users/parent_accounts_screen.dart';
 import '../users/user_list_screen.dart';
 import 'coming_soon_screen.dart';
 import 'tasks_notifications_screen.dart';
@@ -86,6 +87,9 @@ final allModules = [
   ModuleDef('Users', Icons.admin_panel_settings_outlined, 'users_view', 'Admin', screenBuilder: (_) => const UserListScreen()),
   ModuleDef('Class Reps', Icons.shield_outlined, 'users_view', 'Admin',
       screenBuilder: (_) => const ClassRepListScreen(),
+      visibleWhen: (s) => s.isAdmin),   // server side is admin-only too
+  ModuleDef('Parent Accounts', Icons.family_restroom_outlined, null, 'Admin',
+      screenBuilder: (_) => const ParentAccountsScreen(),
       visibleWhen: (s) => s.isAdmin),   // server side is admin-only too
   ModuleDef('Deleted Records', Icons.restore_from_trash_outlined, 'deleted_records', 'Admin', screenBuilder: (_) => const DeletedRecordsScreen()),
   ModuleDef('Tasks', Icons.checklist_outlined, null, 'Admin',

@@ -356,7 +356,7 @@ class _StudentAttendanceDetailScreenState extends State<_StudentAttendanceDetail
                           return Card(
                             child: ListTile(
                               dense: true,
-                              title: Text(DateFormat.yMMMEd().format(day.attendanceDate)),
+                              title: Text(DateFormat.yMMMEd().format(day.attendanceDate) + (day.sessionNo > 1 ? ' · Lecture ${day.sessionNo}' : '')),
                               trailing: StatusBadge(status: day.status),
                             ),
                           );

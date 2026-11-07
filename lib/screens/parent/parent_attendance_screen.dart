@@ -84,7 +84,7 @@ class ParentAttendanceScreen extends StatelessWidget {
                                           padding: const EdgeInsets.only(bottom: 12),
                                           child: ListInfoCard(
                                             title: DateFormat.yMMMEd().format(a.attendanceDate),
-                                            subtitle: [a.subject, a.sirName].where((e) => e != null && e.isNotEmpty).join(' • '),
+                                            subtitle: [if (a.sessionNo > 1) 'Lecture ${a.sessionNo}', a.subject, a.sirName].where((e) => e != null && e.isNotEmpty).join(' • '),
                                             icon: Icons.event_note_outlined,
                                             iconColor: statusColor(a.status),
                                             badgeText: a.status,

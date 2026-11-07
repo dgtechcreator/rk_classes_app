@@ -8,6 +8,7 @@ import 'core/maintenance_controller.dart';
 import 'widgets/app_gate.dart';
 import 'core/realtime_notification_service.dart';
 import 'core/session.dart';
+import 'core/screen_security.dart';
 import 'models/task_notification.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/parent/parent_shell.dart';
@@ -54,10 +55,24 @@ class RkClassesApp extends StatelessWidget {
         scaffoldMessengerKey: rootScaffoldMessengerKey,
         theme: AppTheme.light(),
         // Maintenance mode (website > App Settings) covers every screen, login included.
-        builder: (context, child) => AppGate(child: child ?? const SizedBox.shrink()),
+        builder: (context, child) => _ScreenSecurityGuard(child: AppGate(child: child ?? const SizedBox.shrink())),
         home: const _SplashGate(),
       ),
     );
+  }
+}
+
+/// Parents / students cannot screenshot or record the app: the flag follows who is signed in.
+class _ScreenSecurityGuard extends StatelessWidget {
+  const _ScreenSecurityGuard({required this.child});
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = context.watch<Session>();
+    final secure = s.status == AuthStatus.signedIn && s.userType == UserType.parent;
+    WidgetsBinding.instance.addPostFrameCallback((_) => ScreenSecurity.set(secure));
+    return child;
   }
 }
 

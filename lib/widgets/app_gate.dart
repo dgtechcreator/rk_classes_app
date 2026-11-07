@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../core/maintenance_controller.dart';
 import '../theme/app_theme.dart';
@@ -40,8 +41,77 @@ class _AppGateState extends State<AppGate> with WidgetsBindingObserver {
     return Stack(
       children: [
         widget.child,
+        if (m.updateAvailable && !m.active && (m.forceUpdate || !m.updateDismissed))
+          Positioned.fill(child: _UpdateOverlay(controller: m)),
         if (m.active) const Positioned.fill(child: _MaintenanceScreen()),
       ],
+    );
+  }
+}
+
+/// "New version available": a card over the app (compulsory = full screen, cannot be closed). The button opens the APK
+/// download in the browser; Android then asks to install it over the current app (data and login are kept).
+class _UpdateOverlay extends StatelessWidget {
+  const _UpdateOverlay({required this.controller});
+  final MaintenanceController controller;
+
+  Future<void> _download(BuildContext context) async {
+    final url = controller.updateUrl;
+    final ok = url != null && await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+    if (!ok && context.mounted) {
+      ScaffoldMessenger.maybeOf(context)?.showSnackBar(const SnackBar(content: Text('Could not open the download link.')));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final force = controller.forceUpdate;
+    final msg = (controller.updateMessage ?? '').trim();
+    final card = Material(
+      color: Colors.transparent,
+      child: Container(
+        margin: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(AppRadius.xl), boxShadow: AppShadows.card),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Icon(Icons.system_update_rounded, size: 44, color: AppColors.primary),
+            const SizedBox(height: 10),
+            Text(
+              controller.latestVersion == null ? 'Update available' : 'Update available · v${controller.latestVersion}',
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+            ),
+            if (msg.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Text(msg, textAlign: TextAlign.center, style: const TextStyle(color: AppColors.textSecondary)),
+            ],
+            const SizedBox(height: 16),
+            FilledButton.icon(
+              onPressed: () => _download(context),
+              icon: const Icon(Icons.download_rounded),
+              label: const Text('Update now'),
+              style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(48)),
+            ),
+            if (!force) TextButton(onPressed: controller.dismissUpdate, child: const Text('Later')),
+            if (force)
+              const Padding(
+                padding: EdgeInsets.only(top: 8),
+                child: Text('This update is required to keep using the app.', textAlign: TextAlign.center, style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+              ),
+          ],
+        ),
+      ),
+    );
+    return PopScope(
+      canPop: !force,
+      child: Container(
+        color: Colors.black54,
+        alignment: Alignment.center,
+        child: card,
+      ),
     );
   }
 }

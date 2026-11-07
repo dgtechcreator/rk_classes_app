@@ -1,3 +1,5 @@
+import 'package:intl/intl.dart';
+
 import '../core/api_client.dart';
 import '../models/fee_structure.dart';
 import '../models/student.dart';
@@ -188,4 +190,26 @@ class FeesService {
   }
 
   Future<void> deletePayment(int id) async => _client.post('/api/fees/$id/delete');
+
+  /// Edits a saved receipt in place (same receipt no.). The server keeps the receipt's "Additional Charges" remark part.
+  Future<void> updatePayment(
+    int id, {
+    required double paidAmount,
+    required double discount,
+    required DateTime paymentDate,
+    DateTime? dueDate,
+    required String paymentMode,
+    String? transactionRef,
+    String? remarks,
+  }) async {
+    await _client.post('/api/fees/$id/update', data: {
+      'paidAmount': paidAmount,
+      'discount': discount,
+      'paymentDate': DateFormat('yyyy-MM-dd').format(paymentDate),
+      'dueDate': dueDate == null ? null : DateFormat('yyyy-MM-dd').format(dueDate),
+      'paymentMode': paymentMode,
+      'transactionRef': transactionRef,
+      'remarks': remarks,
+    });
+  }
 }

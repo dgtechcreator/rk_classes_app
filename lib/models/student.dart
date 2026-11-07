@@ -152,8 +152,10 @@ class AttendanceReport {
 }
 
 class StudentAttendanceDetail {
-  StudentAttendanceDetail({required this.attendanceDate, required this.status, this.subject, this.sirName, this.remarks});
+  StudentAttendanceDetail({required this.attendanceDate, required this.status, this.subject, this.sirName, this.remarks, this.sessionNo = 1});
 
+  /// Lecture of the day (1 = first); a day with two lectures has two rows.
+  final int sessionNo;
   final DateTime attendanceDate;
   final String status;
   final String? subject;
@@ -166,6 +168,7 @@ class StudentAttendanceDetail {
         subject: _asStringN(j['subject']),
         sirName: _asStringN(j['sirName']),
         remarks: _asStringN(j['remarks']),
+        sessionNo: j['sessionNo'] == null ? 1 : _asInt(j['sessionNo']),
       );
 }
 

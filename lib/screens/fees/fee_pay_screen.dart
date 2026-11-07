@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../../core/api_client.dart';
 import '../../core/session.dart';
+import '../../models/student.dart';
 import '../../services/fees_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/common.dart';
@@ -84,6 +85,11 @@ class _FeePayScreenState extends State<FeePayScreen> {
     } on ApiException catch (e) {
       if (mounted) showSnack(context, e.message, isError: true);
     }
+  }
+
+  /// A receipt edited / deleted on its own screen changes the totals here, so reload them.
+  Future<void> _openReceipt(FeePayment p) async {
+    if (await ReceiptScreen.open(context, p) && mounted) _load();
   }
 
   Future<void> _openCollectSheet() async {
@@ -235,9 +241,9 @@ class _FeePayScreenState extends State<FeePayScreen> {
                     trailing: IconButton(
                       tooltip: 'Receipt',
                       icon: const Icon(Icons.receipt_long_outlined, color: AppColors.info),
-                      onPressed: () => ReceiptScreen.open(context, p),
+                      onPressed: () => _openReceipt(p),
                     ),
-                    onTap: () => ReceiptScreen.open(context, p),
+                    onTap: () => _openReceipt(p),
                   ),
                 )),
         ],

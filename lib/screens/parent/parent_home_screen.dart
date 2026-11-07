@@ -13,6 +13,7 @@ import '../../widgets/common.dart';
 import '../../widgets/notification_bell.dart';
 import '../../widgets/profile_avatar.dart';
 import '../../services/parent_service.dart';
+import '../../services/photo_service.dart';
 import '../fees/receipt_screen.dart';
 import '../students/student_report_screen.dart';
 import 'parent_fees_screen.dart';
@@ -217,7 +218,6 @@ class ParentHomeScreen extends StatelessWidget {
             decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(AppRadius.lg), boxShadow: AppShadows.soft),
             child: Row(
               children: [
-                _feeFigure('Total', d.netTotal, AppColors.textPrimary),
                 _feeFigure('Paid', d.totalPaid, AppColors.success),
                 _feeFigure('Balance', d.balance, d.balance > 0.5 ? AppColors.danger : AppColors.success),
               ],
@@ -322,9 +322,14 @@ class _ChildCard extends StatelessWidget {
           const SizedBox(height: 12),
           Row(
             children: [
-              GestureDetector(
-                onTap: () => showPhotoPreview(context, name: s.displayName, photoPath: s.profilePicPath),
-                child: ProfileAvatar(name: s.displayName, photoPath: s.profilePicPath, size: 52, background: AppColors.primarySoft, foreground: AppColors.primary),
+              // Tap = full-screen photo; the camera badge lets the parent / student set their own profile photo.
+              EditableAvatar(
+                name: s.displayName,
+                photoPath: s.profilePicPath,
+                owner: PhotoOwner.child,
+                id: s.studentId,
+                size: 56,
+                onChanged: (_) => ctrl.load(),
               ),
               const SizedBox(width: 14),
               Expanded(

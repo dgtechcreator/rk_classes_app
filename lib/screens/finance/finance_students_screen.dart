@@ -14,6 +14,7 @@ import '../../widgets/common.dart';
 import '../../widgets/contact_actions.dart';
 import '../fees/receipt_screen.dart';
 import '../students/student_detail_screen.dart';
+import 'fee_reminder_queue.dart';
 
 enum FinanceFilter { all, due, paid }
 
@@ -131,6 +132,58 @@ class _FinanceStudentsScreenState extends State<FinanceStudentsScreen> {
     );
   }
 
+  /// Students on screen (after the search box) who owe fees - the ones a reminder goes to.
+  List<FinanceStudent> get _dueList => _visible.where((s) => s.hasDue && !s.feeNotSet).toList();
+
+  /// One button for the whole list: choose app notification (instant, to every parent) or the WhatsApp queue.
+  Future<void> _remindAll() async {
+    final due = _dueList;
+    if (due.isEmpty) return;
+    final pending = due.fold<double>(0, (sum, s) => sum + s.balance);
+    final choice = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: AppColors.surface,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
+              child: Text('Fee reminder to ${due.length} students', textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+            ),
+            Text('Total due ${_money.format(pending)}', style: const TextStyle(color: AppColors.textSecondary)),
+            const SizedBox(height: 8),
+            ListTile(
+              leading: const Icon(Icons.notifications_active_outlined, color: AppColors.primary),
+              title: const Text('App notification to all parents', style: TextStyle(fontWeight: FontWeight.w700)),
+              subtitle: const Text('Goes out instantly - parents see it in the RK Classes app.'),
+              onTap: () => Navigator.pop(ctx, 'app'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.chat_rounded, color: whatsappGreen),
+              title: const Text('WhatsApp, one after another', style: TextStyle(fontWeight: FontWeight.w700)),
+              subtitle: const Text('Every parent chat opens with the message ready - you only press Send.'),
+              onTap: () => Navigator.pop(ctx, 'whatsapp'),
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+    if (choice == null || !mounted) return;
+    if (choice == 'whatsapp') {
+      await showFeeReminderQueue(context, due);
+      return;
+    }
+    try {
+      final sent = await _service.remindDue(due.map((s) => s.studentId).toList());
+      if (mounted) showSnack(context, sent > 0 ? 'Fee reminder sent to $sent parents.' : 'No reminder was needed - nobody owes fees.');
+    } on ApiException catch (e) {
+      if (mounted) showSnack(context, e.message, isError: true);
+    }
+  }
+
   /// Opens the receipt for this student's payment — straight away when there is one, otherwise a picker.
   Future<void> _receipt(FinanceStudent s) async {
     try {
@@ -142,7 +195,7 @@ class _FinanceStudentsScreenState extends State<FinanceStudentsScreen> {
         return;
       }
       if (payments.length == 1) {
-        await ReceiptScreen.open(context, payments.first);
+        if (await ReceiptScreen.open(context, payments.first) && mounted) _load();
         return;
       }
       final picked = await showModalBottomSheet<FeePayment>(
@@ -180,7 +233,7 @@ class _FinanceStudentsScreenState extends State<FinanceStudentsScreen> {
           ),
         ),
       );
-      if (picked != null && mounted) await ReceiptScreen.open(context, picked);
+      if (picked != null && mounted && await ReceiptScreen.open(context, picked) && mounted) _load();
     } on ApiException catch (e) {
       if (mounted) showSnack(context, e.message, isError: true);
     }
@@ -203,6 +256,7 @@ class _FinanceStudentsScreenState extends State<FinanceStudentsScreen> {
     final list = _visible;
     final canReceipt = context.read<Session>().hasPerm('fee_collection');
     final canProfile = context.read<Session>().hasPerm('student_view');
+    final canRemind = context.read<Session>().hasPerm('finance_view');
     return RefreshIndicator(
       onRefresh: _load,
       child: ListView(
@@ -210,6 +264,15 @@ class _FinanceStudentsScreenState extends State<FinanceStudentsScreen> {
         children: [
           _summary(r),
           const SizedBox(height: 12),
+          if (_dueList.isNotEmpty && canRemind) ...[
+            FilledButton.icon(
+              onPressed: _remindAll,
+              icon: const Icon(Icons.notifications_active_outlined),
+              label: Text('Send fee reminder to all due (${_dueList.length})'),
+              style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(48)),
+            ),
+            const SizedBox(height: 12),
+          ],
           TextField(
             controller: _searchCtrl,
             onChanged: (v) => setState(() => _query = v),

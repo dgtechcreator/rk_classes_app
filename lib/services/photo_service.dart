@@ -2,7 +2,8 @@ import '../core/api_client.dart';
 
 /// Whose photo it is. The server keeps one file + one DB column per record, shared with the web app, so a photo
 /// set here shows on the website immediately and the other way round.
-enum PhotoOwner { student, faculty, user }
+/// [child] = a parent changing their own child's photo (parent login; the server checks it really is their child).
+enum PhotoOwner { student, faculty, user, child }
 
 class PhotoService {
   final _client = ApiClient.instance;
@@ -15,6 +16,8 @@ class PhotoService {
         return '/api/faculty/$id/photo';
       case PhotoOwner.user:
         return '/api/users/$id/photo';
+      case PhotoOwner.child:
+        return '/api/parent/students/$id/photo';
     }
   }
 

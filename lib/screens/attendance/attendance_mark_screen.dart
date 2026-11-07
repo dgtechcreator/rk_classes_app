@@ -28,6 +28,8 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
   final _lookup = LookupService();
 
   DateTime _date = DateUtils.dateOnly(DateTime.now());
+  int _lecture = 1;                // lecture of the day (a Sunday / holiday class can meet twice)
+  List<int> _doneLectures = [];
   bool _byClass = false;
 
   bool _loadingBatches = true;
@@ -49,13 +51,14 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
   Future<void> _loadBatches() async {
     setState(() { _loadingBatches = true; _batchesError = null; });
     final requested = _date;
+    final lecture = _lecture;
     try {
-      final list = await _service.getBatches(requested);
-      // Ignore a slow answer for a date the user already moved away from.
-      if (!mounted || requested != _date) return;
-      setState(() { _batches = list; _loadingBatches = false; });
+      final day = await _service.getBatches(requested, session: lecture);
+      // Ignore a slow answer for a date / lecture the user already moved away from.
+      if (!mounted || requested != _date || lecture != _lecture) return;
+      setState(() { _batches = day.batches; _doneLectures = day.doneSessions; _loadingBatches = false; });
     } on ApiException catch (e) {
-      if (mounted && requested == _date) setState(() { _batchesError = e.message; _loadingBatches = false; });
+      if (mounted && requested == _date && lecture == _lecture) setState(() { _batchesError = e.message; _loadingBatches = false; });
     }
   }
 
@@ -78,7 +81,13 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
     if (day.isAfter(DateUtils.dateOnly(DateTime.now())) || DateUtils.isSameDay(day, _date)) return;
     final session = context.read<Session>();
     if (session.isClassRep && day.isBefore(session.crEarliestDate)) return;   // a CR works on the last few days only
-    setState(() => _date = day);
+    setState(() { _date = day; _lecture = 1; });   // a new day starts at its first lecture
+    _loadBatches();
+  }
+
+  void _setLecture(int n) {
+    if (n == _lecture) return;
+    setState(() => _lecture = n);
     _loadBatches();
   }
 
@@ -97,7 +106,7 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
 
   Future<void> _openBatch(AttendanceBatchSummary b) async {
     await Navigator.of(context).push<bool>(MaterialPageRoute(
-      builder: (_) => AttendanceEntryScreen(title: b.batchName, date: _date, attBatchId: b.batchId),
+      builder: (_) => AttendanceEntryScreen(title: b.batchName, date: _date, attBatchId: b.batchId, session: _lecture),
     ));
     if (mounted) _loadBatches();
   }
@@ -112,6 +121,7 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
       builder: (_) => AttendanceEntryScreen(
         title: label.isEmpty ? 'Attendance' : label,
         date: _date,
+        session: _lecture,
         classId: _classId,
         sectionId: _sectionId,
         batchId: _batchId,
@@ -145,6 +155,7 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
       body: Column(
         children: [
           AttendanceDateBar(date: _date, onChanged: _setDate, onPick: _pickDate),
+          LectureBar(selected: _lecture, done: _doneLectures, onChanged: _setLecture),
           if (!session.isClassRep)
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 4, 12, 8),
@@ -175,7 +186,7 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
   Future<void> _openMyClass(Session session) async {
     await Navigator.of(context).push<bool>(MaterialPageRoute(
       // No filter sent: the server gives a CR exactly his own class, whatever is asked.
-      builder: (_) => AttendanceEntryScreen(title: session.crLabel.isEmpty ? 'My class' : session.crLabel, date: _date),
+      builder: (_) => AttendanceEntryScreen(title: session.crLabel.isEmpty ? 'My class' : session.crLabel, date: _date, session: _lecture),
     ));
     if (mounted) _loadBatches();
   }

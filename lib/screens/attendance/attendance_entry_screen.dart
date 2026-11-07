@@ -25,10 +25,13 @@ class AttendanceEntryScreen extends StatefulWidget {
     this.classId,
     this.sectionId,
     this.batchId,
+    this.session = 1,
   });
 
   final String title;
   final DateTime date;
+  /// Lecture of the day to open (1 = first). A Sunday / holiday class can have 2 or more.
+  final int session;
   final int? attBatchId;
   final int? classId;
   final int? sectionId;
@@ -42,6 +45,8 @@ class _AttendanceEntryScreenState extends State<AttendanceEntryScreen> {
   final _service = AttendanceService();
 
   late DateTime _date = DateUtils.dateOnly(widget.date);
+  late int _lecture = widget.session;
+  List<int> _doneLectures = [];
   bool _loading = true;
   bool _saving = false;
   bool _dirty = false;
@@ -92,8 +97,8 @@ class _AttendanceEntryScreenState extends State<AttendanceEntryScreen> {
     setState(() { _loading = true; _error = null; });
     try {
       final r = widget.attBatchId != null
-          ? await _service.getBatchDetail(widget.attBatchId!, _date)
-          : await _service.getForDate(date: _date, classId: widget.classId, sectionId: widget.sectionId, batchId: widget.batchId);
+          ? await _service.getBatchDetail(widget.attBatchId!, _date, session: _lecture)
+          : await _service.getForDate(date: _date, classId: widget.classId, sectionId: widget.sectionId, batchId: widget.batchId, session: _lecture);
       if (!mounted) return;
       setState(() {
         _records = r.records;
@@ -101,6 +106,7 @@ class _AttendanceEntryScreenState extends State<AttendanceEntryScreen> {
           ..clear()
           ..addEntries(r.records.map((e) => MapEntry(e.studentId, e.attendanceStatus)));
         _alreadyMarked = r.totalMarked;
+        _doneLectures = r.doneSessions;
         // A marked day brings its own lecture details; an empty day keeps what was already picked.
         if (r.totalMarked > 0) {
           _subject = r.subject;
@@ -139,7 +145,14 @@ class _AttendanceEntryScreenState extends State<AttendanceEntryScreen> {
     final session = context.read<Session>();
     if (session.isClassRep && day.isBefore(session.crEarliestDate)) return;   // a CR works on the last few days only
     if (!await _confirmDiscard()) return;
-    setState(() => _date = day);
+    setState(() { _date = day; _lecture = 1; });   // a new day starts at its first lecture
+    _load();
+  }
+
+  Future<void> _changeLecture(int n) async {
+    if (n == _lecture) return;
+    if (!await _confirmDiscard()) return;
+    setState(() { _lecture = n; _subject = null; _sirName = null; _start = null; _end = null; });
     _load();
   }
 
@@ -175,6 +188,7 @@ class _AttendanceEntryScreenState extends State<AttendanceEntryScreen> {
         sectionId: widget.sectionId,
         batchId: widget.batchId,
         attBatchId: widget.attBatchId,
+        session: _lecture,
         subject: _subject,
         sirName: _sirName,
         startTime: _fmtTime(_start),
@@ -259,7 +273,12 @@ class _AttendanceEntryScreenState extends State<AttendanceEntryScreen> {
     );
   }
 
-  Widget _dateBar() => AttendanceDateBar(date: _date, onChanged: _changeDate, onPick: _pickDate);
+  Widget _dateBar() => Column(
+        children: [
+          AttendanceDateBar(date: _date, onChanged: _changeDate, onPick: _pickDate),
+          LectureBar(selected: _lecture, done: _doneLectures, onChanged: _changeLecture),
+        ],
+      );
 
   Widget _body() {
     if (_loading) return const LoadingView();
@@ -326,11 +345,12 @@ class _AttendanceEntryScreenState extends State<AttendanceEntryScreen> {
     final pending = _records.length - _alreadyMarked;
     final color = marked ? AppColors.success : AppColors.danger;
     final soft = marked ? AppColors.successSoft : AppColors.dangerSoft;
+    final lecture = _lecture > 1 ? ' (${LectureBar.ordinal(_lecture)} lecture)' : '';
     final text = !marked
-        ? 'Attendance not taken for ${DateFormat('d MMM').format(_date)} — everyone starts as Present until you save.'
+        ? 'Attendance not taken for ${DateFormat('d MMM').format(_date)}$lecture — everyone starts as Present until you save.'
         : pending > 0
-            ? 'Attendance taken · $pending student${pending == 1 ? '' : 's'} still not saved (shown as Present).'
-            : 'Attendance already taken for ${DateFormat('d MMM').format(_date)} — you can correct it and update.';
+            ? 'Attendance taken$lecture · $pending student${pending == 1 ? '' : 's'} still not saved (shown as Present).'
+            : 'Attendance already taken for ${DateFormat('d MMM').format(_date)}$lecture — you can correct it and update.';
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(color: soft, borderRadius: BorderRadius.circular(AppRadius.sm), border: Border.all(color: color.withValues(alpha: 0.4))),
@@ -424,6 +444,49 @@ class _AttendanceEntryScreenState extends State<AttendanceEntryScreen> {
 
 /// ‹ [date] › bar with Today / Yesterday chips — shared by the attendance list and entry screens so the
 /// previous-day review works the same everywhere. Future dates are never selectable.
+/// "1st lecture / 2nd lecture / + Add" chips: a Sunday or holiday class can meet more than once a day and each
+/// lecture has its own attendance (who came to the 1st, who to the 2nd). A tick marks lectures already taken.
+class LectureBar extends StatelessWidget {
+  const LectureBar({super.key, required this.selected, required this.done, required this.onChanged});
+  final int selected;
+  final List<int> done;
+  final ValueChanged<int> onChanged;
+
+  static const maxLectures = 6;
+
+  static String ordinal(int n) => n == 1 ? '1st' : n == 2 ? '2nd' : n == 3 ? '3rd' : '${n}th';
+
+  @override
+  Widget build(BuildContext context) {
+    final last = [selected, if (done.isNotEmpty) done.reduce((a, b) => a > b ? a : b), 1].reduce((a, b) => a > b ? a : b);
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.fromLTRB(12, 0, 12, 6),
+      child: Row(
+        children: [
+          const Icon(Icons.schedule, size: 18, color: AppColors.textSecondary),
+          const SizedBox(width: 6),
+          for (var n = 1; n <= last; n++) ...[
+            ChoiceChip(
+              label: Text('${ordinal(n)} lecture'),
+              avatar: done.contains(n) ? const Icon(Icons.check_circle, size: 16, color: AppColors.success) : null,
+              selected: selected == n,
+              onSelected: (_) => onChanged(n),
+            ),
+            const SizedBox(width: 8),
+          ],
+          if (last < maxLectures)
+            ActionChip(
+              avatar: const Icon(Icons.add, size: 16),
+              label: Text('Add ${ordinal(last + 1)} lecture'),
+              onPressed: () => onChanged(last + 1),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
 class AttendanceDateBar extends StatelessWidget {
   const AttendanceDateBar({super.key, required this.date, required this.onChanged, required this.onPick, this.allowFuture = false});
   final bool allowFuture;

@@ -22,4 +22,11 @@ class FinanceService {
     });
     return FinanceStudentsResult.fromJson(res.data as Map<String, dynamic>);
   }
+
+  /// Sends a "Fee reminder" notification to the parents of every listed student who still owes fees.
+  /// Returns how many parents were notified.
+  Future<int> remindDue(List<int> studentIds) async {
+    final res = await _client.post('/api/finance/remind-due', data: {'studentIds': studentIds});
+    return ((res.data as Map<String, dynamic>)['sent'] as num?)?.toInt() ?? 0;
+  }
 }

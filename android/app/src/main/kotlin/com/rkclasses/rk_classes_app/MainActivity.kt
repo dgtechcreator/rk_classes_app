@@ -5,12 +5,25 @@ import android.content.pm.PackageManager
 import androidx.core.content.FileProvider
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
+import android.view.WindowManager
 import io.flutter.plugin.common.MethodChannel
 import java.io.File
 
 class MainActivity : FlutterActivity() {
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+        // Parents / students must not be able to screenshot or screen-record the app (FLAG_SECURE also blanks the
+        // "recent apps" thumbnail). Dart switches it on after a parent signs in and off again for staff.
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "rk/secure").setMethodCallHandler { call, result ->
+            if (call.method == "setSecure") {
+                val on = call.argument<Boolean>("on") ?: false
+                runOnUiThread {
+                    if (on) window.setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE)
+                    else window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
+                }
+                result.success(true)
+            } else result.notImplemented()
+        }
         // Opens a specific WhatsApp chat with a file attached (user still presses send). Returns false
         // when WhatsApp isn't installed or the intent can't be started, so Dart can fall back to the
         // regular share sheet.

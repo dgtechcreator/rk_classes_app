@@ -12,6 +12,7 @@ import '../../theme/app_theme.dart';
 import '../../widgets/admin_home_widgets.dart';
 import '../../widgets/common.dart';
 import '../../widgets/contact_actions.dart';
+import '../expenses/expense_list_screen.dart';
 import '../fees/fees_this_month_screen.dart';
 import '../finance/finance_dashboard_screen.dart';
 import '../students/student_list_screen.dart';
@@ -175,6 +176,8 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
           AdminStatCard(label: 'Absent Today', value: '${s.absentToday}', color: AppColors.danger, icon: Icons.cancel_outlined, onTap: _openAbsentSheet),
           AdminStatCard(label: 'Total Staff', value: '${s.totalStaff}', color: AppColors.violet, icon: Icons.groups_2_rounded, onTap: () => _push(const UserListScreen())),
           AdminStatCard(label: 'Fees This Month', value: money.format(s.feesThisMonth), color: AppColors.success, icon: Icons.bar_chart_rounded, onTap: () => _push(const FeesThisMonthScreen())),
+          if (context.read<Session>().hasPerm('expenses_view'))
+            AdminStatCard(label: 'Expenses This Month', value: money.format(s.expensesThisMonth), color: AppColors.danger, icon: Icons.request_quote_outlined, onTap: () => _push(const ExpenseListScreen())),
           AdminStatCard(label: 'Balance Overall', value: money.format(s.balanceOverall), color: s.balanceOverall > 0 ? AppColors.warning : AppColors.success, icon: Icons.account_balance_wallet_outlined, onTap: () => _push(const FinanceDashboardScreen())),
         ],
       ),

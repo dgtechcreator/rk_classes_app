@@ -121,16 +121,19 @@ class AttendanceReportRow {
 /// One day's status for one student — mirrors AttendanceApiController's `date-grid` `attData`
 /// (DateAttendanceEntry in SchoolMS.Domain), used to build a student's day-by-day detail view.
 class DateAttendanceEntry {
-  DateAttendanceEntry({required this.studentId, required this.attendanceDate, required this.status});
+  DateAttendanceEntry({required this.studentId, required this.attendanceDate, required this.status, this.sessionNo = 1});
 
   final int studentId;
   final DateTime attendanceDate;
   final String status;
+  /// Which lecture of the day (1 = first); a Sunday / holiday class can have 2 or more.
+  final int sessionNo;
 
   factory DateAttendanceEntry.fromJson(Map<String, dynamic> j) => DateAttendanceEntry(
         studentId: _asInt(j['studentId']),
         attendanceDate: DateTime.tryParse(_asString(j['attendanceDate'])) ?? DateTime.now(),
         status: j['status'] == null ? 'Present' : _asString(j['status']),
+        sessionNo: j['sessionNo'] == null ? 1 : _asInt(j['sessionNo']),
       );
 }
 

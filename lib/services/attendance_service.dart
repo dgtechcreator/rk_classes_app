@@ -19,8 +19,14 @@ class AttendanceIndexResult {
     required this.totalMarked,
     this.batchId,
     this.batchName,
+    this.session = 1,
+    this.doneSessions = const [],
   });
 
+  /// Lecture of the day these records belong to (1 = first).
+  final int session;
+  /// Lectures that already have attendance on this date (a Sunday / holiday class can meet twice).
+  final List<int> doneSessions;
   final DateTime date;
   final List<AttendanceRecord> records;
   final String? subject;
@@ -35,6 +41,18 @@ class AttendanceIndexResult {
   final int? batchId;
   final String? batchName;
 }
+
+/// Batch cards of one date + lecture, and which lectures of that date already have attendance.
+class AttendanceBatchesDay {
+  AttendanceBatchesDay({required this.batches, required this.doneSessions});
+  final List<AttendanceBatchSummary> batches;
+  final List<int> doneSessions;
+}
+
+List<int> _doneSessions(dynamic v) => (v as List? ?? [])
+    .map((e) => e is Map && (e['marked'] as num? ?? 0) > 0 ? (e['session'] as num?)?.toInt() : null)
+    .whereType<int>()
+    .toList();
 
 class AttendanceOptions {
   AttendanceOptions({required this.subjects, required this.teachers});
@@ -55,7 +73,11 @@ class AttendanceDateGridResult {
   final List<DateTime> dates;
 
   List<DateAttendanceEntry> forStudent(int studentId) =>
-      attData.where((e) => e.studentId == studentId).toList()..sort((a, b) => b.attendanceDate.compareTo(a.attendanceDate));
+      attData.where((e) => e.studentId == studentId).toList()
+        ..sort((a, b) {
+          final byDate = b.attendanceDate.compareTo(a.attendanceDate);
+          return byDate != 0 ? byDate : a.sessionNo.compareTo(b.sessionNo);
+        });
 }
 
 /// Wraps AttendanceApiController (api/attendance) — daily entry, monthly report, and the date-wise grid
@@ -79,13 +101,16 @@ class AttendanceService {
       totalMarked: n('totalMarked'),
       batchId: (data['batchId'] as num?)?.toInt(),
       batchName: data['batchName']?.toString(),
+      session: (data['session'] as num?)?.toInt() ?? 1,
+      doneSessions: _doneSessions(data['sessions']),
     );
   }
 
-  Future<AttendanceIndexResult> getForDate({DateTime? date, int? classId, int? sectionId, int? batchId}) async {
+  Future<AttendanceIndexResult> getForDate({DateTime? date, int? classId, int? sectionId, int? batchId, int session = 1}) async {
     final d = date ?? DateTime.now();
     final res = await _client.get('/api/attendance', query: {
       'date': _fmtDate(d),
+      if (session > 1) 'session': session,
       if (classId != null) 'classId': classId,
       if (sectionId != null) 'sectionId': sectionId,
       if (batchId != null) 'batchId': batchId,
@@ -94,15 +119,18 @@ class AttendanceService {
   }
 
   /// Every attendance batch with its present/total for [date] (green = marked, light red = pending).
-  Future<List<AttendanceBatchSummary>> getBatches(DateTime date) async {
-    final res = await _client.get('/api/attendance/batches', query: {'date': _fmtDate(date)});
+  Future<AttendanceBatchesDay> getBatches(DateTime date, {int session = 1}) async {
+    final res = await _client.get('/api/attendance/batches', query: {'date': _fmtDate(date), if (session > 1) 'session': session});
     final data = res.data as Map<String, dynamic>;
-    return (data['batches'] as List? ?? []).map((e) => AttendanceBatchSummary.fromJson(e as Map<String, dynamic>)).toList();
+    return AttendanceBatchesDay(
+      batches: (data['batches'] as List? ?? []).map((e) => AttendanceBatchSummary.fromJson(e as Map<String, dynamic>)).toList(),
+      doneSessions: _doneSessions(data['sessions']),
+    );
   }
 
   /// One batch's students for [date]; a day that was already marked comes back filled in.
-  Future<AttendanceIndexResult> getBatchDetail(int attBatchId, DateTime date) async {
-    final res = await _client.get('/api/attendance/batch/$attBatchId', query: {'date': _fmtDate(date)});
+  Future<AttendanceIndexResult> getBatchDetail(int attBatchId, DateTime date, {int session = 1}) async {
+    final res = await _client.get('/api/attendance/batch/$attBatchId', query: {'date': _fmtDate(date), if (session > 1) 'session': session});
     return _parseDay(res.data as Map<String, dynamic>, date);
   }
 
@@ -132,6 +160,7 @@ class AttendanceService {
     int? sectionId,
     int? batchId,
     int? attBatchId,
+    int session = 1,
     String? subject,
     String? sirName,
     String? startTime,
@@ -144,6 +173,7 @@ class AttendanceService {
       'sectionId': sectionId,
       'batchId': batchId,
       'attBatchId': attBatchId,
+      'session': session,
       'subject': subject,
       'sirName': sirName,
       'startTime': startTime,

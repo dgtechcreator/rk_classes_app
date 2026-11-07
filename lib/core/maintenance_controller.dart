@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 import 'api_client.dart';
 
@@ -15,6 +16,38 @@ class MaintenanceController extends ChangeNotifier {
   String message = defaultMessage;
   bool checking = false;
   Timer? _poll;
+
+  // New app version (published by the admin in wwwroot/app/version.json, delivered through /api/app-config).
+  bool updateAvailable = false;
+  bool forceUpdate = false;
+  String? latestVersion;
+  String? updateUrl;
+  String? updateMessage;
+  bool updateDismissed = false;   // "Later" hides the card until the app is opened again
+
+  void dismissUpdate() {
+    updateDismissed = true;
+    notifyListeners();
+  }
+
+  Future<void> _checkUpdate(Map data) async {
+    final latest = (data['latestBuild'] as num?)?.toInt() ?? 0;
+    if (latest <= 0) {
+      updateAvailable = false;
+      return;
+    }
+    try {
+      final installed = int.tryParse((await PackageInfo.fromPlatform()).buildNumber) ?? 0;
+      updateAvailable = latest > installed;
+    } catch (_) {
+      updateAvailable = false;
+    }
+    forceUpdate = updateAvailable && data['forceUpdate'] == true;
+    latestVersion = data['latestVersion']?.toString();
+    updateMessage = data['updateMessage']?.toString();
+    final url = data['apkUrl']?.toString();
+    updateUrl = (url == null || url.isEmpty) ? null : (url.startsWith('http') ? url : '${ApiConfig.baseUrl}$url');
+  }
 
   /// Asks the server whether maintenance mode is on. Safe to call any time; never throws.
   Future<void> check() async {
@@ -32,6 +65,7 @@ class MaintenanceController extends ChangeNotifier {
       final data = res.data;
       if (res.statusCode == 200 && data is Map) {
         _set(data['maintenanceEnabled'] == true, data['maintenanceMessage']?.toString());
+        await _checkUpdate(data);
       }
     } catch (_) {
       // unreachable / old server without the endpoint: keep the current state

@@ -131,7 +131,7 @@ class _FeeSummaryScreenState extends State<FeeSummaryScreen> {
                           tooltip: 'Receipt',
                           visualDensity: VisualDensity.compact,
                           icon: const Icon(Icons.receipt_long_outlined, color: AppColors.info),
-                          onPressed: () => ReceiptScreen.open(context, p),
+                          onPressed: () async { if (await ReceiptScreen.open(context, p) && mounted) _load(); },
                         ),
                         if (canEdit)
                           IconButton(icon: const Icon(Icons.delete_outline, color: AppColors.danger), onPressed: () => _delete(p)),

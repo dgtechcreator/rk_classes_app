@@ -2,8 +2,10 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:printing/printing.dart';
+import 'package:provider/provider.dart';
 
 import '../../core/api_client.dart';
+import '../../core/session.dart';
 import '../../core/receipt_pdf.dart';
 import '../../core/receipt_share.dart';
 import '../../models/contact_number.dart';
@@ -13,6 +15,7 @@ import '../../services/message_template_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/common.dart';
 import '../../widgets/contact_actions.dart';
+import 'receipt_edit_sheet.dart';
 
 /// Generates the fee receipt as a PDF on the phone, shows it, and lets staff print it, share it, or
 /// send it straight to a parent's WhatsApp chat.
@@ -35,8 +38,9 @@ class ReceiptScreen extends StatefulWidget {
   /// Staff can push the PDF to a parent's WhatsApp; a parent just shares / saves their own copy.
   final bool allowSendToParent;
 
-  static Future<void> open(BuildContext context, FeePayment payment) =>
-      Navigator.of(context).push(MaterialPageRoute(builder: (_) => ReceiptScreen(payment: payment)));
+  /// Resolves to true when the receipt was edited or deleted here, so the caller can reload its list.
+  static Future<bool> open(BuildContext context, FeePayment payment) async =>
+      await Navigator.of(context).push<bool>(MaterialPageRoute(builder: (_) => ReceiptScreen(payment: payment))) ?? false;
 
   /// Parent view: no staff lookups, only Share / Print.
   static Future<void> openForParent(BuildContext context, FeePayment payment, {required Student student, required double balance, DateTime? dueDate}) =>
@@ -54,8 +58,10 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
   Uint8List? _pdf;
   FeePayInfo? _info;
   bool _sending = false;
+  bool _changed = false;   // edited here -> the screen that opened it should reload
+  late FeePayment _payment = widget.payment;
 
-  FeePayment get _p => widget.payment;
+  FeePayment get _p => _payment;
 
   @override
   void initState() {
@@ -130,12 +136,80 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
     }
   }
 
+  bool get _canManage => widget.allowSendToParent && context.read<Session>().hasEditPerm('fee_collection');
+
+  Future<void> _edit() async {
+    // Discount is once per student: locked when ANOTHER receipt of the student already carries it.
+    final othersDiscount = (_info?.paymentHistory ?? const <FeePayment>[])
+        .where((x) => x.paymentId != _p.paymentId)
+        .fold<double>(0, (sum, x) => sum + x.discount);
+    final saved = await showReceiptEditSheet(context, _p, discountLocked: othersDiscount > 0);
+    if (saved != true || !mounted) return;
+    _changed = true;
+    showSnack(context, 'Receipt updated.');
+    // Re-read the receipt so the PDF shows the saved values.
+    setState(() { _loading = true; _error = null; });
+    try {
+      final studentId = _p.studentId;
+      final info = studentId == null ? null : await FeesService().getPayInfo(studentId);
+      final fresh = info?.paymentHistory.where((x) => x.paymentId == _p.paymentId).firstOrNull;
+      if (fresh != null) _payment = fresh;
+    } on ApiException {
+      // The receipt is saved; if it cannot be re-read the screen is simply closed below.
+      if (mounted) Navigator.of(context).pop(true);
+      return;
+    }
+    if (mounted) await _generate();
+  }
+
+  Future<void> _delete() async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Delete receipt ${_p.receiptNo}?'),
+        content: Text('₹${_p.netAmount.toStringAsFixed(0)} will be taken off the amount paid by this student. '
+            'You can bring it back from Deleted Records.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: FilledButton.styleFrom(backgroundColor: AppColors.danger),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return;
+    try {
+      await FeesService().deletePayment(_p.paymentId);
+      if (!mounted) return;
+      showSnack(context, 'Receipt ${_p.receiptNo} deleted.');
+      Navigator.of(context).pop(true);
+    } on ApiException catch (e) {
+      if (mounted) showSnack(context, e.message, isError: true);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) Navigator.of(context).pop(_changed);
+      },
+      child: _scaffold(),
+    );
+  }
+
+  Widget _scaffold() {
     return Scaffold(
       appBar: AppBar(
         title: Text('Receipt ${_p.receiptNo}'),
         actions: [
+          if (_canManage) ...[
+            IconButton(tooltip: 'Edit receipt', icon: const Icon(Icons.edit_outlined), onPressed: _loading ? null : _edit),
+            IconButton(tooltip: 'Delete receipt', icon: const Icon(Icons.delete_outline), onPressed: _loading ? null : _delete),
+          ],
           IconButton(
             tooltip: 'Print',
             icon: const Icon(Icons.print_outlined),

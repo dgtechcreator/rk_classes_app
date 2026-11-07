@@ -328,7 +328,7 @@ class _StudentDetailScreenState extends State<StudentDetailScreen> {
               const Divider(height: 22),
               for (final p in recent)
                 InkWell(
-                  onTap: () => ReceiptScreen.open(context, p),
+                  onTap: () async { if (await ReceiptScreen.open(context, p) && mounted) _loadFees(); },
                   child: Padding(
                     padding: const EdgeInsets.symmetric(vertical: 2),
                     child: Row(
@@ -347,7 +347,7 @@ class _StudentDetailScreenState extends State<StudentDetailScreen> {
                           tooltip: 'Receipt',
                           visualDensity: VisualDensity.compact,
                           icon: const Icon(Icons.receipt_long_outlined, size: 22, color: AppColors.info),
-                          onPressed: () => ReceiptScreen.open(context, p),
+                          onPressed: () async { if (await ReceiptScreen.open(context, p) && mounted) _loadFees(); },
                         ),
                       ],
                     ),

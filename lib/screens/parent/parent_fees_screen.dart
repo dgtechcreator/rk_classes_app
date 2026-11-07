@@ -5,12 +5,11 @@ import 'package:provider/provider.dart';
 import '../../core/parent_data_controller.dart';
 import '../../models/student.dart';
 import '../../theme/app_theme.dart';
-import '../../widgets/attendance_ring.dart';
 import '../../widgets/common.dart';
 import '../fees/receipt_screen.dart';
 
-/// Parent's fee view: how much is fixed, paid and left (after discount), the fee heads, and every
-/// payment with its receipt (view / share as PDF).
+/// Parent's fee view: only what was paid and what is left, plus every payment with its receipt (view / share as
+/// PDF). The total fee, discount, extra charges and fee heads are deliberately NOT shown to parents.
 class ParentFeesScreen extends StatelessWidget {
   const ParentFeesScreen({super.key, this.standalone = false});
 
@@ -48,7 +47,6 @@ class ParentFeesScreen extends StatelessWidget {
     if (d == null || student == null) return const EmptyState(message: 'No fee details yet.', icon: Icons.receipt_long_outlined);
 
     final money = NumberFormat.currency(locale: 'en_IN', symbol: '₹', decimalDigits: 0);
-    final paidPct = d.netTotal <= 0 ? 0.0 : (d.totalPaid / d.netTotal * 100).clamp(0.0, 100.0);
     final due = d.balance > 0.5;
 
     return Column(
@@ -58,22 +56,12 @@ class ParentFeesScreen extends StatelessWidget {
         Container(
           padding: const EdgeInsets.all(18),
           decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(AppRadius.xl), boxShadow: AppShadows.card),
-          child: Row(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              AttendanceRing(percent: paidPct, color: due ? AppColors.warning : AppColors.success, label: 'Paid'),
-              const SizedBox(width: 18),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _figure('Total fee', money.format(d.netTotal), AppColors.textPrimary),
-                    const SizedBox(height: 10),
-                    _figure('Paid', money.format(d.totalPaid), AppColors.success),
-                    const SizedBox(height: 10),
-                    _figure('Balance', money.format(d.balance), due ? AppColors.danger : AppColors.success),
-                  ],
-                ),
-              ),
+              _figure('Paid', money.format(d.totalPaid), AppColors.success),
+              const SizedBox(height: 12),
+              _figure('Balance', money.format(d.balance), due ? AppColors.danger : AppColors.success),
             ],
           ),
         ),
@@ -85,24 +73,8 @@ class ParentFeesScreen extends StatelessWidget {
             _pill(due ? 'Balance due ${money.format(d.balance)}' : 'All fees paid', due ? AppColors.dangerSoft : AppColors.successSoft, due ? AppColors.danger : AppColors.success),
             if (due && d.previousDue > 0) _pill('Includes ${money.format(d.previousDue)} of earlier years', AppColors.dangerSoft, AppColors.danger),
             if (due && d.dueDate != null) _pill('Next installment: ${DateFormat('dd MMM yyyy').format(d.dueDate!)}', AppColors.warningSoft, AppColors.warning),
-            if (d.discount > 0) _pill('Discount ${money.format(d.discount)}', AppColors.infoSoft, AppColors.info),
-            if (d.additionalCharges > 0) _pill('Extra charges ${money.format(d.additionalCharges)}', AppColors.violetSoft, AppColors.violet),
           ],
         ),
-        if (d.feeStructures.isNotEmpty) ...[
-          const SizedBox(height: 22),
-          const SectionHeader(title: 'Fee Details'),
-          for (final fs in d.feeStructures)
-            Card(
-              margin: const EdgeInsets.only(bottom: 8),
-              child: ListTile(
-                dense: true,
-                title: Text(fs.feeTypeName ?? 'Fee', style: const TextStyle(fontWeight: FontWeight.w600)),
-                subtitle: Text(fs.isMonthly ? 'Monthly · due day ${fs.dueDay}' : 'One-time'),
-                trailing: Text(money.format(fs.amount), style: const TextStyle(fontWeight: FontWeight.w700)),
-              ),
-            ),
-        ],
         const SizedBox(height: 14),
         SectionHeader(title: 'Payments & Receipts (${d.feeHistory.length})'),
         if (d.feeHistory.isEmpty)
