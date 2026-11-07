@@ -49,24 +49,25 @@ class _AppGateState extends State<AppGate> with WidgetsBindingObserver {
   }
 }
 
-/// "New version available": a card over the app (compulsory = full screen, cannot be closed). The button opens the APK
-/// download in the browser; Android then asks to install it over the current app (data and login are kept).
+/// "New version available": a card over the app (compulsory = full screen, cannot be closed). Installed from Google Play:
+/// the button opens Google's own update screen (or the Play Store page). Otherwise it downloads the APK from the server.
 class _UpdateOverlay extends StatelessWidget {
   const _UpdateOverlay({required this.controller});
   final MaintenanceController controller;
 
   Future<void> _download(BuildContext context) async {
-    final url = controller.updateUrl;
-    final ok = url != null && await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+    final ok = await controller.startUpdate((url) => launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication));
     if (!ok && context.mounted) {
-      ScaffoldMessenger.maybeOf(context)?.showSnackBar(const SnackBar(content: Text('Could not open the download link.')));
+      ScaffoldMessenger.maybeOf(context)?.showSnackBar(const SnackBar(content: Text('Could not open the update page.')));
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final force = controller.forceUpdate;
-    final msg = (controller.updateMessage ?? '').trim();
+    final msg = (controller.updateMessage ?? '').trim().isNotEmpty
+        ? controller.updateMessage!.trim()
+        : (controller.playUpdate ? 'A new version of RK Classes is available on Google Play.' : '');
     final card = Material(
       color: Colors.transparent,
       child: Container(

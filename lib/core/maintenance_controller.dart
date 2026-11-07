@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
+import 'package:in_app_update/in_app_update.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
 import 'api_client.dart';
@@ -24,6 +25,53 @@ class MaintenanceController extends ChangeNotifier {
   String? updateUrl;
   String? updateMessage;
   bool updateDismissed = false;   // "Later" hides the card until the app is opened again
+  bool playUpdate = false;        // the update comes from Google Play (in-app update) - asked to Play itself, no server file needed
+  bool _playImmediateOk = false;
+  bool _playFlexibleOk = false;
+
+  static const playStoreUrl = 'https://play.google.com/store/apps/details?id=com.rkclasses.rk_classes_app';
+
+  /// Asks Google Play whether a newer release of THIS app is live. Works only for a copy installed from the Play Store
+  /// (a debug / side-loaded copy just throws, which is ignored). A release marked high priority (4-5) becomes compulsory.
+  Future<void> _checkPlay() async {
+    if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) return;
+    try {
+      final info = await InAppUpdate.checkForUpdate();
+      if (info.updateAvailability == UpdateAvailability.updateAvailable) {
+        playUpdate = true;
+        _playImmediateOk = info.immediateUpdateAllowed;
+        _playFlexibleOk = info.flexibleUpdateAllowed;
+        updateAvailable = true;
+        forceUpdate = forceUpdate || (info.updatePriority >= 4 && _playImmediateOk);
+        updateUrl ??= playStoreUrl;
+      } else {
+        playUpdate = false;
+      }
+    } catch (_) {
+      playUpdate = false;   // not installed from Play / no Play services: the server file (if any) still applies
+    }
+  }
+
+  /// "Update now": Google's own update screen when allowed, otherwise the Play Store page. Returns false when nothing could be opened.
+  Future<bool> startUpdate(Future<bool> Function(String url) openUrl) async {
+    if (playUpdate) {
+      try {
+        if (_playImmediateOk) {
+          await InAppUpdate.performImmediateUpdate();
+          return true;
+        }
+        if (_playFlexibleOk) {
+          await InAppUpdate.startFlexibleUpdate();
+          await InAppUpdate.completeFlexibleUpdate();
+          return true;
+        }
+      } catch (_) {
+        // fall through to the Play Store page
+      }
+    }
+    final url = updateUrl ?? playStoreUrl;
+    return openUrl(url);
+  }
 
   void dismissUpdate() {
     updateDismissed = true;
@@ -69,6 +117,9 @@ class MaintenanceController extends ChangeNotifier {
       }
     } catch (_) {
       // unreachable / old server without the endpoint: keep the current state
+    }
+    try {
+      await _checkPlay();
     } finally {
       checking = false;
       notifyListeners();
