@@ -178,7 +178,7 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
           AdminStatCard(label: 'Fees This Month', value: money.format(s.feesThisMonth), color: AppColors.success, icon: Icons.bar_chart_rounded, onTap: () => _push(const FeesThisMonthScreen())),
           if (context.read<Session>().hasPerm('expenses_view'))
             AdminStatCard(label: 'Expenses This Month', value: money.format(s.expensesThisMonth), color: AppColors.danger, icon: Icons.request_quote_outlined, onTap: () => _push(const ExpenseListScreen())),
-          AdminStatCard(label: 'Balance Overall', value: money.format(s.balanceOverall), color: s.balanceOverall > 0 ? AppColors.warning : AppColors.success, icon: Icons.account_balance_wallet_outlined, onTap: () => _push(const FinanceDashboardScreen())),
+          AdminStatCard(label: 'Balance Overall', value: money.format(s.balanceOverall), color: s.balanceOverall > 0 ? AppColors.danger : AppColors.success, icon: Icons.account_balance_wallet_outlined, onTap: () => _push(const FinanceDashboardScreen())),
         ],
       ),
       const SizedBox(height: 10),

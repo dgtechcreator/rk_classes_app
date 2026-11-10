@@ -65,7 +65,7 @@ class ActivityLook {
 
   static ActivityLook of(String kind) => switch (kind) {
         'absent' => const ActivityLook(Icons.person_off_rounded, AppColors.danger, AppColors.dangerSoft, ActivityGroup.attendance),
-        'late' => const ActivityLook(Icons.schedule_rounded, AppColors.warning, AppColors.warningSoft, ActivityGroup.attendance),
+        'late' => const ActivityLook(Icons.schedule_rounded, AppColors.late, AppColors.primarySoft, ActivityGroup.attendance),
         'present' => const ActivityLook(Icons.check_circle_rounded, AppColors.success, AppColors.successSoft, ActivityGroup.attendance),
         'marks' => const ActivityLook(Icons.star_rounded, AppColors.violet, AppColors.violetSoft, ActivityGroup.marks),
         'fee' => const ActivityLook(Icons.currency_rupee_rounded, AppColors.success, AppColors.successSoft, ActivityGroup.fees),

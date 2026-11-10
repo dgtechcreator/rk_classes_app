@@ -141,7 +141,7 @@ class _StudentReportScreenState extends State<StudentReportScreen> {
                         sections: [
                           _slice(a.presentDays.toDouble(), AppColors.success),
                           _slice(a.absentDays.toDouble(), AppColors.danger),
-                          _slice(a.lateDays.toDouble(), AppColors.warning),
+                          _slice(a.lateDays.toDouble(), AppColors.late),
                         ],
                       )),
                       Column(mainAxisSize: MainAxisSize.min, children: [
@@ -157,7 +157,7 @@ class _StudentReportScreenState extends State<StudentReportScreen> {
                     children: [
                       _legend('Present', a.presentDays, AppColors.success),
                       _legend('Absent', a.absentDays, AppColors.danger),
-                      _legend('Late', a.lateDays, AppColors.warning),
+                      _legend('Late', a.lateDays, AppColors.late),
                       const Divider(height: 14),
                       _legend('Total days', a.totalDays, AppColors.textSecondary),
                     ],
@@ -285,7 +285,7 @@ class _StudentReportScreenState extends State<StudentReportScreen> {
                       PieChart(PieChartData(
                         sectionsSpace: 2,
                         centerSpaceRadius: 46,
-                        sections: [_slice(paid, AppColors.success), _slice(disc, AppColors.info), _slice(bal, AppColors.warning)],
+                        sections: [_slice(paid, AppColors.success), _slice(disc, AppColors.info), _slice(bal, AppColors.danger)],
                       )),
                       Column(mainAxisSize: MainAxisSize.min, children: [
                         Text('${(d.netTotal <= 0 ? 0 : paid * 100 / d.netTotal).clamp(0, 100).toStringAsFixed(0)}%', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
@@ -300,7 +300,7 @@ class _StudentReportScreenState extends State<StudentReportScreen> {
                     children: [
                       _money3('Paid', paid, AppColors.success),
                       _money3('Discount', disc, AppColors.info),
-                      _money3('Balance', bal, AppColors.warning),
+                      _money3('Balance', bal, AppColors.danger),
                       const Divider(height: 14),
                       _money3('Total fee', d.netTotal, AppColors.textSecondary),
                     ],

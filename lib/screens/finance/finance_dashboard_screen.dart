@@ -93,7 +93,7 @@ class _FinanceDashboardScreenState extends State<FinanceDashboardScreen> {
                     onTap: () => _open(const FinanceStudentsScreen(title: 'Collected Fees', sort: FinanceSort.collected)),
                   ),
                   SlimStatCard(
-                    label: 'Balance', value: _compact.format(d.totalBalance), color: d.totalBalance > 0 ? AppColors.warning : AppColors.success,
+                    label: 'Balance', value: _compact.format(d.totalBalance), color: d.totalBalance > 0 ? AppColors.danger : AppColors.success,
                     icon: Icons.account_balance_wallet_outlined,
                     onTap: () => _open(const FinanceStudentsScreen(title: 'Pending Dues', filter: FinanceFilter.due, sort: FinanceSort.balance)),
                   ),

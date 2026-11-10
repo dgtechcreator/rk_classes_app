@@ -35,7 +35,7 @@ class AppColors {
 
   static const Color present = Color(0xFF059669);
   static const Color absent = Color(0xFFDC2626);
-  static const Color late = Color(0xFFD97706);
+  static const Color late = primary; // late comers: logo blue (absent stays red, present green)
 }
 
 class AppRadius {

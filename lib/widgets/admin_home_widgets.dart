@@ -463,7 +463,7 @@ class AdminFeeCard extends StatelessWidget {
                       const VerticalDivider(width: 1, thickness: 1, color: AppColors.borderNeutral),
                       Expanded(child: _figure(fmt, 'Discount', stats.totalDiscountOverall, AppColors.info, pad: true)),
                       const VerticalDivider(width: 1, thickness: 1, color: AppColors.borderNeutral),
-                      Expanded(child: _figure(fmt, 'Balance', stats.balanceOverall, AppColors.warning, pad: true)),
+                      Expanded(child: _figure(fmt, 'Balance', stats.balanceOverall, AppColors.danger, pad: true)),
                     ],
                   ),
                 ),

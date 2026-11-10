@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/realtime_notification_service.dart';
@@ -125,7 +126,14 @@ class StaffProfileScreen extends StatelessWidget {
                   const _Label('App'),
                   const SizedBox(height: 10),
                   _sectionCard([
-                    _infoRow(Icons.info_outline_rounded, 'Version', '1.0.0'),
+                    FutureBuilder<PackageInfo>(
+                      future: PackageInfo.fromPlatform(),
+                      builder: (_, snap) {
+                        final i = snap.data;
+                        // The real installed version (e.g. 1.0.5), so it moves with every Play Store update.
+                        return _infoRow(Icons.info_outline_rounded, 'Version', i == null ? '-' : i.version);
+                      },
+                    ),
                   ]),
                   const SizedBox(height: 24),
                   SizedBox(

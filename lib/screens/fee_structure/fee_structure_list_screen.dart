@@ -201,7 +201,7 @@ class _FeeStructureListScreenState extends State<FeeStructureListScreen> {
                         runSpacing: 6,
                         children: [
                           pill('Collected ${s.collectedPct}%', AppColors.successSoft, AppColors.success),
-                          pill('Pending ${s.pendingPct}%', s.pendingPct > 0 ? AppColors.warningSoft : AppColors.successSoft, s.pendingPct > 0 ? AppColors.warning : AppColors.success),
+                          pill('Pending ${s.pendingPct}%', s.pendingPct > 0 ? AppColors.dangerSoft : AppColors.successSoft, s.pendingPct > 0 ? AppColors.danger : AppColors.success),
                         ],
                       )
                     else

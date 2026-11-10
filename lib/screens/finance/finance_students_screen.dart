@@ -1,3 +1,4 @@
+import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
@@ -303,39 +304,73 @@ class _FinanceStudentsScreenState extends State<FinanceStudentsScreen> {
     );
   }
 
-  /// Four cards, same look as the Fee Structure header cards: what the group owes in total (after discount),
-  /// what has been received, what is pending, and how many students.
+  /// One round chart for the group: green = received, red = still pending (both as % of the fee after discount),
+  /// with the total fee, received, pending and student count beside it.
   Widget _summary(FinanceStudentsResult r) {
     final net = r.totalFees - r.totalDiscount;
+    final pending = r.totalBalance < 0 ? 0.0 : r.totalBalance;
     final recvPct = net <= 0 ? 0 : (r.totalCollected / net * 100).clamp(0, 100).round();
     final pendPct = net <= 0 ? 0 : 100 - recvPct;
-    final pending = r.totalBalance < 0 ? 0.0 : r.totalBalance;
-    return Column(
-      children: [
-        Row(
-          children: [
-            Expanded(child: StatCard(label: 'Total Fee', value: _money.format(net), color: AppColors.info, icon: Icons.receipt_long_outlined)),
-            const SizedBox(width: 10),
-            Expanded(child: StatCard(label: 'Received · $recvPct%', value: _money.format(r.totalCollected), color: AppColors.success, icon: Icons.check_circle_outline)),
-          ],
-        ),
-        const SizedBox(height: 10),
-        Row(
-          children: [
-            Expanded(child: StatCard(label: 'Pending · $pendPct%', value: _money.format(pending), color: pending > 0 ? AppColors.warning : AppColors.success, icon: Icons.account_balance_wallet_outlined)),
-            const SizedBox(width: 10),
-            Expanded(child: StatCard(label: 'Students', value: '${r.students.length}', color: AppColors.violet, icon: Icons.groups_outlined)),
-          ],
-        ),
-        if (r.totalDiscount > 0)
-          Padding(
-            padding: const EdgeInsets.only(top: 8),
-            child: Align(
-              alignment: Alignment.centerLeft,
+    final any = net > 0;
+    Widget legend(String label, String value, Color c) => Padding(
+          padding: const EdgeInsets.symmetric(vertical: 3),
+          child: Row(children: [
+            Container(width: 10, height: 10, decoration: BoxDecoration(color: c, shape: BoxShape.circle)),
+            const SizedBox(width: 8),
+            Expanded(child: Text(label, style: const TextStyle(fontSize: 12.5, color: AppColors.textSecondary))),
+            Text(value, style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w800)),
+          ]),
+        );
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(AppRadius.md), boxShadow: AppShadows.soft),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              SizedBox(
+                width: 140, height: 140,
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    PieChart(PieChartData(
+                      sectionsSpace: any && recvPct > 0 && pendPct > 0 ? 2 : 0,
+                      centerSpaceRadius: 44,
+                      startDegreeOffset: -90,
+                      sections: [
+                        PieChartSectionData(value: any ? r.totalCollected.clamp(0, net).toDouble() : 0, color: AppColors.success, radius: 22, showTitle: false),
+                        PieChartSectionData(value: any ? (net - r.totalCollected).clamp(0, net).toDouble() : 1, color: any ? AppColors.danger : AppColors.borderNeutral, radius: 22, showTitle: false),
+                      ],
+                    )),
+                    Column(mainAxisSize: MainAxisSize.min, children: [
+                      Text('$recvPct%', style: const TextStyle(fontSize: 21, fontWeight: FontWeight.w800, color: AppColors.success)),
+                      const Text('paid', style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+                    ]),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  children: [
+                    legend('Received · $recvPct%', _money.format(r.totalCollected), AppColors.success),
+                    legend('Pending · $pendPct%', _money.format(pending), AppColors.danger),
+                    const Divider(height: 14),
+                    legend('Total fee', _money.format(net), AppColors.textSecondary),
+                    legend('Students', '${r.students.length}', AppColors.violet),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          if (r.totalDiscount > 0)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
               child: Text('Fee ${_money.format(r.totalFees)} − discount ${_money.format(r.totalDiscount)}', style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
             ),
-          ),
-      ],
+        ],
+      ),
     );
   }
 
