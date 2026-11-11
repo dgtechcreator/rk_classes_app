@@ -49,7 +49,7 @@ class _DeletedRecordsScreenState extends State<DeletedRecordsScreen> with Single
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Restore Record'),
-        content: Text('Restore $label back to the active list?'),
+        content: Text('Restore $label? Students go back to the Inactive list first (Students → Inactive) and can be activated from there.'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
           TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Restore')),

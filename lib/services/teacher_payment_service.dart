@@ -14,12 +14,15 @@ class TeacherPaymentIndexData {
     required this.currentMonth,
     required this.currentYear,
     required this.allFaculty,
+    this.facultyPay = const {},
   });
   final List<TeacherPayment> unpaidPayments;
   final List<TeacherPayment> monthlyPayments;
   final int currentMonth;
   final int currentYear;
   final List<LookupItem> allFaculty;
+  /// facultyId -> (salary type, rate) set on the Faculty form; the payment entry starts from it.
+  final Map<int, ({String type, double? rate})> facultyPay;
 }
 
 /// Wraps GET/POST api/teacher-payment/* (TeacherPaymentApiController). Note: the API has no endpoint
@@ -39,6 +42,13 @@ class TeacherPaymentService {
       currentMonth: _asInt(data['currentMonth']),
       currentYear: _asInt(data['currentYear']),
       allFaculty: (data['allFaculty'] as List? ?? []).map((e) => _facultyLookup(e as Map<String, dynamic>)).toList(),
+      facultyPay: {
+        for (final e in (data['allFaculty'] as List? ?? []))
+          _asInt((e as Map<String, dynamic>)['facultyId']): (
+            type: (e['salaryType'] == 'Hourly' || e['salaryType'] == 'Topic') ? e['salaryType'].toString() : 'Fixed',
+            rate: e['salary'] is num ? (e['salary'] as num).toDouble() : null,
+          ),
+      },
     );
   }
 
@@ -80,6 +90,40 @@ class TeacherPaymentService {
     final data = res.data as Map<String, dynamic>;
     if (data['success'] != true) throw ApiException(_asString(data['message']).isEmpty ? 'Failed to save payment.' : _asString(data['message']));
     return _asInt(data['paymentId']);
+  }
+
+  Future<TeacherPayment> getOne(int paymentId) async {
+    final res = await _client.get('/api/teacher-payment/$paymentId');
+    return TeacherPayment.fromJson(res.data as Map<String, dynamic>);
+  }
+
+  /// Edits an entry (pending or paid); the total is recalculated on the server. For a paid entry the mode / reference / paid date can be corrected too.
+  Future<void> update({
+    required int paymentId,
+    required String paymentType,
+    required double rate,
+    double? quantity,
+    required int paymentMonth,
+    required int paymentYear,
+    String? remarks,
+    String? paymentMode,
+    String? transactionRef,
+    DateTime? paymentDate,
+  }) async {
+    final res = await _client.post('/api/teacher-payment/update', data: {
+      'paymentId': paymentId,
+      'paymentType': paymentType,
+      'rate': rate,
+      'quantity': quantity,
+      'paymentMonth': paymentMonth,
+      'paymentYear': paymentYear,
+      'remarks': remarks,
+      'paymentMode': paymentMode,
+      'transactionRef': transactionRef,
+      'paymentDate': paymentDate == null ? null : '${paymentDate.year}-${paymentDate.month.toString().padLeft(2, '0')}-${paymentDate.day.toString().padLeft(2, '0')}',
+    });
+    final data = res.data as Map<String, dynamic>;
+    if (data['success'] != true) throw ApiException(_asString(data['message']).isEmpty ? 'Failed to update payment.' : _asString(data['message']));
   }
 
   Future<void> markAsPaid({required int paymentId, String? paymentMode, String? transactionRef}) async {

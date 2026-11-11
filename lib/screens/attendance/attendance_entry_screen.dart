@@ -55,6 +55,8 @@ class _AttendanceEntryScreenState extends State<AttendanceEntryScreen> {
   List<AttendanceRecord> _records = [];
   final Map<int, String> _statuses = {};
   int _alreadyMarked = 0;
+  bool _isHoliday = false;
+  String _holidayReason = '';
 
   // Lecture details (saved on every row, same as the web page).
   AttendanceOptions _options = AttendanceOptions(subjects: [], teachers: []);
@@ -106,6 +108,8 @@ class _AttendanceEntryScreenState extends State<AttendanceEntryScreen> {
           ..clear()
           ..addEntries(r.records.map((e) => MapEntry(e.studentId, e.attendanceStatus)));
         _alreadyMarked = r.totalMarked;
+        _isHoliday = r.isHoliday;
+        _holidayReason = r.holidayReason;
         _doneLectures = r.doneSessions;
         // A marked day brings its own lecture details; an empty day keeps what was already picked.
         if (r.totalMarked > 0) {
@@ -121,6 +125,96 @@ class _AttendanceEntryScreenState extends State<AttendanceEntryScreen> {
       if (mounted) setState(() { _error = e.message; _loading = false; });
     }
   }
+
+  // ── Holiday: "no class for this batch today" (same as the website's batch page) ─────────────────
+  bool get _canHoliday =>
+      widget.attBatchId != null && !context.read<Session>().isClassRep && !_date.isAfter(DateUtils.dateOnly(DateTime.now()));
+
+  Future<void> _markHoliday() async {
+    final reason = TextEditingController();
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Holiday for ${widget.title}?'),
+        content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+          const Text('There is no class for this batch on this date. The parents of its students are notified.', style: TextStyle(fontSize: 13)),
+          const SizedBox(height: 12),
+          TextField(controller: reason, maxLines: 2, decoration: const InputDecoration(labelText: 'Reason (optional)', hintText: 'Shown to parents')),
+        ]),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Mark holiday')),
+        ],
+      ),
+    );
+    final text = reason.text.trim();
+    reason.dispose();
+    if (ok != true) return;
+    try {
+      if (!mounted) return;
+      final n = await withLoader(context, () => _service.markHoliday(widget.attBatchId!, _date, reason: text.isEmpty ? null : text));
+      if (!mounted) return;
+      showSnack(context, n > 0 ? 'Holiday marked. $n parent login(s) were told there is no class.' : 'Holiday marked.');
+      _load();
+    } on ApiException catch (e) {
+      if (mounted) showSnack(context, e.message, isError: true);
+    }
+  }
+
+  Future<void> _cancelHoliday() async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Cancel the holiday?'),
+        content: const Text('The parents are told that the class is on.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('No')),
+          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Cancel holiday', style: TextStyle(color: AppColors.danger))),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    try {
+      if (!mounted) return;
+      await withLoader(context, () => _service.cancelHoliday(widget.attBatchId!, _date));
+      if (!mounted) return;
+      showSnack(context, 'Holiday cancelled. Parents were told the class is on.');
+      _load();
+    } on ApiException catch (e) {
+      if (mounted) showSnack(context, e.message, isError: true);
+    }
+  }
+
+  Widget _holidayBanner() => Container(
+        margin: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(color: const Color(0xFFFEF3C7), border: Border.all(color: const Color(0xFFFBBF24), width: 1.5), borderRadius: BorderRadius.circular(AppRadius.md)),
+        child: Row(children: [
+          const Text('🏖', style: TextStyle(fontSize: 30)),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              const Text('Holiday - no class for this batch', style: TextStyle(fontWeight: FontWeight.w800, color: Color(0xFF92400E))),
+              Text(_holidayReason.isEmpty ? 'Parents were told there is no class.' : '$_holidayReason - parents were told there is no class.',
+                  style: const TextStyle(fontSize: 12.5, color: Color(0xFF92400E))),
+            ]),
+          ),
+          if (_canHoliday) TextButton(onPressed: _cancelHoliday, child: const Text('Cancel holiday', style: TextStyle(color: AppColors.danger))),
+        ]),
+      );
+
+  Widget _markHolidayBar() => Padding(
+        padding: const EdgeInsets.fromLTRB(12, 0, 12, 6),
+        child: Row(children: [
+          const Expanded(child: Text('No class for this batch today?', style: TextStyle(fontSize: 12.5, color: AppColors.textSecondary))),
+          OutlinedButton.icon(
+            style: OutlinedButton.styleFrom(foregroundColor: const Color(0xFF92400E), side: const BorderSide(color: Color(0xFFFBBF24)), visualDensity: VisualDensity.compact),
+            onPressed: _markHoliday,
+            icon: const Icon(Icons.beach_access_outlined, size: 18),
+            label: const Text('Mark Holiday'),
+          ),
+        ]),
+      );
 
   Future<bool> _confirmDiscard() async {
     if (!_dirty) return true;
@@ -256,7 +350,7 @@ class _AttendanceEntryScreenState extends State<AttendanceEntryScreen> {
             Expanded(child: _body()),
           ],
         ),
-        bottomNavigationBar: _records.isEmpty
+        bottomNavigationBar: _records.isEmpty || _isHoliday
             ? null
             : SafeArea(
                 child: Padding(
@@ -277,12 +371,14 @@ class _AttendanceEntryScreenState extends State<AttendanceEntryScreen> {
         children: [
           AttendanceDateBar(date: _date, onChanged: _changeDate, onPick: _pickDate),
           LectureBar(selected: _lecture, done: _doneLectures, onChanged: _changeLecture),
+          if (!_loading && _error == null && _isHoliday) _holidayBanner() else if (!_loading && _error == null && _canHoliday) _markHolidayBar(),
         ],
       );
 
   Widget _body() {
     if (_loading) return const LoadingView();
     if (_error != null) return ErrorView(message: _error!, onRetry: _load);
+    if (_isHoliday) return const SizedBox.shrink();   // holiday: the banner above says it, no entry list
     if (_records.isEmpty) {
       return const EmptyState(message: 'No active students found here.', icon: Icons.groups_outlined);
     }

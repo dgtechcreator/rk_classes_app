@@ -5,9 +5,11 @@ import '../../core/api_client.dart';
 import '../../core/session.dart';
 import '../../models/lookup.dart';
 import '../../models/teacher_payment.dart';
+import '../../services/lookup_service.dart';
 import '../../services/teacher_payment_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/common.dart';
+import 'teacher_payment_form_sheet.dart';
 import 'teacher_payment_summary_screen.dart';
 
 /// Teacher payment dues + this month's payments — mirrors TeacherPaymentController.Index. The API only
@@ -49,7 +51,7 @@ class _TeacherPaymentListScreenState extends State<TeacherPaymentListScreen> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => _AddPaymentSheet(service: _service, faculty: data.allFaculty, currentMonth: data.currentMonth, currentYear: data.currentYear),
+      builder: (_) => TeacherPaymentFormSheet(service: _service, faculty: data.allFaculty, facultyPay: data.facultyPay, currentMonth: data.currentMonth, currentYear: data.currentYear),
     );
     if (saved == true) _load();
   }
@@ -61,7 +63,8 @@ class _TeacherPaymentListScreenState extends State<TeacherPaymentListScreen> {
     );
     if (result == null) return;
     try {
-      await _service.markAsPaid(paymentId: p.teacherPaymentId, paymentMode: result['mode'], transactionRef: result['ref']);
+      if (!mounted) return;
+      await withLoader(context, () => _service.markAsPaid(paymentId: p.teacherPaymentId, paymentMode: result['mode'], transactionRef: result['ref']));
       if (mounted) { showSnack(context, 'Marked as paid.'); _load(); }
     } on ApiException catch (e) {
       if (mounted) showSnack(context, e.message, isError: true);
@@ -71,26 +74,11 @@ class _TeacherPaymentListScreenState extends State<TeacherPaymentListScreen> {
   }
 
   Future<void> _deletePayment(TeacherPayment p) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Delete Payment'),
-        content: Text('Remove this ${p.typeLabel} payment for ${p.facultyName} (${p.monthYearLabel})?'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Delete', style: TextStyle(color: AppColors.danger))),
-        ],
-      ),
-    );
-    if (confirmed != true) return;
-    try {
-      await _service.delete(p.teacherPaymentId);
-      if (mounted) { showSnack(context, 'Payment deleted.'); _load(); }
-    } on ApiException catch (e) {
-      if (mounted) showSnack(context, e.message, isError: true);
-    } catch (e) {
-      if (mounted) showSnack(context, 'Could not delete payment. Please try again.', isError: true);
-    }
+    if (await deleteTeacherPayment(context, _service, p) && mounted) _load();
+  }
+
+  Future<void> _editPayment(TeacherPayment p) async {
+    if (await editTeacherPayment(context, _service, p) && mounted) _load();
   }
 
   @override
@@ -130,13 +118,13 @@ class _TeacherPaymentListScreenState extends State<TeacherPaymentListScreen> {
           if (data.unpaidPayments.isEmpty)
             const EmptyState(message: 'No unpaid dues.', icon: Icons.check_circle_outline)
           else
-            ...data.unpaidPayments.map((p) => _PaymentTile(payment: p, canEdit: canEdit, onMarkPaid: () => _markPaid(p), onDelete: () => _deletePayment(p))),
+            ...data.unpaidPayments.map((p) => _PaymentTile(payment: p, canEdit: canEdit, onMarkPaid: () => _markPaid(p), onEdit: () => _editPayment(p), onDelete: () => _deletePayment(p))),
           const SizedBox(height: 20),
           SectionHeader(title: 'This Month (${data.monthlyPayments.length})'),
           if (data.monthlyPayments.isEmpty)
             const EmptyState(message: 'No payments recorded this month.', icon: Icons.currency_rupee)
           else
-            ...data.monthlyPayments.map((p) => _PaymentTile(payment: p, canEdit: canEdit, onMarkPaid: p.isPaid ? null : () => _markPaid(p), onDelete: () => _deletePayment(p))),
+            ...data.monthlyPayments.map((p) => _PaymentTile(payment: p, canEdit: canEdit, onMarkPaid: p.isPaid ? null : () => _markPaid(p), onEdit: () => _editPayment(p), onDelete: () => _deletePayment(p))),
         ],
       ),
     );
@@ -144,10 +132,11 @@ class _TeacherPaymentListScreenState extends State<TeacherPaymentListScreen> {
 }
 
 class _PaymentTile extends StatelessWidget {
-  const _PaymentTile({required this.payment, required this.canEdit, this.onMarkPaid, required this.onDelete});
+  const _PaymentTile({required this.payment, required this.canEdit, this.onMarkPaid, required this.onEdit, required this.onDelete});
   final TeacherPayment payment;
   final bool canEdit;
   final VoidCallback? onMarkPaid;
+  final VoidCallback onEdit;
   final VoidCallback onDelete;
 
   @override
@@ -174,7 +163,8 @@ class _PaymentTile extends StatelessWidget {
             if (canEdit) ...[
               if (onMarkPaid != null)
                 IconButton(icon: const Icon(Icons.check_circle_outline, color: AppColors.success), tooltip: 'Mark as paid', onPressed: onMarkPaid),
-              IconButton(icon: const Icon(Icons.delete_outline, color: AppColors.danger), onPressed: onDelete),
+              IconButton(icon: const Icon(Icons.edit_outlined, color: AppColors.info), tooltip: 'Edit', onPressed: onEdit),
+              IconButton(icon: const Icon(Icons.delete_outline, color: AppColors.danger), tooltip: 'Delete', onPressed: onDelete),
             ],
           ],
         ),
@@ -194,7 +184,15 @@ class _MarkPaidDialog extends StatefulWidget {
 class _MarkPaidDialogState extends State<_MarkPaidDialog> {
   String _mode = 'Cash';
   final _refCtrl = TextEditingController();
-  static const _modes = ['Cash', 'Online Transfer', 'Cheque'];
+  List<String> _modes = defaultPaymentModes;
+
+  @override
+  void initState() {
+    super.initState();
+    loadPaymentModes().then((m) {
+      if (mounted) setState(() { _modes = m; if (!m.contains(_mode)) _mode = m.first; });
+    });
+  }
 
   @override
   void dispose() {
@@ -227,154 +225,6 @@ class _MarkPaidDialogState extends State<_MarkPaidDialog> {
           child: const Text('Confirm'),
         ),
       ],
-    );
-  }
-}
-
-class _AddPaymentSheet extends StatefulWidget {
-  const _AddPaymentSheet({required this.service, required this.faculty, required this.currentMonth, required this.currentYear});
-  final TeacherPaymentService service;
-  final List<LookupItem> faculty;
-  final int currentMonth;
-  final int currentYear;
-
-  @override
-  State<_AddPaymentSheet> createState() => _AddPaymentSheetState();
-}
-
-class _AddPaymentSheetState extends State<_AddPaymentSheet> {
-  final _formKey = GlobalKey<FormState>();
-  int? _facultyId;
-  String _type = 'Fixed';
-  final _rateCtrl = TextEditingController();
-  final _quantityCtrl = TextEditingController();
-  final _remarksCtrl = TextEditingController();
-  late int _month = widget.currentMonth;
-  late int _year = widget.currentYear;
-  bool _saving = false;
-
-  static const _types = ['Fixed', 'Hourly', 'Topic'];
-  static const _monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-
-  @override
-  void dispose() {
-    _rateCtrl.dispose();
-    _quantityCtrl.dispose();
-    _remarksCtrl.dispose();
-    super.dispose();
-  }
-
-  Future<void> _save() async {
-    if (!_formKey.currentState!.validate()) return;
-    if (_facultyId == null) { showSnack(context, 'Select a faculty member.', isError: true); return; }
-    setState(() => _saving = true);
-    try {
-      await widget.service.save(
-        facultyId: _facultyId!,
-        paymentType: _type,
-        rate: double.parse(_rateCtrl.text.trim()),
-        quantity: _type == 'Fixed' ? null : double.tryParse(_quantityCtrl.text.trim()),
-        paymentMonth: _month,
-        paymentYear: _year,
-        remarks: _remarksCtrl.text.trim().isEmpty ? null : _remarksCtrl.text.trim(),
-      );
-      if (mounted) { showSnack(context, 'Payment added.'); Navigator.of(context).pop(true); }
-    } on ApiException catch (e) {
-      if (mounted) showSnack(context, e.message, isError: true);
-    } catch (e) {
-      if (mounted) showSnack(context, 'Could not save payment. Please try again.', isError: true);
-    } finally {
-      if (mounted) setState(() => _saving = false);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
-      child: Container(
-        decoration: const BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-        child: Form(
-          key: _formKey,
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const Text('Add Teacher Payment', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
-                const SizedBox(height: 16),
-                DropdownButtonFormField<int>(
-      isExpanded: true,
-                  initialValue: _facultyId,
-                  decoration: const InputDecoration(labelText: 'Faculty *'),
-                  items: widget.faculty.map((f) => DropdownMenuItem(value: f.id, child: Text(f.name, overflow: TextOverflow.ellipsis))).toList(),
-                  onChanged: (v) => setState(() => _facultyId = v),
-                  validator: (v) => v == null ? 'Required' : null,
-                ),
-                const SizedBox(height: 12),
-                DropdownButtonFormField<String>(
-      isExpanded: true,
-                  initialValue: _type,
-                  decoration: const InputDecoration(labelText: 'Payment Type'),
-                  items: _types.map((t) => DropdownMenuItem(value: t, child: Text(t))).toList(),
-                  onChanged: (v) => setState(() => _type = v ?? _type),
-                ),
-                const SizedBox(height: 12),
-                Row(children: [
-                  Expanded(
-                    child: TextFormField(
-                      controller: _rateCtrl,
-                      decoration: InputDecoration(labelText: _type == 'Fixed' ? 'Amount *' : 'Rate *', prefixText: '₹ '),
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                      validator: (v) => (double.tryParse((v ?? '').trim()) ?? 0) <= 0 ? 'Required' : null,
-                    ),
-                  ),
-                  if (_type != 'Fixed') ...[
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: TextFormField(
-                        controller: _quantityCtrl,
-                        decoration: InputDecoration(labelText: _type == 'Hourly' ? 'Hours' : 'Topics'),
-                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                      ),
-                    ),
-                  ],
-                ]),
-                const SizedBox(height: 12),
-                Row(children: [
-                  Expanded(
-                    child: DropdownButtonFormField<int>(
-      isExpanded: true,
-                      initialValue: _month,
-                      decoration: const InputDecoration(labelText: 'Month'),
-                      items: List.generate(12, (i) => DropdownMenuItem(value: i + 1, child: Text(_monthNames[i]))),
-                      onChanged: (v) => setState(() => _month = v ?? _month),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: DropdownButtonFormField<int>(
-      isExpanded: true,
-                      initialValue: _year,
-                      decoration: const InputDecoration(labelText: 'Year'),
-                      items: [widget.currentYear - 1, widget.currentYear, widget.currentYear + 1].map((y) => DropdownMenuItem(value: y, child: Text('$y'))).toList(),
-                      onChanged: (v) => setState(() => _year = v ?? _year),
-                    ),
-                  ),
-                ]),
-                const SizedBox(height: 12),
-                TextFormField(controller: _remarksCtrl, decoration: const InputDecoration(labelText: 'Remarks'), maxLines: 2),
-                const SizedBox(height: 20),
-                ElevatedButton(
-                  onPressed: _saving ? null : _save,
-                  child: _saving ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const Text('Save'),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
     );
   }
 }

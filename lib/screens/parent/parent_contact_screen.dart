@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/api_client.dart';
+import '../../core/parent_data_controller.dart';
 import '../../core/session.dart';
 import '../../services/parent_service.dart';
 import '../../theme/app_theme.dart';
@@ -46,7 +47,8 @@ class _ParentContactScreenState extends State<ParentContactScreen> {
     }
     setState(() => _sending = true);
     try {
-      await _service.sendContactMessage(name: _name.text.trim(), email: _email.text.trim(), subject: _subject.text.trim(), message: _message.text.trim());
+      if (!mounted) return;
+      await withLoader(context, () => _service.sendContactMessage(name: _name.text.trim(), email: _email.text.trim(), subject: _subject.text.trim(), message: _message.text.trim()));
       if (!mounted) return;
       showSnack(context, "Message sent! We'll get back to you soon.");
       _subject.clear();
@@ -95,7 +97,7 @@ class _ParentContactScreenState extends State<ParentContactScreen> {
                 child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Container(
+                      if (context.watch<ParentDataController>().shows('contact')) Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
                           color: AppColors.surface,

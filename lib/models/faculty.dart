@@ -74,6 +74,7 @@ class Faculty {
     this.address,
     this.profilePicPath,
     this.salary,
+    this.salaryType,
     this.bloodGroup,
     this.aadharNo,
     this.status = 'Active',
@@ -98,6 +99,8 @@ class Faculty {
   final String? address;
   final String? profilePicPath;
   final double? salary;
+  /// Fixed (monthly salary) / Hourly / Topic; [salary] is the monthly amount or the rate per hour / topic. Null = Fixed.
+  final String? salaryType;
   final String? bloodGroup;
   final String? aadharNo;
   final String status;
@@ -125,6 +128,7 @@ class Faculty {
         address: _asStringN(j['address']),
         profilePicPath: _asStringN(j['profilePicPath']),
         salary: _asDoubleN(j['salary']),
+        salaryType: j['salaryType']?.toString(),
         bloodGroup: _asStringN(j['bloodGroup']),
         aadharNo: _asStringN(j['aadharNo']),
         status: j['status'] == null ? 'Active' : _asString(j['status']),
@@ -148,6 +152,7 @@ class Faculty {
         'email': email,
         'address': address,
         'salary': salary,
+        'salaryType': salaryType,
         'bloodGroup': bloodGroup,
         'aadharNo': aadharNo,
         'status': status,

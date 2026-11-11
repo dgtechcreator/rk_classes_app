@@ -53,7 +53,8 @@ class _UserListScreenState extends State<UserListScreen> {
 
   Future<void> _toggleActive(AppUser u) async {
     try {
-      await _service.toggleActive(u.userId);
+      if (!mounted) return;
+      await withLoader(context, () => _service.toggleActive(u.userId));
       _load();
     } on ApiException catch (e) {
       if (mounted) showSnack(context, e.message, isError: true);
@@ -76,7 +77,8 @@ class _UserListScreenState extends State<UserListScreen> {
     );
     if (confirmed != true) return;
     try {
-      await _service.deleteUser(u.userId);
+      if (!mounted) return;
+      await withLoader(context, () => _service.deleteUser(u.userId));
       if (mounted) { showSnack(context, '${u.fullName} deleted.'); _load(); }
     } on ApiException catch (e) {
       if (mounted) showSnack(context, e.message, isError: true);

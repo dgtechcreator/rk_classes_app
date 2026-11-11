@@ -16,6 +16,13 @@ class ParentDataController extends ChangeNotifier {
   Student? selected;
   ParentDashboardData? data;
 
+  /// Sections switched off by the admin (Roles & Access on the website): their tabs / cards are not shown.
+  Set<String> hidden = {};
+
+  /// Today's birthday cards ("Happy Birthday Vivek - from RK Classes" + the wish from Masters). Empty on other days.
+  List<BirthdayCard> birthdays = const [];
+  bool shows(String section) => !hidden.contains(section);
+
   /// Class toppers for the selected child; stays null when the server has none / is older than the app.
   ClassToppers? toppers;
 
@@ -24,6 +31,8 @@ class ParentDataController extends ChangeNotifier {
     error = null;
     notifyListeners();
     try {
+      hidden = await _service.getHiddenSections();
+      birthdays = await _service.getBirthdays();
       final kids = await _service.getChildren();
       final sel = selected != null && kids.any((c) => c.studentId == selected!.studentId)
           ? kids.firstWhere((c) => c.studentId == selected!.studentId)
@@ -38,7 +47,7 @@ class ParentDataController extends ChangeNotifier {
       loading = false;
     }
     notifyListeners();
-    if (selected != null && error == null) _loadToppers(selected!.studentId);
+    if (selected != null && error == null && shows('marks')) _loadToppers(selected!.studentId);
   }
 
   Future<void> selectChild(Student s) async {
@@ -54,7 +63,7 @@ class ParentDataController extends ChangeNotifier {
       loading = false;
     }
     notifyListeners();
-    if (error == null) _loadToppers(s.studentId);
+    if (error == null && shows('marks')) _loadToppers(s.studentId);
   }
 
   /// Separate from the dashboard load so a toppers failure never blocks attendance, marks or fees.

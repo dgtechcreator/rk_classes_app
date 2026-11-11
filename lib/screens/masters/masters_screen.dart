@@ -27,7 +27,7 @@ class _MastersScreenState extends State<MastersScreen> with SingleTickerProvider
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 8, vsync: this);
+    _tabController = TabController(length: 9, vsync: this);
   }
 
   @override
@@ -52,6 +52,7 @@ class _MastersScreenState extends State<MastersScreen> with SingleTickerProvider
             Tab(text: 'Subjects'),
             Tab(text: 'Att. Batches'),
             Tab(text: 'Expenses'),
+            Tab(text: 'Pay Modes'),
             Tab(text: 'Templates'),
           ],
         ),
@@ -101,6 +102,19 @@ class _MastersScreenState extends State<MastersScreen> with SingleTickerProvider
             countOf: (c) => c.usageCount,
             onSave: (id, name, isActive) => _service.saveExpenseCat(categoryId: id, categoryName: name, isActive: isActive),
             onDelete: _service.deleteExpenseCat,
+          ),
+          _SimpleNameTab<PaymentModeItem>(
+            emptyMessage: 'No payment modes found.',
+            emptyIcon: Icons.payments_outlined,
+            addLabel: 'Add Payment Mode',
+            countLabel: 'records',
+            loader: _service.getPaymentModes,
+            idOf: (m) => m.modeId,
+            nameOf: (m) => m.modeName,
+            activeOf: (m) => m.isActive,
+            countOf: (m) => m.usageCount,
+            onSave: (id, name, isActive) => _service.savePaymentMode(modeId: id, modeName: name, isActive: isActive),
+            onDelete: _service.deletePaymentMode,
           ),
           const MessageTemplatesTab(),
         ],
@@ -370,7 +384,8 @@ class _YearsTabState extends State<_YearsTab> {
     );
     if (confirmed != true) return;
     try {
-      await _service.deleteYear(year.yearId);
+      if (!mounted) return;
+      await withLoader(context, () => _service.deleteYear(year.yearId));
       if (mounted) { showSnack(context, 'Academic year deleted.'); _load(); }
     } on ApiException catch (e) {
       if (mounted) showSnack(context, e.message, isError: true);
@@ -516,7 +531,8 @@ class _ClassesTabState extends State<_ClassesTab> {
     );
     if (confirmed != true) return;
     try {
-      await _service.deleteClass(klass.classId);
+      if (!mounted) return;
+      await withLoader(context, () => _service.deleteClass(klass.classId));
       if (mounted) { showSnack(context, 'Class deleted.'); _load(); }
     } on ApiException catch (e) {
       if (mounted) showSnack(context, e.message, isError: true);
@@ -680,7 +696,8 @@ class _SubjectsTabState extends State<_SubjectsTab> {
     );
     if (confirmed != true) return;
     try {
-      await _service.deleteSubject(subject.subjectId);
+      if (!mounted) return;
+      await withLoader(context, () => _service.deleteSubject(subject.subjectId));
       if (mounted) { showSnack(context, 'Subject deleted.'); _loadSubjects(); }
     } on ApiException catch (e) {
       if (mounted) showSnack(context, e.message, isError: true);

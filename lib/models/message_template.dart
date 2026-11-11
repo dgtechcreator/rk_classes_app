@@ -20,9 +20,9 @@ class MessageTemplate {
 }
 
 /// Categories a template can belong to — the Absent list only offers `Absent` templates, etc.
-const messageCategories = ['Absent', 'FeeReminder', 'Receipt', 'General'];
+const messageCategories = ['Absent', 'FeeReminder', 'Receipt', 'Birthday', 'General'];
 
-String categoryLabel(String c) => c == 'FeeReminder' ? 'Fee Reminder' : c;
+String categoryLabel(String c) => c == 'FeeReminder' ? 'Fee Reminder' : c == 'Birthday' ? 'Birthday wish' : c;
 
 /// Placeholders the Masters form tells the admin about.
 const templatePlaceholders = ['{student}', '{class}', '{medium}', '{date}', '{school}', '{total}', '{paid}', '{balance}', '{receipt}', '{amount}'];

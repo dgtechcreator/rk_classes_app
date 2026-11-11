@@ -1,11 +1,17 @@
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../../core/api_client.dart';
 import '../../models/teacher_payment.dart';
 import '../../services/teacher_payment_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/common.dart';
+import 'teacher_payment_form_sheet.dart';
 
 /// Teacher-payment summary. Admin / accountant ([mine] = false): filter by year, month, teacher and status and
 /// see totals plus a per-teacher breakdown. A teacher ([mine] = true): only their own payments — when each
@@ -111,10 +117,48 @@ class _TeacherPaymentSummaryScreenState extends State<TeacherPaymentSummaryScree
 
   void _setFilter(VoidCallback change) => setState(change);
 
+  /// The rows on screen (the current filters) as a CSV file, shared to Excel / WhatsApp / Drive ...
+  Future<void> _export() async {
+    final list = _filtered;
+    if (list.isEmpty) { showSnack(context, 'Nothing to export for this selection.', isError: true); return; }
+    String q(String? v) => '"${(v ?? '').replaceAll('"', '""')}"';
+    final sum = _summarize(list);
+    final sb = StringBuffer('Teacher,For Month,Year,Type,Hours/Topics,Rate,Amount,Status,Paid On,Mode,Reference,Receipt No,Remarks\r\n');
+    final byName = [...list]..sort((a, b) {
+        final c = a.facultyName.compareTo(b.facultyName);
+        return c != 0 ? c : (a.paymentYear * 12 + a.paymentMonth).compareTo(b.paymentYear * 12 + b.paymentMonth);
+      });
+    String n(double v) => v % 1 == 0 ? v.toStringAsFixed(0) : v.toString();
+    for (final p in byName) {
+      sb.write([
+        q(p.facultyName.trim()), _months[(p.paymentMonth - 1).clamp(0, 11)], p.paymentYear, p.paymentType == 'Fixed' ? 'Fixed Salary' : p.paymentType,
+        p.paymentType == 'Fixed' || p.quantity == null ? '' : n(p.quantity!), n(p.rate), n(p.totalAmount), p.isPaid ? 'Paid' : 'Pending',
+        p.isPaid && p.paymentDate != null ? DateFormat('dd-MM-yyyy').format(p.paymentDate!) : '', q(p.paymentMode), q(p.transactionRef), q(p.receiptNo), q(p.remarks),
+      ].join(','));
+      sb.write('\r\n');
+    }
+    sb.write('\r\nTotal,,,,,,${n(sum.totalAmount)}\r\nPaid (${sum.paidCount}),,,,,,${n(sum.paidAmount)}\r\nPending (${sum.pendingCount}),,,,,,${n(sum.pendingAmount)}\r\n');
+    try {
+      final dir = await getTemporaryDirectory();
+      final label = _month > 0 ? '${_year}_${_month.toString().padLeft(2, '0')}' : (_year > 0 ? '$_year' : 'all');
+      final file = File('${dir.path}/TeacherPayments_$label.csv');
+      await file.writeAsBytes([0xEF, 0xBB, 0xBF, ...utf8.encode(sb.toString())]);   // UTF-8 with BOM so Excel shows names and Rs correctly
+      await SharePlus.instance.share(ShareParams(files: [XFile(file.path, mimeType: 'text/csv')], text: 'Teacher payments'));
+    } catch (_) {
+      if (mounted) showSnack(context, 'Could not create the file. Please try again.', isError: true);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(widget.mine ? 'My Payments' : 'Payment Summary')),
+      appBar: AppBar(
+        title: Text(widget.mine ? 'My Payments' : 'Payment Summary'),
+        actions: [
+          if (!widget.mine && !_loading && _error == null)
+            IconButton(icon: const Icon(Icons.file_download_outlined), tooltip: 'Export to Excel', onPressed: _export),
+        ],
+      ),
       body: _loading && _report == null
           ? const LoadingView()
           : _error != null
@@ -337,6 +381,21 @@ class _TeacherPaymentSummaryScreenState extends State<TeacherPaymentSummaryScree
                 Text(_money.format(p.totalAmount), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
                 const SizedBox(height: 4),
                 StatusBadge(status: p.statusLabel),
+                if (!widget.mine)
+                  Row(mainAxisSize: MainAxisSize.min, children: [
+                    IconButton(
+                      visualDensity: VisualDensity.compact,
+                      tooltip: 'Edit',
+                      icon: const Icon(Icons.edit_outlined, size: 20, color: AppColors.info),
+                      onPressed: () async { if (await editTeacherPayment(context, _service, p) && mounted) _load(); },
+                    ),
+                    IconButton(
+                      visualDensity: VisualDensity.compact,
+                      tooltip: 'Delete',
+                      icon: const Icon(Icons.delete_outline, size: 20, color: AppColors.danger),
+                      onPressed: () async { if (await deleteTeacherPayment(context, _service, p) && mounted) _load(); },
+                    ),
+                  ]),
               ],
             ),
           ],

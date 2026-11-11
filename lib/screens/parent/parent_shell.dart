@@ -45,15 +45,15 @@ class _ParentShellState extends State<ParentShell> with WidgetsBindingObserver {
     if (state == AppLifecycleState.resumed) _notifs.refresh();   // news that arrived while the app was in the background
   }
 
-  static const _screens = [ParentHomeScreen(), ParentAttendanceScreen(), ParentLecturesScreen(), ParentGradesScreen(), ParentFeesScreen(), ParentContactScreen()];
-
-  static const _items = [
-    PremiumNavItem(icon: Icons.home_outlined, selectedIcon: Icons.home_rounded, label: 'Home'),
-    PremiumNavItem(icon: Icons.event_available_outlined, selectedIcon: Icons.event_available_rounded, label: 'Attendance'),
-    PremiumNavItem(icon: Icons.menu_book_outlined, selectedIcon: Icons.menu_book_rounded, label: 'Lectures'),
-    PremiumNavItem(icon: Icons.grade_outlined, selectedIcon: Icons.grade_rounded, label: 'Grades'),
-    PremiumNavItem(icon: Icons.account_balance_wallet_outlined, selectedIcon: Icons.account_balance_wallet_rounded, label: 'Fees'),
-    PremiumNavItem(icon: Icons.person_outline_rounded, selectedIcon: Icons.person_rounded, label: 'Profile'),
+  /// Every tab with the portal section that controls it (null = always shown). The admin can switch sections off
+  /// on the website (Roles & Access); those tabs then disappear. Home and Profile (logout) always stay.
+  static const _tabs = <({String? section, Widget screen, PremiumNavItem item})>[
+    (section: null, screen: ParentHomeScreen(), item: PremiumNavItem(icon: Icons.home_outlined, selectedIcon: Icons.home_rounded, label: 'Home')),
+    (section: 'attendance', screen: ParentAttendanceScreen(), item: PremiumNavItem(icon: Icons.event_available_outlined, selectedIcon: Icons.event_available_rounded, label: 'Attendance')),
+    (section: 'lectures', screen: ParentLecturesScreen(), item: PremiumNavItem(icon: Icons.menu_book_outlined, selectedIcon: Icons.menu_book_rounded, label: 'Lectures')),
+    (section: 'marks', screen: ParentGradesScreen(), item: PremiumNavItem(icon: Icons.grade_outlined, selectedIcon: Icons.grade_rounded, label: 'Grades')),
+    (section: 'fees', screen: ParentFeesScreen(), item: PremiumNavItem(icon: Icons.account_balance_wallet_outlined, selectedIcon: Icons.account_balance_wallet_rounded, label: 'Fees')),
+    (section: null, screen: ParentContactScreen(), item: PremiumNavItem(icon: Icons.person_outline_rounded, selectedIcon: Icons.person_rounded, label: 'Profile')),
   ];
 
   @override
@@ -63,14 +63,21 @@ class _ParentShellState extends State<ParentShell> with WidgetsBindingObserver {
         ChangeNotifierProvider.value(value: _data),
         ChangeNotifierProvider.value(value: _notifs),
       ],
-      child: Scaffold(
-        backgroundColor: AppColors.background,
-        body: IndexedStack(index: _index, children: _screens),
-        bottomNavigationBar: PremiumBottomNav(
-          currentIndex: _index,
-          onTap: (i) => setState(() => _index = i),
-          items: _items,
-        ),
+      child: ListenableBuilder(
+        listenable: _data,
+        builder: (context, _) {
+          final tabs = _tabs.where((t) => t.section == null || _data.shows(t.section!)).toList();
+          final index = _index.clamp(0, tabs.length - 1);
+          return Scaffold(
+            backgroundColor: AppColors.background,
+            body: IndexedStack(index: index, children: [for (final t in tabs) t.screen]),
+            bottomNavigationBar: PremiumBottomNav(
+              currentIndex: index,
+              onTap: (i) => setState(() => _index = i),
+              items: [for (final t in tabs) t.item],
+            ),
+          );
+        },
       ),
     );
   }

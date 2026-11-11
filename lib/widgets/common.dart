@@ -203,9 +203,52 @@ class ErrorView extends StatelessWidget {
 }
 
 class LoadingView extends StatelessWidget {
-  const LoadingView({super.key});
+  const LoadingView({super.key, this.message});
+  final String? message;
   @override
-  Widget build(BuildContext context) => const Center(child: Padding(padding: EdgeInsets.all(32), child: CircularProgressIndicator()));
+  Widget build(BuildContext context) => Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            const CircularProgressIndicator(),
+            if (message != null) ...[const SizedBox(height: 12), Text(message!, style: const TextStyle(fontSize: 12.5, color: AppColors.textSecondary))],
+          ]),
+        ),
+      );
+}
+
+/// Runs [task] behind a small blocking "please wait" spinner (save / delete / restore / send ...), so every action that talks to the
+/// server shows progress and cannot be tapped twice. The spinner is always closed again; errors are rethrown to the caller's catch.
+Future<T> withLoader<T>(BuildContext context, Future<T> Function() task, {String message = 'Please wait…'}) async {
+  final navigator = Navigator.of(context, rootNavigator: true);
+  showDialog<void>(
+    context: context,
+    barrierDismissible: false,
+    barrierColor: Colors.black38,
+    useRootNavigator: true,
+    builder: (_) => PopScope(
+      canPop: false,
+      child: Center(
+        child: Material(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(AppRadius.md),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 20),
+            child: Row(mainAxisSize: MainAxisSize.min, children: [
+              const SizedBox(width: 26, height: 26, child: CircularProgressIndicator(strokeWidth: 3)),
+              const SizedBox(width: 16),
+              Text(message, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textPrimary, decoration: TextDecoration.none)),
+            ]),
+          ),
+        ),
+      ),
+    ),
+  );
+  try {
+    return await task();
+  } finally {
+    if (navigator.mounted) navigator.pop();
+  }
 }
 
 class SectionHeader extends StatelessWidget {

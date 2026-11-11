@@ -41,6 +41,7 @@ class _FacultyFormScreenState extends State<FacultyFormScreen> {
   DateTime? _dateOfJoining;
   int? _designationId;
   String _status = 'Active';
+  String _salaryType = 'Fixed';   // Fixed (monthly) / Hourly / Topic - [_salary] is then the monthly amount or the rate
 
   // Photo: applied after the record is saved (needs the faculty id), same as the website form.
   String? _pickedPhoto;
@@ -70,6 +71,7 @@ class _FacultyFormScreenState extends State<FacultyFormScreen> {
     _dateOfBirth = f?.dateOfBirth;
     _dateOfJoining = f?.dateOfJoining ?? (widget.isEdit ? null : DateTime.now());
     _designationId = f?.designationId;
+    _salaryType = f?.salaryType == 'Hourly' || f?.salaryType == 'Topic' ? f!.salaryType! : 'Fixed';
     _status = f?.status ?? 'Active';
     _loadDesignations();
   }
@@ -122,6 +124,7 @@ class _FacultyFormScreenState extends State<FacultyFormScreen> {
         'email': _email.text.trim(),
         'address': _address.text.trim(),
         'salary': _salary.text.trim().isEmpty ? null : double.tryParse(_salary.text.trim()),
+        'salaryType': _salaryType,
         'bloodGroup': _bloodGroup,
         'aadharNo': _aadharNo.text.trim(),
         'status': _status,
@@ -234,7 +237,23 @@ class _FacultyFormScreenState extends State<FacultyFormScreen> {
                   const SizedBox(height: 12),
                   TextFormField(controller: _specialization, decoration: const InputDecoration(labelText: 'Specialization / Subjects', hintText: 'e.g. Mathematics, Science')),
                   const SizedBox(height: 12),
-                  TextFormField(controller: _salary, keyboardType: const TextInputType.numberWithOptions(decimal: true), decoration: const InputDecoration(labelText: 'Monthly Salary (₹)')),
+                  DropdownButtonFormField<String>(
+                    isExpanded: true,
+                    initialValue: _salaryType,
+                    decoration: const InputDecoration(labelText: 'Salary Type'),
+                    items: const [
+                      DropdownMenuItem(value: 'Fixed', child: Text('Fixed (monthly salary)')),
+                      DropdownMenuItem(value: 'Hourly', child: Text('Hourly')),
+                      DropdownMenuItem(value: 'Topic', child: Text('Topic')),
+                    ],
+                    onChanged: (v) => setState(() => _salaryType = v ?? 'Fixed'),
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: _salary,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    decoration: InputDecoration(labelText: _salaryType == 'Hourly' ? 'Rate per Hour (₹)' : _salaryType == 'Topic' ? 'Rate per Topic (₹)' : 'Monthly Salary (₹)'),
+                  ),
                   if (widget.isEdit) ...[
                     const SizedBox(height: 12),
                     DropdownButtonFormField<String>(

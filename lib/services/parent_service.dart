@@ -3,12 +3,42 @@ import '../models/student.dart';
 import '../models/student_activity.dart';
 import '../models/toppers.dart';
 
+class BirthdayCard {
+  BirthdayCard({required this.studentId, required this.name, required this.title, required this.message});
+  final int studentId;
+  final String name, title, message;
+
+  factory BirthdayCard.fromJson(Map<String, dynamic> j) => BirthdayCard(
+        studentId: (j['studentId'] as num?)?.toInt() ?? 0, name: '${j['name'] ?? ''}', title: '${j['title'] ?? ''}', message: '${j['message'] ?? ''}');
+}
+
 class ParentService {
   final _client = ApiClient.instance;
 
   Future<List<Student>> getChildren() async {
     final res = await _client.get('/api/parent/children');
     return (res.data as List).map((e) => Student.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
+  /// Sections the admin switched off for student / parent logins (keys: attendance, lectures, marks, fees, notes,
+  /// notifications, contact). An older server without the endpoint simply hides nothing.
+  Future<Set<String>> getHiddenSections() async {
+    try {
+      final res = await _client.get('/api/parent/portal-access');
+      return ((res.data as Map<String, dynamic>)['hidden'] as List? ?? []).map((e) => e.toString()).toSet();
+    } catch (_) {
+      return <String>{};
+    }
+  }
+
+  /// Birthday cards for today (empty on other days). The wish is the "Birthday" template edited in Masters on the website.
+  Future<List<BirthdayCard>> getBirthdays() async {
+    try {
+      final res = await _client.get('/api/parent/birthdays');
+      return (res.data as List).map((e) => BirthdayCard.fromJson(e as Map<String, dynamic>)).toList();
+    } catch (_) {
+      return const [];
+    }
   }
 
   Future<ParentDashboardData> getDashboard(int studentId) async {

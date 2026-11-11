@@ -80,8 +80,10 @@ class _StudentDetailScreenState extends State<StudentDetailScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Delete Student'),
-        content: Text('Move ${_detail!.student.displayName} to inactive/deleted records?'),
+        title: Text(_detail!.student.status == 'Inactive' ? 'Delete Student' : 'Mark Inactive'),
+        content: Text(_detail!.student.status == 'Inactive'
+            ? 'Delete ${_detail!.student.displayName}? They will be removed from the Inactive list and shown only on Deleted Records.'
+            : 'Mark ${_detail!.student.displayName} as Inactive? They stop being counted anywhere.'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
           TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Delete', style: TextStyle(color: AppColors.danger))),
@@ -90,7 +92,8 @@ class _StudentDetailScreenState extends State<StudentDetailScreen> {
     );
     if (confirmed != true) return;
     try {
-      await _service.delete(widget.studentId);
+      if (!mounted) return;
+      await withLoader(context, () => _service.delete(widget.studentId));
       if (mounted) Navigator.of(context).pop(true);
     } on ApiException catch (e) {
       if (mounted) showSnack(context, e.message, isError: true);

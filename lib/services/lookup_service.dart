@@ -2,6 +2,24 @@ import '../core/api_client.dart';
 import '../models/lookup.dart';
 import '../models/marks.dart';
 
+/// Shown when the Masters list cannot be loaded (old server / offline).
+const defaultPaymentModes = ['Cash', 'Online Transfer', 'Cheque', 'Demand Draft', 'Card'];
+
+List<String>? _paymentModesCache;
+
+/// The payment modes of the Masters list (active ones) - the dropdown of the Expense, Fee and Teacher Payment forms.
+Future<List<String>> loadPaymentModes({bool refresh = false}) async {
+  if (_paymentModesCache != null && !refresh) return _paymentModesCache!;
+  try {
+    final res = await ApiClient.instance.get('/api/lookup/payment-modes');
+    final list = (res.data as List).map((e) => e.toString()).where((e) => e.trim().isNotEmpty).toList();
+    if (list.isNotEmpty) return _paymentModesCache = list;
+  } catch (_) {
+    // an older server without the Masters list: the built-in modes are used
+  }
+  return defaultPaymentModes;
+}
+
 /// Dropdown data every module screen needs — cached in memory for the session since these lists
 /// (academic years, classes, sections, batches, fee types) change rarely.
 class LookupService {

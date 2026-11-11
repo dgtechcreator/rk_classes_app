@@ -104,7 +104,66 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
     if (picked != null) _setDate(picked);
   }
 
+  /// Batch holiday: "no class today", parents get a notification. Not for a Class Representative, never for a future date.
+  bool get _canHoliday => !context.read<Session>().isClassRep && !_date.isAfter(DateUtils.dateOnly(DateTime.now()));
+
+  Future<void> _markHoliday(AttendanceBatchSummary b) async {
+    final reason = TextEditingController();
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Holiday for ${b.batchName}?'),
+        content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+          const Text('There is no class for this batch on this date. The parents of its students are notified.', style: TextStyle(fontSize: 13)),
+          const SizedBox(height: 12),
+          TextField(controller: reason, maxLines: 2, decoration: const InputDecoration(labelText: 'Reason (optional)', hintText: 'Shown to parents')),
+        ]),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Mark holiday')),
+        ],
+      ),
+    );
+    final text = reason.text.trim();
+    reason.dispose();
+    if (ok != true) return;
+    try {
+      if (!mounted) return;
+      final n = await withLoader(context, () => _service.markHoliday(b.batchId, _date, reason: text.isEmpty ? null : text));
+      if (!mounted) return;
+      showSnack(context, n > 0 ? 'Holiday marked. $n parent login(s) were told there is no class.' : 'Holiday marked.');
+      _loadBatches();
+    } on ApiException catch (e) {
+      if (mounted) showSnack(context, e.message, isError: true);
+    }
+  }
+
+  Future<void> _holidayInfo(AttendanceBatchSummary b) async {
+    final cancel = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('🏖 Holiday - ${b.batchName}'),
+        content: Text(b.holidayReason.isEmpty ? 'No class for this batch on this date. Parents were told.' : '${b.holidayReason}\n\nNo class for this batch on this date. Parents were told.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Close')),
+          if (_canHoliday) TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Cancel holiday', style: TextStyle(color: AppColors.danger))),
+        ],
+      ),
+    );
+    if (cancel != true) return;
+    try {
+      if (!mounted) return;
+      await withLoader(context, () => _service.cancelHoliday(b.batchId, _date));
+      if (!mounted) return;
+      showSnack(context, 'Holiday cancelled. Parents were told the class is on.');
+      _loadBatches();
+    } on ApiException catch (e) {
+      if (mounted) showSnack(context, e.message, isError: true);
+    }
+  }
+
   Future<void> _openBatch(AttendanceBatchSummary b) async {
+    if (b.isHoliday) return _holidayInfo(b);
     await Navigator.of(context).push<bool>(MaterialPageRoute(
       builder: (_) => AttendanceEntryScreen(title: b.batchName, date: _date, attBatchId: b.batchId, session: _lecture),
     ));
@@ -252,7 +311,7 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
         itemBuilder: (_, i) {
           if (i == 0) return _legend(done, _batches.length);
           final b = _batches[i - 1];
-          return AttendanceBatchCard(batch: b, onTap: () => _openBatch(b));
+          return AttendanceBatchCard(batch: b, onTap: () => _openBatch(b), onHoliday: !b.isHoliday && _canHoliday ? () => _markHoliday(b) : null);
         },
       ),
     );
@@ -271,6 +330,8 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
           dot(AppColors.success, 'Marked'),
           const SizedBox(width: 14),
           dot(const Color(0xFFF87171), 'Pending'),
+          const SizedBox(width: 14),
+          dot(const Color(0xFFFBBF24), 'Holiday'),
           const Spacer(),
           Text('$done of $total marked', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
         ],
@@ -329,9 +390,11 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
 /// One attendance batch for the selected date: green when attendance was taken, light red while it is
 /// still pending. The pill on the right is present / total (e.g. 15/20).
 class AttendanceBatchCard extends StatelessWidget {
-  const AttendanceBatchCard({super.key, required this.batch, required this.onTap});
+  const AttendanceBatchCard({super.key, required this.batch, required this.onTap, this.onHoliday});
   final AttendanceBatchSummary batch;
   final VoidCallback onTap;
+  /// Mark "no class" for this batch (null = not offered).
+  final VoidCallback? onHoliday;
 
   static const _pendingBg = Color(0xFFFEE2E2);
   static const _pendingBorder = Color(0xFFFCA5A5);
@@ -339,10 +402,13 @@ class AttendanceBatchCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final done = batch.isMarked;
-    final bg = done ? const Color(0xFF16A34A) : _pendingBg;
-    final fg = done ? Colors.white : _pendingText;
-    final subtitle = !done
+    final holiday = batch.isHoliday;
+    final done = batch.isMarked && !holiday;
+    final bg = holiday ? const Color(0xFFFEF3C7) : done ? const Color(0xFF16A34A) : _pendingBg;
+    final fg = holiday ? const Color(0xFF92400E) : done ? Colors.white : _pendingText;
+    final subtitle = holiday
+        ? 'Holiday - no class${batch.holidayReason.isEmpty ? '' : ' · ${batch.holidayReason}'}'
+        : !done
         ? 'Not marked yet'
         : [
             'Absent ${batch.absent}',
@@ -360,11 +426,11 @@ class AttendanceBatchCard extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(AppRadius.md),
-            border: Border.all(color: done ? const Color(0xFF15803D) : _pendingBorder, width: 1.5),
+            border: Border.all(color: holiday ? const Color(0xFFFBBF24) : done ? const Color(0xFF15803D) : _pendingBorder, width: 1.5),
           ),
           child: Row(
             children: [
-              Icon(done ? Icons.check_circle : Icons.pending_outlined, color: fg, size: 24),
+              Icon(holiday ? Icons.beach_access_rounded : done ? Icons.check_circle : Icons.pending_outlined, color: fg, size: 24),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -380,10 +446,18 @@ class AttendanceBatchCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.95), borderRadius: BorderRadius.circular(AppRadius.pill)),
-                child: Text('${batch.present}/${batch.total}',
+                child: Text(holiday ? '🏖' : '${batch.present}/${batch.total}',
                     style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w800, fontSize: 16)),
               ),
-              Icon(Icons.chevron_right, color: fg.withValues(alpha: 0.8)),
+              if (onHoliday != null)
+                IconButton(
+                  tooltip: 'Mark holiday (no class)',
+                  visualDensity: VisualDensity.compact,
+                  icon: Icon(Icons.beach_access_outlined, color: fg.withValues(alpha: 0.85)),
+                  onPressed: onHoliday,
+                )
+              else
+                Icon(Icons.chevron_right, color: fg.withValues(alpha: 0.8)),
             ],
           ),
         ),

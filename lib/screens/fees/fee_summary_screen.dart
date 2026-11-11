@@ -69,7 +69,8 @@ class _FeeSummaryScreenState extends State<FeeSummaryScreen> {
     );
     if (confirmed != true) return;
     try {
-      await _service.deletePayment(p.paymentId);
+      if (!mounted) return;
+      await withLoader(context, () => _service.deletePayment(p.paymentId));
       if (mounted) { showSnack(context, 'Payment deleted.'); _load(); }
     } on ApiException catch (e) {
       if (mounted) showSnack(context, e.message, isError: true);

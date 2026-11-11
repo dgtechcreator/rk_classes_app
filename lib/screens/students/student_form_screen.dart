@@ -163,7 +163,8 @@ class _StudentFormScreenState extends State<StudentFormScreen> {
         final changed = _agreedAmount != (old?.agreedDiscount ?? 0) || (_agreedAmount > 0 && _agreedReason.text.trim() != (old?.agreedDiscountReason ?? '').trim());
         if (changed) {
           try {
-            await _service.setAgreedDiscount(id, _agreedAmount, _agreedReason.text.trim());
+            if (!mounted) return;
+            await withLoader(context, () => _service.setAgreedDiscount(id, _agreedAmount, _agreedReason.text.trim()));
           } on ApiException catch (e) {
             if (mounted) showSnack(context, 'Student saved, but the agreed discount was not saved: ${e.message}', isError: true);
           }

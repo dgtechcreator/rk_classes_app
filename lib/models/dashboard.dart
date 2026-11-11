@@ -92,15 +92,22 @@ class AbsentStudent {
     required this.admissionNo,
     required this.className,
     required this.sectionName,
+    this.batchName = '',
     this.phone = '',
     this.fatherPhone = '',
     this.motherPhone = '',
+    this.notified = false,
+    this.notifiedAt = '',
   });
   final int studentId;
   final String fullName;
   final String admissionNo;
   final String className;
   final String sectionName;
+  final String batchName;
+  /// The Absent notification is already in the parent's / student's login (only sent for absent students).
+  final bool notified;
+  final String notifiedAt;
   final String phone;
   final String fatherPhone;
   final String motherPhone;
@@ -113,9 +120,30 @@ class AbsentStudent {
         admissionNo: _asString(j['admissionNo']),
         className: _asString(j['className']),
         sectionName: _asString(j['sectionName']),
+        batchName: _asString(j['batchName']),
         phone: _asString(j['phone']),
         fatherPhone: _asString(j['fatherPhone']),
         motherPhone: _asString(j['motherPhone']),
+        notified: j['notified'] == true,
+        notifiedAt: _asString(j['notifiedAt']),
+      );
+}
+
+/// A student or faculty member whose birthday is today (admin dashboard).
+class BirthdayPerson {
+  BirthdayPerson({required this.kind, required this.id, required this.name, required this.line, required this.age,
+      this.fatherPhone = '', this.motherPhone = '', this.phone = ''});
+  final String kind; // Student | Faculty
+  final int id;
+  final String name, line, fatherPhone, motherPhone, phone;
+  final int age;
+
+  bool get isFaculty => kind == 'Faculty';
+  List<ContactNumber> get contacts => buildContacts(father: fatherPhone, mother: motherPhone, student: phone);
+
+  factory BirthdayPerson.fromJson(Map<String, dynamic> j) => BirthdayPerson(
+        kind: _asString(j['kind']), id: _asInt(j['id']), name: _asString(j['name']), line: _asString(j['line']), age: _asInt(j['age']),
+        fatherPhone: _asString(j['fatherPhone']), motherPhone: _asString(j['motherPhone']), phone: _asString(j['phone']),
       );
 }
 

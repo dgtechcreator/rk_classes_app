@@ -33,6 +33,7 @@ class FinanceStudentsScreen extends StatefulWidget {
     this.batchName,
     this.sectionName,
     this.anyBatch = false,
+    this.noMedium = false,
     this.filter = FinanceFilter.all,
     this.sort = FinanceSort.name,
   });
@@ -42,6 +43,8 @@ class FinanceStudentsScreen extends StatefulWidget {
   final String? batchName;
   final String? sectionName;
   final bool anyBatch;
+  /// Only students of that class/batch who have no medium (section) set.
+  final bool noMedium;
   final FinanceFilter filter;
   final FinanceSort sort;
 
@@ -75,7 +78,17 @@ class _FinanceStudentsScreenState extends State<FinanceStudentsScreen> {
   Future<void> _load() async {
     setState(() { _loading = true; _error = null; });
     try {
-      final r = await _service.getStudents(className: widget.className, batchName: widget.batchName, sectionName: widget.sectionName, anyBatch: widget.anyBatch);
+      var r = await _service.getStudents(className: widget.className, batchName: widget.batchName, sectionName: widget.sectionName, anyBatch: widget.anyBatch);
+      if (widget.noMedium) {
+        final list = r.students.where((s) => s.sectionName.trim().isEmpty).toList();
+        r = FinanceStudentsResult(
+          students: list,
+          totalFees: list.fold(0.0, (a, s) => a + s.totalFees),
+          totalCollected: list.fold(0.0, (a, s) => a + s.collected),
+          totalDiscount: list.fold(0.0, (a, s) => a + s.discount),
+          totalBalance: list.fold(0.0, (a, s) => a + s.balance),
+        );
+      }
       if (mounted) setState(() { _result = r; _loading = false; });
     } on ApiException catch (e) {
       if (mounted) setState(() { _error = e.message; _loading = false; });
@@ -100,7 +113,7 @@ class _FinanceStudentsScreenState extends State<FinanceStudentsScreen> {
     int cmp(FinanceStudent a, FinanceStudent b) {
       switch (widget.sort) {
         case FinanceSort.fees:
-          return b.totalFees.compareTo(a.totalFees);
+          return (b.totalFees - b.discount).compareTo(a.totalFees - a.discount);
         case FinanceSort.collected:
           return b.collected.compareTo(a.collected);
         case FinanceSort.balance:
@@ -178,7 +191,8 @@ class _FinanceStudentsScreenState extends State<FinanceStudentsScreen> {
       return;
     }
     try {
-      final sent = await _service.remindDue(due.map((s) => s.studentId).toList());
+      if (!mounted) return;
+      final sent = await withLoader(context, () => _service.remindDue(due.map((s) => s.studentId).toList()));
       if (mounted) showSnack(context, sent > 0 ? 'Fee reminder sent to $sent parents.' : 'No reminder was needed - nobody owes fees.');
     } on ApiException catch (e) {
       if (mounted) showSnack(context, e.message, isError: true);

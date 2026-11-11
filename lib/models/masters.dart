@@ -114,6 +114,21 @@ class ExpenseCategory {
       );
 }
 
+class PaymentModeItem {
+  PaymentModeItem({required this.modeId, required this.modeName, this.isActive = true, this.usageCount = 0});
+  final int modeId;
+  final String modeName;
+  final bool isActive;
+  final int usageCount;
+
+  factory PaymentModeItem.fromJson(Map<String, dynamic> j) => PaymentModeItem(
+        modeId: _asInt(j['modeId']),
+        modeName: _asString(j['modeName']),
+        isActive: j['isActive'] == null ? true : _asBool(j['isActive']),
+        usageCount: _asInt(j['usageCount']),
+      );
+}
+
 class MasterSubject {
   MasterSubject({
     required this.subjectId,

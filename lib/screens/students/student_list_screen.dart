@@ -39,6 +39,10 @@ class _StudentListScreenState extends State<StudentListScreen> {
   int? _classId, _sectionId, _batchId;
   String _status = 'Active';
 
+  // Selection mode (web: row checkboxes): pick several students and delete them together.
+  bool _selecting = false;
+  final Set<int> _selected = {};
+
   @override
   void initState() {
     super.initState();
@@ -99,6 +103,46 @@ class _StudentListScreenState extends State<StudentListScreen> {
     );
   }
 
+  void _toggleSelect(int id) => setState(() {
+        if (!_selected.remove(id)) _selected.add(id);
+      });
+
+  void _stopSelecting() => setState(() { _selecting = false; _selected.clear(); });
+
+  Future<void> _bulkDelete() async {
+    final n = _selected.length;
+    if (n == 0) return;
+    final inactiveView = _status == 'Inactive';
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(inactiveView ? 'Delete $n student(s)?' : 'Mark $n student(s) Inactive?'),
+        content: Text(inactiveView
+            ? 'They will be removed from this list and shown only on Deleted Records.'
+            : 'They stop being counted anywhere. You can find them under Status → Inactive.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(ctx, true), child: Text(inactiveView ? 'Delete' : 'Mark Inactive', style: const TextStyle(color: AppColors.danger))),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    try {
+      if (!mounted) return;
+      final r = await withLoader(context, () => _service.bulkDelete(_selected.toList()));
+      if (!mounted) return;
+      showSnack(context, r.deleted > 0 && r.inactive == 0
+          ? '${r.deleted} student(s) deleted - see Deleted Records.'
+          : r.inactive > 0 && r.deleted == 0
+              ? '${r.inactive} student(s) marked Inactive.'
+              : '${r.inactive} marked Inactive, ${r.deleted} deleted.');
+      _stopSelecting();
+      _load();
+    } on ApiException catch (e) {
+      if (mounted) showSnack(context, e.message, isError: true);
+    }
+  }
+
   Future<void> _openCreate() async {
     final saved = await Navigator.of(context).push<bool>(MaterialPageRoute(builder: (_) => const StudentFormScreen()));
     if (saved == true) _load();
@@ -111,17 +155,38 @@ class _StudentListScreenState extends State<StudentListScreen> {
     final hasActiveFilters = _classId != null || _sectionId != null || _batchId != null || _status != 'Active';
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Students${_total > 0 ? ' ($_total)' : ''}'),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.filter_list, color: hasActiveFilters ? AppColors.primary : null),
-            tooltip: 'Filter',
-            onPressed: _openFilterSheet,
-          ),
-        ],
-      ),
-      floatingActionButton: canEdit ? FloatingActionButton(onPressed: _openCreate, child: const Icon(Icons.add)) : null,
+      appBar: _selecting
+          ? AppBar(
+              leading: IconButton(icon: const Icon(Icons.close), onPressed: _stopSelecting),
+              title: Text('${_selected.length} selected'),
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.select_all),
+                  tooltip: 'Select all',
+                  onPressed: () => setState(() {
+                    if (_selected.length == _students.length) { _selected.clear(); } else { _selected..clear()..addAll(_students.map((s) => s.studentId)); }
+                  }),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.delete_outline, color: AppColors.danger),
+                  tooltip: _status == 'Inactive' ? 'Delete selected' : 'Mark selected Inactive',
+                  onPressed: _selected.isEmpty ? null : _bulkDelete,
+                ),
+              ],
+            )
+          : AppBar(
+              title: Text('Students${_total > 0 ? ' ($_total)' : ''}'),
+              actions: [
+                if (canEdit)
+                  IconButton(icon: const Icon(Icons.checklist_rounded), tooltip: 'Select students', onPressed: () => setState(() => _selecting = true)),
+                IconButton(
+                  icon: Icon(Icons.filter_list, color: hasActiveFilters ? AppColors.primary : null),
+                  tooltip: 'Filter',
+                  onPressed: _openFilterSheet,
+                ),
+              ],
+            ),
+      floatingActionButton: canEdit && !_selecting ? FloatingActionButton(onPressed: _openCreate, child: const Icon(Icons.add)) : null,
       body: Column(
         children: [
           Padding(
@@ -151,10 +216,19 @@ class _StudentListScreenState extends State<StudentListScreen> {
                               padding: const EdgeInsets.fromLTRB(12, 0, 12, 80),
                               itemCount: _students.length,
                               separatorBuilder: (_, _) => const SizedBox(height: 8),
-                              itemBuilder: (_, i) => _StudentTile(student: _students[i], onTap: () async {
-                                await Navigator.of(context).push(MaterialPageRoute(builder: (_) => StudentDetailScreen(studentId: _students[i].studentId)));
-                                _load();
-                              }),
+                              itemBuilder: (_, i) {
+                                final s = _students[i];
+                                if (_selecting) {
+                                  return Row(children: [
+                                    Checkbox(value: _selected.contains(s.studentId), onChanged: (_) => _toggleSelect(s.studentId)),
+                                    Expanded(child: _StudentTile(student: s, onTap: () => _toggleSelect(s.studentId))),
+                                  ]);
+                                }
+                                return _StudentTile(student: s, onTap: () async {
+                                  await Navigator.of(context).push(MaterialPageRoute(builder: (_) => StudentDetailScreen(studentId: s.studentId)));
+                                  _load();
+                                });
+                              },
                             ),
                           ),
           ),

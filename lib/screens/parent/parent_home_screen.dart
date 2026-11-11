@@ -61,10 +61,11 @@ class ParentHomeScreen extends StatelessWidget {
                   name: parentName.isEmpty ? 'Parent' : parentName.split(' ').first,
                   leadingIcon: Icons.family_restroom,
                   actions: [
-                    NotificationBell(
-                      count: context.watch<ParentNotificationController>().unread,
-                      onTap: () => _openNotifications(context),
-                    ),
+                    if (ctrl.shows('notifications'))
+                      NotificationBell(
+                        count: context.watch<ParentNotificationController>().unread,
+                        onTap: () => _openNotifications(context),
+                      ),
                   ],
                 ),
               ),
@@ -101,13 +102,15 @@ class ParentHomeScreen extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        for (final b in ctrl.birthdays) _BirthdayCard(card: b),
         _ChildCard(ctrl: ctrl),
         if (ctrl.selected != null) ...[
           const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton.icon(
+          Builder(builder: (context) {
+            // "Full report" needs attendance + marks + fees; each button only shows when its section is on.
+            final buttons = <Widget>[
+              if (ctrl.shows('attendance') && ctrl.shows('marks') && ctrl.shows('fees'))
+                OutlinedButton.icon(
                   style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(44), padding: const EdgeInsets.symmetric(horizontal: 8)),
                   icon: const Icon(Icons.pie_chart_rounded, size: 18),
                   label: const FittedBox(fit: BoxFit.scaleDown, child: Text('Full report')),
@@ -116,49 +119,57 @@ class ParentHomeScreen extends StatelessWidget {
                     Navigator.of(context).push(MaterialPageRoute(builder: (_) => StudentReportScreen(loader: () => ParentService().getDashboard(sid), title: 'Report')));
                   },
                 ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: OutlinedButton.icon(
+              if (ctrl.shows('notes'))
+                OutlinedButton.icon(
                   style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(44), padding: const EdgeInsets.symmetric(horizontal: 8)),
                   icon: const Icon(Icons.description_rounded, size: 18),
                   label: const FittedBox(fit: BoxFit.scaleDown, child: Text('Notes & papers')),
                   onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => ParentNotesScreen(studentId: ctrl.selected!.studentId))),
                 ),
-              ),
-            ],
-          ),
+            ];
+            if (buttons.isEmpty) return const SizedBox.shrink();
+            return Row(children: [
+              for (var i = 0; i < buttons.length; i++) ...[
+                if (i > 0) const SizedBox(width: 10),
+                Expanded(child: buttons[i]),
+              ],
+            ]);
+          }),
         ],
         if (d != null) ...[
-          const SizedBox(height: 20),
-          Container(
+          if (ctrl.shows('attendance') || ctrl.shows('fees')) const SizedBox(height: 20),
+          if (ctrl.shows('attendance') || ctrl.shows('fees')) Container(
             padding: const EdgeInsets.all(18),
             decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(AppRadius.xl), boxShadow: AppShadows.card),
             child: Row(
               children: [
-                AttendanceRing(
-                  percent: d.attendance?.attendancePct ?? 0,
-                  color: (d.attendance?.attendancePct ?? 0) >= 75 ? AppColors.success : AppColors.warning,
-                  label: 'Attendance',
-                ),
-                const SizedBox(width: 20),
+                if (ctrl.shows('attendance')) ...[
+                  AttendanceRing(
+                    percent: d.attendance?.attendancePct ?? 0,
+                    color: (d.attendance?.attendancePct ?? 0) >= 75 ? AppColors.success : AppColors.warning,
+                    label: 'Attendance',
+                  ),
+                  const SizedBox(width: 20),
+                ],
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      _miniStatRow(Icons.event_available_rounded, AppColors.info,
-                          d.attendance == null ? '-' : '${d.attendance!.presentDays}/${d.attendance!.totalDays}', 'Present Days'),
-                      const SizedBox(height: 14),
-                      _miniStatRow(Icons.account_balance_wallet_outlined, d.balance > 0 ? AppColors.danger : AppColors.success,
-                          NumberFormat.currency(symbol: '₹').format(d.balance), 'Balance Due'),
+                      if (ctrl.shows('attendance'))
+                        _miniStatRow(Icons.event_available_rounded, AppColors.info,
+                            d.attendance == null ? '-' : '${d.attendance!.presentDays}/${d.attendance!.totalDays}', 'Present Days'),
+                      if (ctrl.shows('attendance') && ctrl.shows('fees')) const SizedBox(height: 14),
+                      if (ctrl.shows('fees'))
+                        _miniStatRow(Icons.account_balance_wallet_outlined, d.balance > 0 ? AppColors.danger : AppColors.success,
+                            NumberFormat.currency(symbol: '₹').format(d.balance), 'Balance Due'),
                     ],
                   ),
                 ),
               ],
             ),
           ),
-          if (subjects.isNotEmpty) ...[
+          if (ctrl.shows('marks') && subjects.isNotEmpty) ...[
             const SizedBox(height: 24),
             const SectionHeader(title: 'Subjects'),
             SizedBox(
@@ -180,7 +191,7 @@ class ParentHomeScreen extends StatelessWidget {
               ),
             ),
           ],
-          if (d.marks.isNotEmpty) ...[
+          if (ctrl.shows('marks') && d.marks.isNotEmpty) ...[
             const SizedBox(height: 24),
             SectionHeader(
               title: 'Recent Grades',
@@ -205,6 +216,7 @@ class ParentHomeScreen extends StatelessWidget {
               );
             }),
           ],
+          if (ctrl.shows('fees')) ...[
           const SizedBox(height: 24),
           SectionHeader(
             title: 'Fees',
@@ -252,6 +264,7 @@ class ParentHomeScreen extends StatelessWidget {
                   ),
                 )),
           ],
+          ],
         ],
       ],
     );
@@ -290,6 +303,37 @@ class ParentHomeScreen extends StatelessWidget {
           ],
         ),
       ],
+    );
+  }
+}
+
+/// The birthday wish shown on the child's birthday - the text is the "Birthday" template from Masters.
+class _BirthdayCard extends StatelessWidget {
+  const _BirthdayCard({required this.card});
+  final BirthdayCard card;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 14),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(colors: [Color(0xFFF59E0B), Color(0xFFEC4899), Color(0xFF8B5CF6)], begin: Alignment.topLeft, end: Alignment.bottomRight),
+        borderRadius: BorderRadius.circular(AppRadius.xl),
+        boxShadow: [BoxShadow(color: const Color(0xFFEC4899).withValues(alpha: 0.28), blurRadius: 18, offset: const Offset(0, 8))],
+      ),
+      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        const Text('🎂', style: TextStyle(fontSize: 40)),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text('Happy Birthday ${card.name}! 🎉', style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w800)),
+            const Text('from RK Classes', style: TextStyle(color: Colors.white70, fontSize: 12)),
+            const SizedBox(height: 8),
+            Text(card.message, style: const TextStyle(color: Colors.white, fontSize: 13.5, height: 1.4)),
+          ]),
+        ),
+      ]),
     );
   }
 }

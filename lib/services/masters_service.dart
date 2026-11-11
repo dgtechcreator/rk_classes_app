@@ -57,6 +57,16 @@ class MastersService {
 
   Future<void> deleteBatch(int id) => _client.post('/api/masters/batches/$id/delete');
 
+  Future<List<PaymentModeItem>> getPaymentModes() async {
+    final res = await _client.get('/api/masters/paymodes');
+    return (res.data as List).map((e) => PaymentModeItem.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
+  Future<void> savePaymentMode({required int modeId, required String modeName, bool isActive = true}) =>
+      _client.post('/api/masters/paymodes/save', data: {'modeId': modeId, 'modeName': modeName, 'isActive': isActive});
+
+  Future<void> deletePaymentMode(int id) => _client.post('/api/masters/paymodes/$id/delete');
+
   Future<List<ExpenseCategory>> getExpenseCats() async {
     final res = await _client.get('/api/lookup/exp-cats');
     return (res.data as List).map((e) => ExpenseCategory.fromJson(e as Map<String, dynamic>)).toList();

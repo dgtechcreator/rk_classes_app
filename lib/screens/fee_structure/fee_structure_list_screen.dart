@@ -108,7 +108,8 @@ class _FeeStructureListScreenState extends State<FeeStructureListScreen> {
     );
     if (confirmed != true) return;
     try {
-      await _service.delete(structure.structureId);
+      if (!mounted) return;
+      await withLoader(context, () => _service.delete(structure.structureId));
       if (mounted) showSnack(context, 'Fee structure deleted.');
       _load();
     } on ApiException catch (e) {
@@ -144,7 +145,8 @@ class _FeeStructureListScreenState extends State<FeeStructureListScreen> {
     var deleted = 0;
     try {
       for (final h in heads) {
-        await _service.delete(h.structureId);
+        if (!mounted) return;
+        await withLoader(context, () => _service.delete(h.structureId));
         deleted++;
       }
       if (mounted) showSnack(context, '$deleted fee head${deleted == 1 ? '' : 's'} deleted.');

@@ -133,7 +133,8 @@ class _MessageTemplatesTabState extends State<MessageTemplatesTab> {
     );
     if (confirmed != true) return;
     try {
-      await _service.delete(item.templateId);
+      if (!mounted) return;
+      await withLoader(context, () => _service.delete(item.templateId));
       if (mounted) { showSnack(context, 'Deleted.'); _load(); }
     } on ApiException catch (e) {
       if (mounted) showSnack(context, e.message, isError: true);

@@ -49,6 +49,19 @@ class _ParentNotificationsScreenState extends State<ParentNotificationsScreen> {
     }
   }
 
+  /// A filter chip of a portal section the admin switched off (Roles & Access) is not offered.
+  bool _sectionOn(ActivityGroup g) {
+    final data = context.read<ParentDataController>();
+    return switch (g) {
+      ActivityGroup.attendance => data.shows('attendance'),
+      ActivityGroup.marks => data.shows('marks'),
+      ActivityGroup.fees => data.shows('fees'),
+      ActivityGroup.lectures => data.shows('lectures'),
+      ActivityGroup.notes => data.shows('notes'),
+      ActivityGroup.wishes => true,
+    };
+  }
+
   List<StudentActivity> get _visible => _items
       .where((a) => (_childId == null || a.studentId == _childId) && (_group == null || a.look.group == _group))
       .toList();
@@ -95,7 +108,7 @@ class _ParentNotificationsScreenState extends State<ParentNotificationsScreen> {
                       _ChipRow(
                         children: [
                           _FilterChip(label: 'All', selected: _group == null, onTap: () => setState(() => _group = null)),
-                          for (final g in ActivityGroup.values)
+                          for (final g in ActivityGroup.values.where((g) => (g != ActivityGroup.wishes || _items.any((a) => a.look.group == g)) && _sectionOn(g)))
                             _FilterChip(label: g.label, selected: _group == g, onTap: () => setState(() => _group = g)),
                         ],
                       ),

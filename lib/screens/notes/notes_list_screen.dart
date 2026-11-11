@@ -123,7 +123,8 @@ class _NotesListScreenState extends State<NotesListScreen> {
     );
     if (yes != true) return;
     try {
-      await _service.delete(n.noteId);
+      if (!mounted) return;
+      await withLoader(context, () => _service.delete(n.noteId));
       _load();
     } on ApiException catch (e) {
       if (mounted) showSnack(context, e.message, isError: true);

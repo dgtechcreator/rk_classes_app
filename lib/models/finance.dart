@@ -10,16 +10,60 @@ class FinanceAcademicRow {
     required this.totalFees,
     required this.estimatedCollected,
     required this.estimatedDiscount,
+    this.sectionName = '',
   });
 
   final String className;
   final String batchName;
+  /// Medium (Hindi / English ...). Blank when the row is a plain class + batch total.
+  final String sectionName;
   final int studentCount;
   final double totalFees;
   final double estimatedCollected;
   final double estimatedDiscount;
 
   double get balance => totalFees - estimatedCollected - estimatedDiscount;
+
+  /// What the institute will actually receive: fee after discount. The discount is only information.
+  double get netFees => totalFees - estimatedDiscount;
+
+  /// Splits the student-wise fee list into one row per class + batch + medium (same figures as the student list,
+  /// so a row always equals what opens when it is tapped). Ordered 5th..12th, Morning before Evening, then medium.
+  static List<FinanceAcademicRow> groupStudents(List<FinanceStudent> students) {
+    final map = <String, List<FinanceStudent>>{};
+    for (final s in students) {
+      map.putIfAbsent('${s.className.trim()}|${s.batchName.trim()}|${s.sectionName.trim()}', () => []).add(s);
+    }
+    int classNo(String c) => int.tryParse(RegExp(r'\d+').firstMatch(c)?.group(0) ?? '') ?? 99;
+    int batchNo(String b) {
+      final l = b.toLowerCase();
+      return l.contains('morning') ? 0 : l.contains('evening') ? 1 : 2;
+    }
+    final rows = map.entries.map((e) {
+      final p = e.key.split('|');
+      final l = e.value;
+      return FinanceAcademicRow(
+        className: p[0],
+        batchName: p[1],
+        sectionName: p[2],
+        studentCount: l.length,
+        totalFees: l.fold(0.0, (a, s) => a + s.totalFees),
+        estimatedCollected: l.fold(0.0, (a, s) => a + s.collected),
+        estimatedDiscount: l.fold(0.0, (a, s) => a + s.discount),
+      );
+    }).toList()
+      ..sort((a, b) {
+        final c = classNo(a.className).compareTo(classNo(b.className));
+        if (c != 0) return c;
+        final n = a.className.compareTo(b.className);
+        if (n != 0) return n;
+        final bt = batchNo(a.batchName).compareTo(batchNo(b.batchName));
+        if (bt != 0) return bt;
+        final bn = a.batchName.compareTo(b.batchName);
+        return bn != 0 ? bn : a.sectionName.compareTo(b.sectionName);
+      });
+    return rows;
+  }
 
   factory FinanceAcademicRow.fromJson(Map<String, dynamic> j) => FinanceAcademicRow(
         className: _asString(j['className']),
@@ -49,6 +93,10 @@ class FinanceDashboardData {
   final double totalBalance;
   final double collectionPercentage;
   final List<FinanceAcademicRow> academicData;
+
+  /// Fee after discount = what will really come in. Collected / this = the true collection %.
+  double get netFees => totalFees - totalDiscount;
+  double get netPercentage => netFees <= 0 ? 0 : (totalCollected / netFees * 100).clamp(0, 100).toDouble();
 
   factory FinanceDashboardData.fromJson(Map<String, dynamic> j) => FinanceDashboardData(
         totalStudents: _asInt(j['totalStudents']),

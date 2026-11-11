@@ -410,7 +410,8 @@ class AdminFeeCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final pct = stats.totalFeesOverall <= 0 ? 0.0 : (stats.totalCollectedOverall / stats.totalFeesOverall).clamp(0.0, 1.0);
+    final net = stats.totalFeesOverall - stats.totalDiscountOverall;   // what will really come in (discount is only information)
+    final pct = net <= 0 ? 0.0 : (stats.totalCollectedOverall / net).clamp(0.0, 1.0);
     final fmt = _moneyFor(context);
     return Material(
       color: Colors.transparent,
@@ -459,9 +460,9 @@ class AdminFeeCard extends StatelessWidget {
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Expanded(child: _figure(fmt, 'Collected', stats.totalCollectedOverall, AppColors.success)),
+                      Expanded(child: _figure(fmt, 'Total', net, AppColors.textPrimary)),
                       const VerticalDivider(width: 1, thickness: 1, color: AppColors.borderNeutral),
-                      Expanded(child: _figure(fmt, 'Discount', stats.totalDiscountOverall, AppColors.info, pad: true)),
+                      Expanded(child: _figure(fmt, 'Collected', stats.totalCollectedOverall, AppColors.success, pad: true)),
                       const VerticalDivider(width: 1, thickness: 1, color: AppColors.borderNeutral),
                       Expanded(child: _figure(fmt, 'Balance', stats.balanceOverall, AppColors.danger, pad: true)),
                     ],

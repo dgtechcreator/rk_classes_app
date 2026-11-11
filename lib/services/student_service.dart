@@ -54,4 +54,11 @@ class StudentService {
       _client.post('/api/students/$id/agreed-discount', data: {'amount': amount, 'reason': reason});
 
   Future<void> delete(int id) async => _client.post('/api/students/$id/delete');
+
+  /// Delete several at once: Active ones become Inactive, Inactive ones move to Deleted Records.
+  Future<({int inactive, int deleted})> bulkDelete(List<int> ids) async {
+    final res = await _client.post('/api/students/bulk-delete', data: {'ids': ids});
+    final m = res.data as Map<String, dynamic>;
+    return (inactive: (m['inactive'] as num?)?.toInt() ?? 0, deleted: (m['deleted'] as num?)?.toInt() ?? 0);
+  }
 }

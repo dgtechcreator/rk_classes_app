@@ -49,7 +49,7 @@ class ContactActions {
   }) async {
     final contact = await pickContact(context, name, contacts, 'WhatsApp');
     if (contact == null || !context.mounted) return;
-    final templates = await MessageTemplateService().forCategory(category);
+    final templates = await withLoader(context, () => MessageTemplateService().forCategory(category), message: 'Loading messages…');
     if (!context.mounted) return;
     final template = await pickTemplate(context, templates);
     if (template == null || !context.mounted) return;

@@ -21,7 +21,13 @@ class AttendanceIndexResult {
     this.batchName,
     this.session = 1,
     this.doneSessions = const [],
+    this.isHoliday = false,
+    this.holidayReason = '',
   });
+
+  /// "No class" was marked for this attendance batch on this date (parents were told).
+  final bool isHoliday;
+  final String holidayReason;
 
   /// Lecture of the day these records belong to (1 = first).
   final int session;
@@ -103,6 +109,8 @@ class AttendanceService {
       batchName: data['batchName']?.toString(),
       session: (data['session'] as num?)?.toInt() ?? 1,
       doneSessions: _doneSessions(data['sessions']),
+      isHoliday: data['isHoliday'] == true,
+      holidayReason: data['holidayReason']?.toString() ?? '',
     );
   }
 
@@ -133,6 +141,16 @@ class AttendanceService {
     final res = await _client.get('/api/attendance/batch/$attBatchId', query: {'date': _fmtDate(date), if (session > 1) 'session': session});
     return _parseDay(res.data as Map<String, dynamic>, date);
   }
+
+  /// "No class today" for one attendance batch: the parents of its students are notified.
+  Future<int> markHoliday(int attBatchId, DateTime date, {String? reason}) async {
+    final res = await _client.post('/api/attendance/holiday', data: {'attBatchId': attBatchId, 'date': _fmtDate(date), 'reason': reason});
+    return ((res.data as Map<String, dynamic>)['notified'] as num?)?.toInt() ?? 0;
+  }
+
+  /// Takes the holiday back (parents are told the class is on).
+  Future<void> cancelHoliday(int attBatchId, DateTime date) async =>
+      _client.post('/api/attendance/holiday/cancel', data: {'attBatchId': attBatchId, 'date': _fmtDate(date)});
 
   Future<AttendanceOptions> getOptions() async {
     final res = await _client.get('/api/attendance/options');

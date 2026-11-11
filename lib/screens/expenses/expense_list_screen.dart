@@ -7,6 +7,9 @@ import '../../core/session.dart';
 import '../../models/expense.dart';
 import '../../models/lookup.dart';
 import '../../services/expense_service.dart';
+import '../../services/lookup_service.dart';
+import '../../services/teacher_payment_service.dart';
+import '../teacher_payment/teacher_payment_form_sheet.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/common.dart';
 
@@ -20,14 +23,33 @@ class ExpenseListScreen extends StatefulWidget {
 
 class _ExpenseListScreenState extends State<ExpenseListScreen> {
   final _service = ExpenseService();
+  final _searchCtrl = TextEditingController();
   bool _loading = true;
   String? _error;
   List<Expense> _expenses = [];
   List<LookupItem> _categories = [];
+  List<ExpenseCategoryTotal> _byCategory = [];
   int _total = 0, _page = 1, _totalPages = 1;
+  double _totalAmount = 0;
   int? _categoryId;
 
-  final _fmt = NumberFormat.currency(symbol: '₹', decimalDigits: 0);
+  // Period: a calendar month (default = this month), a custom range, or everything.
+  String _mode = 'month';
+  late DateTime _month = DateTime(DateTime.now().year, DateTime.now().month);
+  DateTimeRange? _range;
+
+  final _fmt = NumberFormat.currency(locale: 'en_IN', symbol: '₹', decimalDigits: 0);
+
+  DateTime get _thisMonth => DateTime(DateTime.now().year, DateTime.now().month);
+  bool get _isThisMonth => _mode == 'month' && _month == _thisMonth;
+  bool get _isLastMonth => _mode == 'month' && _month == DateTime(_thisMonth.year, _thisMonth.month - 1);
+  bool get _isThisYear => _mode == 'range' && _range != null && _range!.start == DateTime(DateTime.now().year, 1, 1);
+
+  String get _label => switch (_mode) {
+        'all' => 'All time',
+        'range' => _range == null ? 'Custom range' : '${DateFormat('dd MMM yyyy').format(_range!.start)} – ${DateFormat('dd MMM yyyy').format(_range!.end)}',
+        _ => DateFormat('MMMM yyyy').format(_month),
+      };
 
   @override
   void initState() {
@@ -35,14 +57,30 @@ class _ExpenseListScreenState extends State<ExpenseListScreen> {
     _load();
   }
 
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
+  }
+
   Future<void> _load() async {
     setState(() { _loading = true; _error = null; });
     try {
-      final result = await _service.getAll(page: _page, categoryId: _categoryId);
+      final result = await _service.getAll(
+        page: _page,
+        categoryId: _categoryId,
+        search: _searchCtrl.text.trim(),
+        all: _mode == 'all',
+        from: _mode == 'range' ? _range?.start : null,
+        to: _mode == 'range' ? _range?.end : null,
+        month: _mode == 'month' ? _month : null,
+      );
       if (mounted) {
         setState(() {
           _expenses = result.expenses;
           _categories = result.categories;
+          _byCategory = result.byCategory;
+          _totalAmount = result.totalAmount;
           _total = result.total;
           _totalPages = result.totalPages;
           _loading = false;
@@ -53,14 +91,59 @@ class _ExpenseListScreenState extends State<ExpenseListScreen> {
     }
   }
 
+  void _setPeriod(String mode, {DateTime? month, DateTimeRange? range}) {
+    setState(() {
+      _mode = mode;
+      if (month != null) _month = DateTime(month.year, month.month);
+      if (range != null) _range = range;
+      _page = 1;
+    });
+    _load();
+  }
+
+  Future<void> _pickRange() async {
+    final now = DateTime.now();
+    final picked = await showDateRangePicker(
+      context: context,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(now.year + 1, 12, 31),
+      initialDateRange: _range ?? DateTimeRange(start: _thisMonth, end: DateTime(now.year, now.month, now.day)),
+      helpText: 'Expenses from – to',
+    );
+    if (picked != null) _setPeriod('range', range: picked);
+  }
+
   Future<void> _openForm({Expense? expense}) async {
     final saved = await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => _ExpenseFormSheet(service: _service, categories: _categories, expense: expense),
+      builder: (_) => _ExpenseFormSheet(service: _service, categories: _categories.where((c) => c.id > 0).toList(), expense: expense),
     );
     if (saved == true) _load();
+  }
+
+  final _salarySvc = TeacherPaymentService();
+
+  /// A salary row of the list is a teacher payment: edit / delete it in the Teacher Payment form.
+  Future<void> _editSalary(Expense e) async {
+    try {
+      final p = await withLoader(context, () => _salarySvc.getOne(e.expenseId));
+      if (!mounted) return;
+      if (await editTeacherPayment(context, _salarySvc, p) && mounted) _load();
+    } on ApiException catch (err) {
+      if (mounted) showSnack(context, err.message, isError: true);
+    }
+  }
+
+  Future<void> _deleteSalary(Expense e) async {
+    try {
+      final p = await withLoader(context, () => _salarySvc.getOne(e.expenseId));
+      if (!mounted) return;
+      if (await deleteTeacherPayment(context, _salarySvc, p) && mounted) _load();
+    } on ApiException catch (err) {
+      if (mounted) showSnack(context, err.message, isError: true);
+    }
   }
 
   Future<void> _delete(Expense e) async {
@@ -77,7 +160,8 @@ class _ExpenseListScreenState extends State<ExpenseListScreen> {
     );
     if (confirmed != true) return;
     try {
-      await _service.delete(e.expenseId);
+      if (!mounted) return;
+      await withLoader(context, () => _service.delete(e.expenseId));
       if (mounted) { showSnack(context, 'Expense deleted.'); _load(); }
     } on ApiException catch (e2) {
       if (mounted) showSnack(context, e2.message, isError: true);
@@ -90,41 +174,134 @@ class _ExpenseListScreenState extends State<ExpenseListScreen> {
   Widget build(BuildContext context) {
     final session = context.watch<Session>();
     final canEdit = session.isAdmin || session.hasEditPerm('expenses');
+    final canSalary = session.isAdmin || session.hasPerm('teacher_payment');
     return Scaffold(
       appBar: AppBar(
         title: Text('Expenses${_total > 0 ? ' ($_total)' : ''}'),
         actions: [
-          PopupMenuButton<int?>(
+          IconButton(icon: Icon(Icons.date_range_outlined, color: _mode == 'range' ? AppColors.primary : null), tooltip: 'Custom date range', onPressed: _pickRange),
+          PopupMenuButton<int>(
             icon: Icon(Icons.filter_list, color: _categoryId != null ? AppColors.primary : null),
-            onSelected: (v) { setState(() { _categoryId = v; _page = 1; }); _load(); },
+            tooltip: 'Category',
+            onSelected: (v) { setState(() { _categoryId = v == 0 ? null : v; _page = 1; }); _load(); },
             itemBuilder: (_) => [
-              const PopupMenuItem(value: null, child: Text('All Categories')),
+              const PopupMenuItem(value: 0, child: Text('All Categories')),
               ..._categories.map((c) => PopupMenuItem(value: c.id, child: Text(c.name))),
             ],
           ),
         ],
       ),
-      body: _loading
-          ? const LoadingView()
-          : _error != null
-              ? ErrorView(message: _error!, onRetry: _load)
-              : _buildBody(canEdit),
+      body: Column(
+        children: [
+          _periodBar(),
+          Expanded(
+            child: _loading
+                ? const LoadingView()
+                : _error != null
+                    ? ErrorView(message: _error!, onRetry: _load)
+                    : _buildBody(canEdit, canSalary),
+          ),
+        ],
+      ),
       floatingActionButton: canEdit ? FloatingActionButton(onPressed: () => _openForm(), child: const Icon(Icons.add)) : null,
     );
   }
 
-  Widget _buildBody(bool canEdit) {
+  /// Month navigation (previous / next month), quick ranges and search.
+  Widget _periodBar() {
+    Widget chip(String text, bool on, VoidCallback tap) =>
+        Padding(padding: const EdgeInsets.only(right: 8), child: ChoiceChip(label: Text(text), selected: on, onSelected: (_) => tap()));
+    return Container(
+      color: AppColors.surface,
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              IconButton(
+                icon: const Icon(Icons.chevron_left_rounded),
+                tooltip: 'Previous month',
+                onPressed: () => _setPeriod('month', month: DateTime((_mode == 'month' ? _month : _thisMonth).year, (_mode == 'month' ? _month : _thisMonth).month - 1)),
+              ),
+              Expanded(child: Center(child: Text(_label, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15), textAlign: TextAlign.center))),
+              IconButton(
+                icon: const Icon(Icons.chevron_right_rounded),
+                tooltip: 'Next month',
+                onPressed: _mode == 'month' && _month.isBefore(_thisMonth) ? () => _setPeriod('month', month: DateTime(_month.year, _month.month + 1)) : null,
+              ),
+            ],
+          ),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(children: [
+              chip('This month', _isThisMonth, () => _setPeriod('month', month: _thisMonth)),
+              chip('Last month', _isLastMonth, () => _setPeriod('month', month: DateTime(_thisMonth.year, _thisMonth.month - 1))),
+              chip('This year', _isThisYear, () => _setPeriod('range', range: DateTimeRange(start: DateTime(DateTime.now().year, 1, 1), end: DateTime.now()))),
+              chip('All time', _mode == 'all', () => _setPeriod('all')),
+            ]),
+          ),
+          const SizedBox(height: 4),
+          TextField(
+            controller: _searchCtrl,
+            textInputAction: TextInputAction.search,
+            onSubmitted: (_) { _page = 1; _load(); },
+            decoration: InputDecoration(
+              isDense: true,
+              hintText: 'Search title, vendor…',
+              prefixIcon: const Icon(Icons.search, size: 20),
+              suffixIcon: _searchCtrl.text.isEmpty ? null : IconButton(icon: const Icon(Icons.close, size: 18), onPressed: () { _searchCtrl.clear(); _page = 1; _load(); }),
+            ),
+            onChanged: (_) => setState(() {}),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _summary() {
+    final catName = _categoryId == null ? null : _categories.where((c) => c.id == _categoryId).map((c) => c.name).firstOrNull;
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(AppRadius.md), boxShadow: AppShadows.soft),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text('Total · $_label${catName == null ? '' : ' · $catName'}', style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+        const SizedBox(height: 2),
+        Text(_fmt.format(_totalAmount), style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: AppColors.danger)),
+        Text('$_total record${_total == 1 ? '' : 's'}', style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+        if (_byCategory.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          Wrap(spacing: 6, runSpacing: 6, children: [
+            for (final c in _byCategory)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+                decoration: BoxDecoration(
+                  color: (c.category == 'Teacher Salary' ? AppColors.infoSoft : AppColors.violetSoft),
+                  borderRadius: BorderRadius.circular(AppRadius.pill),
+                ),
+                child: Text('${c.category}: ${_fmt.format(c.amount)} (${c.count})',
+                    style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700, color: c.category == 'Teacher Salary' ? AppColors.info : AppColors.violet)),
+              ),
+          ]),
+        ],
+      ]),
+    );
+  }
+
+  Widget _buildBody(bool canEdit, bool canSalary) {
     return RefreshIndicator(
       onRefresh: _load,
       child: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 96),
         children: [
+          _summary(),
+          const SizedBox(height: 10),
           if (_expenses.isEmpty)
-            const EmptyState(message: 'No expenses found.', icon: Icons.request_quote_outlined)
+            const Padding(padding: EdgeInsets.only(top: 30), child: EmptyState(message: 'No expenses found for this period.', icon: Icons.request_quote_outlined))
           else
             ..._expenses.map((e) => Card(
                   child: ListTile(
-                    onTap: canEdit ? () => _openForm(expense: e) : null,
+                    onTap: e.isSalary ? (canSalary ? () => _editSalary(e) : null) : (canEdit ? () => _openForm(expense: e) : null),
+                    leading: e.isSalary ? const CircleAvatar(radius: 18, backgroundColor: AppColors.infoSoft, child: Icon(Icons.badge_outlined, size: 18, color: AppColors.info)) : null,
                     title: Text(e.title, style: const TextStyle(fontWeight: FontWeight.w600)),
                     subtitle: Text([
                       if ((e.categoryName ?? '').isNotEmpty) e.categoryName!,
@@ -135,7 +312,7 @@ class _ExpenseListScreenState extends State<ExpenseListScreen> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(_fmt.format(e.amount), style: const TextStyle(fontWeight: FontWeight.w700)),
-                        if (canEdit) IconButton(icon: const Icon(Icons.delete_outline, color: AppColors.danger), onPressed: () => _delete(e)),
+                        if (e.isSalary ? canSalary : canEdit) IconButton(icon: const Icon(Icons.delete_outline, color: AppColors.danger), tooltip: 'Delete', onPressed: () => e.isSalary ? _deleteSalary(e) : _delete(e)),
                       ],
                     ),
                   ),
@@ -181,13 +358,17 @@ class _ExpenseFormSheetState extends State<_ExpenseFormSheet> {
   late DateTime _date = widget.expense?.expenseDate ?? DateTime.now();
   bool _saving = false;
 
-  static const _modes = ['Cash', 'Online Transfer', 'Cheque', 'Card'];
+  List<String> _modes = defaultPaymentModes;
 
   @override
   void initState() {
     super.initState();
     _categoryId = widget.expense?.categoryId;
     _mode = widget.expense?.paymentMode ?? 'Cash';
+    // the modes come from Masters -> Payment Modes (an old / switched-off mode of this record stays selectable)
+    loadPaymentModes().then((m) {
+      if (mounted) setState(() => _modes = m.contains(_mode) ? m : [...m, _mode]);
+    });
   }
 
   @override

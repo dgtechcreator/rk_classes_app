@@ -6,6 +6,7 @@ import '../../core/api_client.dart';
 import '../../core/session.dart';
 import '../../models/student.dart';
 import '../../services/fees_service.dart';
+import '../../services/lookup_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/common.dart';
 import 'receipt_screen.dart';
@@ -46,6 +47,45 @@ class _FeePayScreenState extends State<FeePayScreen> {
   }
 
   /// Dues of EARLIER years (9th / 10th / 11th...) that were never in the system: staff types the amount once.
+  /// "Update Charges Only" of the web Pay page: sets the TOTAL additional charges of the student, no payment is taken.
+  Future<void> _editCharges() async {
+    final info = _info;
+    if (info == null) return;
+    final amount = TextEditingController(text: info.additionalCharges > 0 ? info.additionalCharges.toStringAsFixed(0) : '');
+    final saved = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Additional charges'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text("Extra charges added to this student's fee (late fine, material, etc.). This is the TOTAL for the student - wrong entry? Change it, or enter 0 to remove. No payment is taken.",
+                style: TextStyle(fontSize: 12.5, color: AppColors.textSecondary)),
+            const SizedBox(height: 12),
+            TextField(controller: amount, autofocus: true, keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                decoration: const InputDecoration(labelText: 'Total additional charges (₹)', prefixText: '₹ ')),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Update')),
+        ],
+      ),
+    );
+    final value = double.tryParse(amount.text.trim().isEmpty ? '0' : amount.text.trim());
+    amount.dispose();
+    if (saved != true) return;
+    if (value == null || value < 0) return showSnack(context, 'Enter a valid amount.', isError: true);
+    try {
+      if (!mounted) return;
+      await withLoader(context, () => _service.setAdditionalCharges(widget.studentId, value));
+      if (mounted) showSnack(context, 'Additional charges changed from ${_fmt.format(info.additionalCharges)} to ${_fmt.format(value)}.');
+      _load();
+    } on ApiException catch (e) {
+      if (mounted) showSnack(context, e.message, isError: true);
+    }
+  }
+
   Future<void> _editPreviousDues() async {
     final info = _info;
     if (info == null) return;
@@ -79,7 +119,8 @@ class _FeePayScreenState extends State<FeePayScreen> {
     if (saved != true) return;
     if (value == null || value < 0) return showSnack(context, 'Enter a valid amount.', isError: true);
     try {
-      await _service.setPreviousDues(widget.studentId, value, text);
+      if (!mounted) return;
+      await withLoader(context, () => _service.setPreviousDues(widget.studentId, value, text));
       if (mounted) showSnack(context, value > 0 ? 'Previous dues saved.' : 'Previous dues cleared.');
       _load();
     } on ApiException catch (e) {
@@ -157,6 +198,28 @@ class _FeePayScreenState extends State<FeePayScreen> {
             label: 'Balance', value: _fmt.format(info.balance),
             color: info.balance > 0 ? AppColors.warning : AppColors.success,
             icon: Icons.account_balance_wallet_outlined,
+          ),
+          const SizedBox(height: 8),
+          InkWell(
+            borderRadius: BorderRadius.circular(AppRadius.md),
+            onTap: _editCharges,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(color: AppColors.warningSoft, borderRadius: BorderRadius.circular(AppRadius.md)),
+              child: Row(
+                children: [
+                  const Icon(Icons.add_card_rounded, size: 20, color: AppColors.warning),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      info.additionalCharges > 0 ? 'Additional charges: ${_fmt.format(info.additionalCharges)}' : 'Additional charges: none - tap to add',
+                      style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w800, color: AppColors.warning),
+                    ),
+                  ),
+                  const Icon(Icons.edit_outlined, size: 18, color: AppColors.warning),
+                ],
+              ),
+            ),
           ),
           const SizedBox(height: 8),
           InkWell(
@@ -273,7 +336,15 @@ class _CollectPaymentSheetState extends State<_CollectPaymentSheet> {
   DateTime _date = DateTime.now();
   bool _saving = false;
 
-  static const _modes = ['Cash', 'Online Transfer', 'Cheque', 'Demand Draft'];
+  List<String> _modes = defaultPaymentModes;   // replaced by the Masters -> Payment Modes list
+
+  @override
+  void initState() {
+    super.initState();
+    loadPaymentModes().then((m) {
+      if (mounted) setState(() { _modes = m; if (!m.contains(_mode)) _mode = m.first; });
+    });
+  }
 
   @override
   void dispose() {

@@ -80,7 +80,8 @@ class _TasksNotificationsScreenState extends State<TasksNotificationsScreen> wit
   Future<void> _markRead(AppNotification n) async {
     if (!n.isUnread) return;
     try {
-      await _service.markNotificationRead(n.notificationId);
+      if (!mounted) return;
+      await withLoader(context, () => _service.markNotificationRead(n.notificationId));
       _load();
     } on ApiException catch (e) {
       if (mounted) showSnack(context, e.message, isError: true);
@@ -107,7 +108,8 @@ class _TasksNotificationsScreenState extends State<TasksNotificationsScreen> wit
 
   Future<void> _deleteTask(TaskItem t) async {
     try {
-      await _service.deleteTask(t.taskId);
+      if (!mounted) return;
+      await withLoader(context, () => _service.deleteTask(t.taskId));
       _load();
     } on ApiException catch (e) {
       if (mounted) showSnack(context, e.message, isError: true);

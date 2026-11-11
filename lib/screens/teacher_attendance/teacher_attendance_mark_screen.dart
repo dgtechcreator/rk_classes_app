@@ -140,7 +140,8 @@ class _TeacherAttendanceMarkScreenState extends State<TeacherAttendanceMarkScree
     );
     if (confirmed != true) return;
     try {
-      await _service.delete(a.attendanceId);
+      if (!mounted) return;
+      await withLoader(context, () => _service.delete(a.attendanceId));
       if (mounted) { showSnack(context, 'Attendance deleted.'); await _load(); }
     } on ApiException catch (e) {
       if (mounted) showSnack(context, e.message, isError: true);

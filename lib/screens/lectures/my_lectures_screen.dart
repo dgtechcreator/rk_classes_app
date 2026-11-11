@@ -53,7 +53,8 @@ class _MyLecturesScreenState extends State<MyLecturesScreen> {
 
   Future<void> _mark(Lecture l, String status) async {
     try {
-      await _service.setStatus(l.lectureId, status);
+      if (!mounted) return;
+      await withLoader(context, () => _service.setStatus(l.lectureId, status));
       if (mounted) { showSnack(context, status == 'Completed' ? 'Marked as completed.' : 'Back to scheduled.'); _load(); }
     } on ApiException catch (e) {
       if (mounted) showSnack(context, e.message, isError: true);

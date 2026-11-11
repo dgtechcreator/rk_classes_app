@@ -56,7 +56,8 @@ class _AttendanceBatchesTabState extends State<AttendanceBatchesTab> {
     );
     if (ok != true) return;
     try {
-      await _service.deleteAttendanceBatch(b.batchId);
+      if (!mounted) return;
+      await withLoader(context, () => _service.deleteAttendanceBatch(b.batchId));
       if (mounted) { showSnack(context, 'Batch deleted.'); _load(); }
     } on ApiException catch (e) {
       if (mounted) showSnack(context, e.message, isError: true);

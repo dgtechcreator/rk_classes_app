@@ -27,6 +27,8 @@ import '../users/user_list_screen.dart';
 import 'coming_soon_screen.dart';
 import 'tasks_notifications_screen.dart';
 import '../teacher_payment/teacher_payment_summary_screen.dart';
+import '../discontinued/discontinued_list_screen.dart';
+import '../users/roles_access_screen.dart';
 
 class ModuleDef {
   const ModuleDef(this.label, this.icon, this.permKey, this.group, {this.screenBuilder, this.visibleWhen});
@@ -73,6 +75,7 @@ final allModules = [
   ModuleDef('My Lectures', Icons.menu_book_outlined, null, 'Academics',
       screenBuilder: (_) => const MyLecturesScreen(),
       visibleWhen: (s) => !s.isAdmin && s.roleName.toLowerCase().contains('teacher')),
+  ModuleDef('Discontinued', Icons.person_off_outlined, 'discontinued_students', 'Academics', screenBuilder: (_) => const DiscontinuedListScreen()),
   ModuleDef('Fees', Icons.payments_outlined, 'fee_collection', 'Finance', screenBuilder: (_) => const FeeCollectSearchScreen()),
   ModuleDef('Fee Structure', Icons.receipt_long_outlined, 'fee_structure', 'Finance', screenBuilder: (_) => const FeeStructureListScreen()),
   ModuleDef('Expenses', Icons.request_quote_outlined, 'expenses_view', 'Finance', screenBuilder: (_) => const ExpenseListScreen()),
@@ -85,6 +88,9 @@ final allModules = [
       visibleWhen: (s) => !s.isAdmin && s.roleName.toLowerCase().contains('teacher')),
   ModuleDef('Masters', Icons.settings_outlined, 'masters_view', 'Admin', screenBuilder: (_) => const MastersScreen()),
   ModuleDef('Users', Icons.admin_panel_settings_outlined, 'users_view', 'Admin', screenBuilder: (_) => const UserListScreen()),
+  ModuleDef('Roles & Access', Icons.rule_folder_outlined, null, 'Admin',
+      screenBuilder: (_) => const RolesAccessScreen(),
+      visibleWhen: (s) => s.isAdmin),   // server side is admin-only too
   ModuleDef('Class Reps', Icons.shield_outlined, 'users_view', 'Admin',
       screenBuilder: (_) => const ClassRepListScreen(),
       visibleWhen: (s) => s.isAdmin),   // server side is admin-only too

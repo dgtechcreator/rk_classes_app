@@ -148,6 +148,10 @@ class FeesService {
     );
   }
 
+  /// Sets the student's TOTAL additional charges (use it to correct a wrong entry); no payment is taken. 0 clears them.
+  Future<void> setAdditionalCharges(int studentId, double total) async =>
+      _client.post('/api/fees/additional-charges', data: {'studentId': studentId, 'additionalCharges': total});
+
   Future<int> savePay({
     required int studentId,
     required double payingNow,

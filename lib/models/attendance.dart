@@ -148,6 +148,8 @@ class AttendanceBatchSummary {
     required this.absent,
     required this.late,
     required this.marked,
+    this.isHoliday = false,
+    this.holidayReason = '',
   });
 
   final int batchId;
@@ -158,6 +160,9 @@ class AttendanceBatchSummary {
   final int late;
   /// Students that already have a saved attendance row for the date.
   final int marked;
+  /// No class for this batch on the date (parents were told).
+  final bool isHoliday;
+  final String holidayReason;
 
   bool get isMarked => marked > 0;
   int get pending => total - marked;
@@ -170,6 +175,8 @@ class AttendanceBatchSummary {
         absent: _asInt(j['absent']),
         late: _asInt(j['late']),
         marked: _asInt(j['marked']),
+        isHoliday: j['isHoliday'] == true,
+        holidayReason: _asString(j['holidayReason']),
       );
 }
 

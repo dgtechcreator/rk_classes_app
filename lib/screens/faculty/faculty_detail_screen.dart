@@ -60,7 +60,8 @@ class _FacultyDetailScreenState extends State<FacultyDetailScreen> {
     );
     if (confirmed != true) return;
     try {
-      await _service.delete(widget.facultyId);
+      if (!mounted) return;
+      await withLoader(context, () => _service.delete(widget.facultyId));
       if (mounted) Navigator.of(context).pop(true);
     } on ApiException catch (e) {
       if (mounted) showSnack(context, e.message, isError: true);
@@ -165,7 +166,7 @@ class _FacultyDetailScreenState extends State<FacultyDetailScreen> {
                 _row('Qualification', f.qualification),
                 _row('Specialization', f.specialization),
                 _row('Date of Joining', f.dateOfJoining == null ? null : DateFormat.yMMMd().format(f.dateOfJoining!)),
-                _row('Monthly Salary', f.salary == null ? null : '₹${f.salary!.toStringAsFixed(0)}'),
+                _row('Salary', f.salary == null ? null : '₹${f.salary!.toStringAsFixed(0)} ${f.salaryType == 'Hourly' ? '/ hour' : f.salaryType == 'Topic' ? '/ topic' : '/ month'}'),
                 _row('Remarks', f.remarks),
               ]),
             ),

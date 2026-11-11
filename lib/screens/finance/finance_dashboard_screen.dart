@@ -22,9 +22,19 @@ class _FinanceDashboardScreenState extends State<FinanceDashboardScreen> {
   bool _loading = true;
   String? _error;
   FinanceDashboardData? _data;
+  /// Class + batch + medium rows (falls back to the plain class + batch rows if the student list can't be loaded).
+  List<FinanceAcademicRow> _rows = const [];
 
-  final _compact = NumberFormat.currency(symbol: '₹');
   final _full = NumberFormat.currency(locale: 'en_IN', symbol: '₹', decimalDigits: 0);
+
+  /// Short Indian form for the small tiles so big amounts are never cut with "…": ₹1.14 L, ₹3.35 Cr.
+  String _short(double v) {
+    String trim(double x) => x.toStringAsFixed(2).replaceFirst(RegExp(r'\.?0+$'), '');
+    final a = v.abs();
+    if (a >= 10000000) return '₹${trim(v / 10000000)} Cr';
+    if (a >= 100000) return '₹${trim(v / 100000)} L';
+    return _full.format(v);
+  }
 
   @override
   void initState() {
@@ -36,7 +46,14 @@ class _FinanceDashboardScreenState extends State<FinanceDashboardScreen> {
     setState(() { _loading = true; _error = null; });
     try {
       final data = await _service.getDashboard();
-      if (mounted) setState(() { _data = data; _loading = false; });
+      var rows = data.academicData;
+      try {
+        final students = await _service.getStudents();
+        if (students.students.isNotEmpty) rows = FinanceAcademicRow.groupStudents(students.students);
+      } on ApiException {
+        // keep the class + batch rows
+      }
+      if (mounted) setState(() { _data = data; _rows = rows; _loading = false; });
     } on ApiException catch (e) {
       if (mounted) setState(() { _error = e.message; _loading = false; });
     }
@@ -65,7 +82,7 @@ class _FinanceDashboardScreenState extends State<FinanceDashboardScreen> {
 
   Widget _buildBody() {
     final d = _data!;
-    final pct = (d.collectionPercentage / 100).clamp(0.0, 1.0);
+    final pct = (d.netPercentage / 100).clamp(0.0, 1.0);
     return CustomScrollView(
       physics: const AlwaysScrollableScrollPhysics(),
       slivers: [
@@ -85,15 +102,15 @@ class _FinanceDashboardScreenState extends State<FinanceDashboardScreen> {
                     onTap: () => _open(const FinanceStudentsScreen(title: 'All Students')),
                   ),
                   SlimStatCard(
-                    label: 'Total Fees', value: _compact.format(d.totalFees), color: AppColors.violet, icon: Icons.receipt_long_outlined,
+                    label: 'Total Fees', value: _short(d.netFees), color: AppColors.violet, icon: Icons.receipt_long_outlined,
                     onTap: () => _open(const FinanceStudentsScreen(title: 'Total Fees', sort: FinanceSort.fees)),
                   ),
                   SlimStatCard(
-                    label: 'Collected', value: _compact.format(d.totalCollected), color: AppColors.success, icon: Icons.check_circle_outline,
+                    label: 'Collected', value: _short(d.totalCollected), color: AppColors.success, icon: Icons.check_circle_outline,
                     onTap: () => _open(const FinanceStudentsScreen(title: 'Collected Fees', sort: FinanceSort.collected)),
                   ),
                   SlimStatCard(
-                    label: 'Balance', value: _compact.format(d.totalBalance), color: d.totalBalance > 0 ? AppColors.danger : AppColors.success,
+                    label: 'Balance', value: _short(d.totalBalance), color: d.totalBalance > 0 ? AppColors.danger : AppColors.success,
                     icon: Icons.account_balance_wallet_outlined,
                     onTap: () => _open(const FinanceStudentsScreen(title: 'Pending Dues', filter: FinanceFilter.due, sort: FinanceSort.balance)),
                   ),
@@ -101,10 +118,10 @@ class _FinanceDashboardScreenState extends State<FinanceDashboardScreen> {
               ),
               const SizedBox(height: 18),
               const SectionHeader(title: 'Class-wise'),
-              if (d.academicData.isEmpty)
+              if (_rows.isEmpty)
                 const EmptyState(message: 'No fee data yet.', icon: Icons.bar_chart_outlined)
               else
-                for (final row in d.academicData) Padding(padding: const EdgeInsets.only(bottom: 10), child: _classCard(row)),
+                for (final row in _rows) Padding(padding: const EdgeInsets.only(bottom: 10), child: _classCard(row)),
             ]),
           ),
         ),
@@ -143,14 +160,14 @@ class _FinanceDashboardScreenState extends State<FinanceDashboardScreen> {
                           child: Text(_full.format(d.totalCollected), style: const TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.w800)),
                         ),
                         const SizedBox(height: 2),
-                        Text('of ${_full.format(d.totalFees)} total fees', style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                        Text('of ${_full.format(d.netFees)} to collect', style: const TextStyle(color: Colors.white70, fontSize: 12)),
                         const SizedBox(height: 10),
                         Wrap(
                           spacing: 8,
                           runSpacing: 6,
                           children: [
-                            _chip('Discount ${_compact.format(d.totalDiscount)}'),
-                            _chip('Balance ${_compact.format(d.totalBalance)}'),
+                            if (d.totalDiscount > 0) _chip('After ${_full.format(d.totalDiscount)} discount'),
+                            _chip('Balance ${_full.format(d.totalBalance)}'),
                           ],
                         ),
                       ],
@@ -171,7 +188,7 @@ class _FinanceDashboardScreenState extends State<FinanceDashboardScreen> {
                         Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Text('${d.collectionPercentage.toStringAsFixed(1)}%', style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800)),
+                            Text('${d.netPercentage.toStringAsFixed(1)}%', style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800)),
                             const Text('collected', style: TextStyle(color: Colors.white70, fontSize: 9.5)),
                           ],
                         ),
@@ -196,8 +213,9 @@ class _FinanceDashboardScreenState extends State<FinanceDashboardScreen> {
   Widget _classCard(FinanceAcademicRow row) {
     final cls = row.className.trim();
     final batch = row.batchName.trim();
-    final title = batch.isEmpty ? cls : '$cls · $batch';
-    final pct = row.totalFees <= 0 ? 0.0 : (row.estimatedCollected / row.totalFees * 100).clamp(0.0, 100.0);
+    final medium = row.sectionName.trim();
+    final title = [cls, batch, medium].where((e) => e.isNotEmpty).join(' · ');
+    final pct = row.netFees <= 0 ? 0.0 : (row.estimatedCollected / row.netFees * 100).clamp(0.0, 100.0);
     final due = row.balance > 0.5;
     Widget fig(String label, double v, Color c) => Expanded(
           child: Column(
@@ -208,14 +226,19 @@ class _FinanceDashboardScreenState extends State<FinanceDashboardScreen> {
               FittedBox(
                 fit: BoxFit.scaleDown,
                 alignment: Alignment.centerLeft,
-                child: Text(_compact.format(v), style: TextStyle(fontSize: 14.5, fontWeight: FontWeight.w800, color: c)),
+                child: Text(_full.format(v), style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: c)),
               ),
             ],
           ),
         );
     return InkWell(
       borderRadius: BorderRadius.circular(AppRadius.md),
-      onTap: () => _open(FinanceStudentsScreen(title: title, className: cls, batchName: batch, sort: FinanceSort.balance)),
+      onTap: () => _open(FinanceStudentsScreen(
+        title: title, className: cls, batchName: batch,
+        sectionName: medium.isEmpty ? null : medium,
+        noMedium: medium.isEmpty && _rows.any((r) => r.className.trim() == cls && r.batchName.trim() == batch && r.sectionName.trim().isNotEmpty),
+        sort: FinanceSort.balance,
+      )),
       child: Container(
         padding: const EdgeInsets.fromLTRB(14, 12, 10, 12),
         decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(AppRadius.md), boxShadow: AppShadows.soft),
@@ -236,15 +259,14 @@ class _FinanceDashboardScreenState extends State<FinanceDashboardScreen> {
             const SizedBox(height: 10),
             Row(
               children: [
-                fig('Fees', row.totalFees, AppColors.textPrimary),
+                fig('Total', row.netFees, AppColors.textPrimary),
                 fig('Collected', row.estimatedCollected, AppColors.success),
-                fig('Discount', row.estimatedDiscount, AppColors.info),
                 fig('Balance', row.balance < 0 ? 0 : row.balance, due ? AppColors.danger : AppColors.success),
               ],
             ),
             const SizedBox(height: 8),
             Text(
-              due ? '${pct.toStringAsFixed(0)}% collected · tap to see students with dues' : '${pct.toStringAsFixed(0)}% collected · fully settled',
+              '${pct.toStringAsFixed(0)}% collected${due ? ' · tap to see students with dues' : ' · fully settled'}',
               style: const TextStyle(fontSize: 11.5, color: AppColors.textSecondary),
             ),
           ],

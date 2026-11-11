@@ -38,6 +38,7 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
   String? _error;
   StaffDashboardData? _data;
   String? _yearLabel;
+  List<BirthdayPerson> _birthdays = [];
 
   @override
   void initState() {
@@ -54,9 +55,23 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
     try {
       final data = await _service.getDashboard();
       setState(() { _data = data; _loading = false; });
+      _loadBirthdays();
     } on ApiException catch (e) {
       setState(() { _error = e.message; _loading = false; });
     }
+  }
+
+  Future<void> _loadBirthdays() async {
+    try {
+      final list = await _service.getBirthdaysToday();
+      if (mounted) setState(() => _birthdays = list);
+    } catch (_) {
+      // the card just stays hidden (older server)
+    }
+  }
+
+  void _openBirthdaySheet() {
+    showModalBottomSheet(context: context, isScrollControlled: true, backgroundColor: Colors.transparent, builder: (_) => _BirthdaySheet(people: _birthdays));
   }
 
   /// The year every number on this screen belongs to = the one marked Current in Masters.
@@ -174,6 +189,8 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
           AdminStatCard(label: 'Total Students', value: '${s.totalStudents}', color: AppColors.info, icon: Icons.groups_rounded, onTap: _openStudents),
           AdminStatCard(label: 'Present Today', value: '${s.presentToday}', color: AppColors.success, icon: Icons.check_circle_outline_rounded, onTap: _openPresentSheet),
           AdminStatCard(label: 'Absent Today', value: '${s.absentToday}', color: AppColors.danger, icon: Icons.cancel_outlined, onTap: _openAbsentSheet),
+          if (_birthdays.isNotEmpty)
+            AdminStatCard(label: 'Birthdays Today', value: '${_birthdays.length}', color: const Color(0xFFDB2777), icon: Icons.cake_rounded, onTap: _openBirthdaySheet),
           AdminStatCard(label: 'Total Staff', value: '${s.totalStaff}', color: AppColors.violet, icon: Icons.groups_2_rounded, onTap: () => _push(const UserListScreen())),
           AdminStatCard(label: 'Fees This Month', value: money.format(s.feesThisMonth), color: AppColors.success, icon: Icons.bar_chart_rounded, onTap: () => _push(const FeesThisMonthScreen())),
           if (context.read<Session>().hasPerm('expenses_view'))
@@ -241,10 +258,50 @@ class _TodayStudentsSheetState extends State<_TodayStudentsSheet> {
     setState(() { _loading = true; _error = null; });
     try {
       final students = await widget.loader();
+      students.sort(_byClassBatchMedium);
       if (mounted) setState(() { _students = students; _loading = false; });
     } on ApiException catch (e) {
       if (mounted) setState(() { _error = e.message; _loading = false; });
     }
+  }
+
+  static int _classNo(String c) => int.tryParse(RegExp(r'\d+').firstMatch(c)?.group(0) ?? '') ?? 99;
+  static int _batchNo(String b) {
+    final l = b.toLowerCase();
+    return l.contains('morning') ? 0 : l.contains('evening') ? 1 : 2;
+  }
+
+  /// Same order as the website: class (5th..12th), Morning before Evening, then medium, then name.
+  static int _byClassBatchMedium(AbsentStudent a, AbsentStudent b) {
+    final c = _classNo(a.className).compareTo(_classNo(b.className));
+    if (c != 0) return c;
+    final cn = a.className.trim().compareTo(b.className.trim());
+    if (cn != 0) return cn;
+    final bt = _batchNo(a.batchName).compareTo(_batchNo(b.batchName));
+    if (bt != 0) return bt;
+    final bn = a.batchName.trim().compareTo(b.batchName.trim());
+    if (bn != 0) return bn;
+    final m = a.sectionName.trim().compareTo(b.sectionName.trim());
+    return m != 0 ? m : a.fullName.toLowerCase().compareTo(b.fullName.toLowerCase());
+  }
+
+  static String _groupOf(AbsentStudent a) =>
+      [a.className.trim(), a.batchName.trim(), a.sectionName.trim()].where((e) => e.isNotEmpty).join(' · ');
+
+  /// Header rows (String) between the students (AbsentStudent): one block per class + batch + medium.
+  List<Object> get _rows {
+    final out = <Object>[];
+    String? last;
+    for (final a in _students) {
+      final g = _groupOf(a);
+      if (g != last) {
+        last = g;
+        final n = _students.where((x) => _groupOf(x) == g).length;
+        out.add('${g.isEmpty ? 'No class' : g} · $n');
+      }
+      out.add(a);
+    }
+    return out;
   }
 
   Future<void> _call(AbsentStudent a) =>
@@ -280,48 +337,161 @@ class _TodayStudentsSheetState extends State<_TodayStudentsSheet> {
                         ? ErrorView(message: _error!, onRetry: _load)
                         : _students.isEmpty
                             ? EmptyState(message: widget.emptyMessage, icon: Icons.check_circle_outline)
-                            : ListView.builder(
-                                controller: scrollController,
-                                itemCount: _students.length,
-                                itemBuilder: (_, i) {
-                                  final a = _students[i];
-                                  final hasPhone = a.contacts.isNotEmpty;
-                                  return ListTile(
-                                    contentPadding: const EdgeInsets.only(left: 16, right: 2),
-                                    horizontalTitleGap: 12,
-                                    leading: CircleAvatar(
-                                      backgroundColor: AppColors.primarySoft,
-                                      child: Text(a.fullName.isNotEmpty ? a.fullName[0].toUpperCase() : '?', style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
-                                    ),
-                                    title: Text(a.fullName, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-                                    subtitle: Text('${a.admissionNo} • ${a.className.trim()} ${a.sectionName}'),
-                                    trailing: !widget.showActions ? null : Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        IconButton(
-                                          tooltip: hasPhone ? 'Call' : 'No phone number',
-                                          visualDensity: VisualDensity.compact,
-                                          icon: const Icon(Icons.call_rounded),
-                                          color: AppColors.info,
-                                          onPressed: hasPhone ? () => _call(a) : null,
+                            : Builder(builder: (context) {
+                                final rows = _rows;
+                                final sent = _students.where((x) => x.notified).length;
+                                return ListView.builder(
+                                  controller: scrollController,
+                                  itemCount: rows.length + (widget.showActions ? 1 : 0),
+                                  itemBuilder: (_, idx) {
+                                    if (widget.showActions && idx == 0) {
+                                      return Padding(
+                                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                                        child: Wrap(spacing: 8, runSpacing: 6, children: [
+                                          _pill('$sent parents notified', AppColors.success, AppColors.successSoft, Icons.check_circle_rounded),
+                                          _pill('${_students.length - sent} not notified', AppColors.textSecondary, AppColors.background, null),
+                                        ]),
+                                      );
+                                    }
+                                    final item = rows[widget.showActions ? idx - 1 : idx];
+                                    if (item is String) {
+                                      return Container(
+                                        width: double.infinity,
+                                        margin: const EdgeInsets.only(top: 6),
+                                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
+                                        color: AppColors.infoSoft,
+                                        child: Text(item, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 12.5, color: AppColors.info)),
+                                      );
+                                    }
+                                    final a = item as AbsentStudent;
+                                    final hasPhone = a.contacts.isNotEmpty;
+                                    final sentOne = widget.showActions && a.notified;
+                                    return Container(
+                                      decoration: BoxDecoration(
+                                        color: sentOne ? AppColors.successSoft : null,
+                                        border: sentOne ? const Border(left: BorderSide(color: AppColors.success, width: 4)) : null,
+                                      ),
+                                      child: ListTile(
+                                        contentPadding: const EdgeInsets.only(left: 16, right: 2),
+                                        horizontalTitleGap: 12,
+                                        leading: CircleAvatar(
+                                          backgroundColor: AppColors.primarySoft,
+                                          child: Text(a.fullName.isNotEmpty ? a.fullName[0].toUpperCase() : '?', style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
                                         ),
-                                        IconButton(
-                                          tooltip: hasPhone ? 'WhatsApp' : 'No phone number',
-                                          visualDensity: VisualDensity.compact,
-                                          icon: const Icon(Icons.chat_rounded),
-                                          color: whatsappGreen,
-                                          onPressed: hasPhone ? () => _whatsapp(a) : null,
+                                        title: Text(a.fullName, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                                        subtitle: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(a.admissionNo),
+                                            if (widget.showActions)
+                                              Padding(
+                                                padding: const EdgeInsets.only(top: 3),
+                                                child: sentOne
+                                                    ? Text('✓ Notified${a.notifiedAt.isEmpty ? '' : ' · ${a.notifiedAt}'}', style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700, color: AppColors.success))
+                                                    : const Text('Not notified', style: TextStyle(fontSize: 11.5, color: AppColors.textMuted)),
+                                              ),
+                                          ],
                                         ),
-                                      ],
-                                    ),
-                                  );
-                                },
-                              ),
+                                        trailing: !widget.showActions ? null : Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            IconButton(
+                                              tooltip: hasPhone ? 'Call' : 'No phone number',
+                                              visualDensity: VisualDensity.compact,
+                                              icon: const Icon(Icons.call_rounded),
+                                              color: AppColors.info,
+                                              onPressed: hasPhone ? () => _call(a) : null,
+                                            ),
+                                            IconButton(
+                                              tooltip: hasPhone ? 'WhatsApp' : 'No phone number',
+                                              visualDensity: VisualDensity.compact,
+                                              icon: const Icon(Icons.chat_rounded),
+                                              color: whatsappGreen,
+                                              onPressed: hasPhone ? () => _whatsapp(a) : null,
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                );
+                              }),
               ),
             ],
           ),
         );
       },
+    );
+  }
+
+  Widget _pill(String text, Color fg, Color bg, IconData? icon) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(AppRadius.pill)),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          if (icon != null) ...[Icon(icon, size: 13, color: fg), const SizedBox(width: 4)],
+          Text(text, style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700, color: fg)),
+        ]),
+      );
+}
+
+/// Today's birthdays (students and faculty) with a Call and a WhatsApp wish button - the wish text is the "Birthday" template from Masters.
+class _BirthdaySheet extends StatelessWidget {
+  const _BirthdaySheet({required this.people});
+  final List<BirthdayPerson> people;
+
+  @override
+  Widget build(BuildContext context) {
+    return DraggableScrollableSheet(
+      initialChildSize: 0.6,
+      maxChildSize: 0.9,
+      expand: false,
+      builder: (context, scrollController) => Container(
+        decoration: const BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+        child: Column(children: [
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Text('🎂 Birthdays Today (${people.length})', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
+          ),
+          Expanded(
+            child: ListView.builder(
+              controller: scrollController,
+              itemCount: people.length,
+              itemBuilder: (_, i) {
+                final p = people[i];
+                final has = p.contacts.isNotEmpty;
+                return ListTile(
+                  contentPadding: const EdgeInsets.only(left: 16, right: 2),
+                  leading: CircleAvatar(
+                    backgroundColor: const Color(0xFFFCE7F3),
+                    child: Text(p.name.isNotEmpty ? p.name[0].toUpperCase() : '?', style: const TextStyle(color: Color(0xFFDB2777), fontWeight: FontWeight.bold)),
+                  ),
+                  title: Text('${p.name}  ·  turns ${p.age}', maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                  subtitle: Text('${p.isFaculty ? '👩‍🏫 ' : ''}${p.line}'),
+                  trailing: Row(mainAxisSize: MainAxisSize.min, children: [
+                    IconButton(
+                      tooltip: has ? 'Call' : 'No phone number',
+                      visualDensity: VisualDensity.compact,
+                      icon: const Icon(Icons.call_rounded),
+                      color: AppColors.info,
+                      onPressed: has ? () => ContactActions.call(context, name: p.name, contacts: p.contacts) : null,
+                    ),
+                    IconButton(
+                      tooltip: has ? 'Send birthday wish' : 'No phone number',
+                      visualDensity: VisualDensity.compact,
+                      icon: const Icon(Icons.chat_rounded),
+                      color: whatsappGreen,
+                      onPressed: has
+                          ? () => ContactActions.whatsapp(context, name: p.name, contacts: p.contacts, category: 'Birthday',
+                              vars: ContactActions.baseVars(student: p.name, className: p.isFaculty ? '' : p.line))
+                          : null,
+                    ),
+                  ]),
+                );
+              },
+            ),
+          ),
+        ]),
+      ),
     );
   }
 }

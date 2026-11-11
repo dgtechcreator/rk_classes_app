@@ -20,7 +20,12 @@ class Expense {
     this.vendorName,
     this.enteredByName,
     this.createdAt,
+    this.source = 'Expense',
   });
+
+  /// "Expense" = a normal expense, "Salary" = a paid teacher payment shown as an expense (managed in Teacher Payment, read-only here).
+  final String source;
+  bool get isSalary => source == 'Salary';
 
   final int expenseId;
   final String expenseNo;
@@ -50,6 +55,7 @@ class Expense {
         vendorName: _asStringN(j['vendorName']),
         enteredByName: _asStringN(j['enteredByName']),
         createdAt: j['createdAt'] == null ? null : DateTime.tryParse(_asString(j['createdAt'])),
+        source: j['source'] == null ? 'Expense' : _asString(j['source']),
       );
 
   Map<String, dynamic> toSaveJson() => {
