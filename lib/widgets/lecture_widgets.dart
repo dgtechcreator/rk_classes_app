@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../models/lecture.dart';
+import '../widgets/common.dart';
 import '../theme/app_theme.dart';
 
 /// 2.25 -> "2.25", 3.0 -> "3", 1.5 -> "1.5".
@@ -257,7 +258,7 @@ Future<LectureFilters?> showLectureFilterSheet(BuildContext context, LectureOpti
               onChanged: (v) => setState(() => onChanged(v)),
             );
         return Padding(
-          padding: EdgeInsets.fromLTRB(16, 16, 16, MediaQuery.of(ctx).viewInsets.bottom + 16),
+          padding: EdgeInsets.fromLTRB(16, 16, 16, sheetBottomInset(ctx) + 16),
           child: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,

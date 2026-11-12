@@ -129,7 +129,7 @@ Widget _formSheet({
   required List<Widget> fields,
 }) {
   return Container(
-    padding: EdgeInsets.only(left: 20, right: 20, top: 20, bottom: MediaQuery.of(context).viewInsets.bottom + 20),
+    padding: EdgeInsets.only(left: 20, right: 20, top: 20, bottom: sheetBottomInset(context) + 20),
     decoration: const BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
     child: Column(
       mainAxisSize: MainAxisSize.min,

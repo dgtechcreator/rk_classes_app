@@ -102,7 +102,7 @@ class _TeacherPaymentFormSheetState extends State<TeacherPaymentFormSheet> {
     final years = {widget.currentYear - 1, widget.currentYear, widget.currentYear + 1, _year}.toList()..sort();
     final paid = widget.existing?.isPaid == true;
     return Padding(
-      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      padding: EdgeInsets.only(bottom: sheetBottomInset(context)),
       child: Container(
         decoration: const BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
         child: Form(

@@ -6,6 +6,7 @@ import '../../core/api_client.dart';
 import '../../models/lookup.dart';
 import '../../models/marks.dart';
 import '../../theme/app_theme.dart';
+import '../../widgets/common.dart';
 
 /// What the "New Test" sheet hands back: everything needed to open the marks grid for one subject of one test.
 class NewTestResult {
@@ -150,7 +151,7 @@ class _NewTestSheetState extends State<NewTestSheet> {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      padding: EdgeInsets.only(bottom: sheetBottomInset(context)),
       child: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(20, 4, 20, 16),

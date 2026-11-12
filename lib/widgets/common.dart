@@ -658,3 +658,10 @@ void showSnack(BuildContext context, String message, {bool isError = false}) {
     ),
   );
 }
+
+/// Bottom space a bottom sheet must leave: the keyboard when it is open, otherwise the system navigation bar.
+/// Android 15+ draws apps edge-to-edge, so a sheet's last button would otherwise sit under the 3-button / gesture bar.
+double sheetBottomInset(BuildContext context) {
+  final m = MediaQuery.of(context);
+  return m.viewInsets.bottom > m.padding.bottom ? m.viewInsets.bottom : m.padding.bottom;
+}

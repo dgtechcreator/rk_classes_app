@@ -345,7 +345,7 @@ class _FilterSheetState extends State<_FilterSheet> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: EdgeInsets.only(left: 20, right: 20, top: 20, bottom: MediaQuery.of(context).viewInsets.bottom + 20),
+      padding: EdgeInsets.only(left: 20, right: 20, top: 20, bottom: sheetBottomInset(context) + 20),
       decoration: const BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -474,7 +474,7 @@ class _FeeStructureFormSheetState extends State<_FeeStructureFormSheet> {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      padding: EdgeInsets.only(bottom: sheetBottomInset(context)),
       child: Container(
         padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
         decoration: const BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.vertical(top: Radius.circular(20))),

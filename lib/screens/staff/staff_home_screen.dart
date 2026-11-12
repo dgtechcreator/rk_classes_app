@@ -342,6 +342,7 @@ class _TodayStudentsSheetState extends State<_TodayStudentsSheet> {
                                 final sent = _students.where((x) => x.notified).length;
                                 return ListView.builder(
                                   controller: scrollController,
+                                  padding: EdgeInsets.only(bottom: MediaQuery.of(context).padding.bottom),
                                   itemCount: rows.length + (widget.showActions ? 1 : 0),
                                   itemBuilder: (_, idx) {
                                     if (widget.showActions && idx == 0) {
@@ -455,6 +456,7 @@ class _BirthdaySheet extends StatelessWidget {
           Expanded(
             child: ListView.builder(
               controller: scrollController,
+              padding: EdgeInsets.only(bottom: MediaQuery.of(context).padding.bottom),
               itemCount: people.length,
               itemBuilder: (_, i) {
                 final p = people[i];

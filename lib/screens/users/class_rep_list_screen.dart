@@ -227,7 +227,7 @@ class _AssignSheetState extends State<_AssignSheet> {
   Widget build(BuildContext context) {
     final s = _student;
     return Padding(
-      padding: EdgeInsets.fromLTRB(16, 16, 16, 16 + MediaQuery.of(context).viewInsets.bottom),
+      padding: EdgeInsets.fromLTRB(16, 16, 16, 16 + sheetBottomInset(context)),
       child: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,

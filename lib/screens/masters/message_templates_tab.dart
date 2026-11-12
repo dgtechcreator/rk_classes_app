@@ -49,7 +49,7 @@ class _MessageTemplatesTabState extends State<MessageTemplatesTab> {
       backgroundColor: Colors.transparent,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setSheetState) => Container(
-          padding: EdgeInsets.only(left: 20, right: 20, top: 20, bottom: MediaQuery.of(ctx).viewInsets.bottom + 20),
+          padding: EdgeInsets.only(left: 20, right: 20, top: 20, bottom: sheetBottomInset(ctx) + 20),
           decoration: const BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
           child: SingleChildScrollView(
             child: Column(

@@ -208,7 +208,16 @@ class _AttendanceEntryScreenState extends State<AttendanceEntryScreen> {
         child: Row(children: [
           const Expanded(child: Text('No class for this batch today?', style: TextStyle(fontSize: 12.5, color: AppColors.textSecondary))),
           OutlinedButton.icon(
-            style: OutlinedButton.styleFrom(foregroundColor: const Color(0xFF92400E), side: const BorderSide(color: Color(0xFFFBBF24)), visualDensity: VisualDensity.compact),
+            // The app theme gives every outlined button a full-width minimum (Size.fromHeight). Inside a Row that
+            // squeezes the Expanded text above to zero width (letters stack vertically, list disappears) on
+            // some devices — so this button must opt out of the full-width minimum.
+            style: OutlinedButton.styleFrom(
+              foregroundColor: const Color(0xFF92400E),
+              side: const BorderSide(color: Color(0xFFFBBF24)),
+              visualDensity: VisualDensity.compact,
+              minimumSize: const Size(0, 40),
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
             onPressed: _markHoliday,
             icon: const Icon(Icons.beach_access_outlined, size: 18),
             label: const Text('Mark Holiday'),

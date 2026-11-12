@@ -102,7 +102,7 @@ class _ReceiptEditSheetState extends State<_ReceiptEditSheet> {
     final fmt = DateFormat('d MMM yyyy');
     return Container(
       decoration: const BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-      padding: EdgeInsets.fromLTRB(16, 14, 16, 16 + MediaQuery.of(context).viewInsets.bottom),
+      padding: EdgeInsets.fromLTRB(16, 14, 16, 16 + sheetBottomInset(context)),
       child: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
