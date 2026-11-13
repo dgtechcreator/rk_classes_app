@@ -6,6 +6,7 @@ import '../../services/masters_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/common.dart';
 import 'attendance_batches_tab.dart';
+import 'batch_assign_screen.dart';
 import 'message_templates_tab.dart';
 
 /// Single admin settings screen mirroring MastersController.Index, which shows Academic Years,
@@ -87,6 +88,15 @@ class _MastersScreenState extends State<MastersScreen> with SingleTickerProvider
             countOf: (b) => b.studentCount,
             onSave: (id, name, isActive) => _service.saveBatch(batchId: id, batchName: name, isActive: isActive),
             onDelete: _service.deleteBatch,
+            extraAction: (ctx, b, reload) => IconButton(
+              tooltip: 'Assign students',
+              icon: const Icon(Icons.group_add_outlined, size: 20),
+              onPressed: () async {
+                await Navigator.of(ctx).push(MaterialPageRoute(
+                    builder: (_) => BatchAssignScreen(batchId: b.batchId, batchName: b.batchName)));
+                reload();
+              },
+            ),
           ),
           const _SubjectsTab(),
           const AttendanceBatchesTab(),
@@ -161,8 +171,11 @@ class _SimpleNameTab<T> extends StatefulWidget {
     required this.countOf,
     required this.onSave,
     required this.onDelete,
+    this.extraAction,
   });
 
+  /// Optional extra icon on every row (e.g. "Assign students" on a batch).
+  final Widget Function(BuildContext context, T item, VoidCallback reload)? extraAction;
   final String emptyMessage;
   final IconData emptyIcon;
   final String addLabel;
@@ -284,6 +297,7 @@ class _SimpleNameTabState<T> extends State<_SimpleNameTab<T>> {
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   if (!widget.activeOf(item)) const Padding(padding: EdgeInsets.only(right: 6), child: StatusBadge(status: 'Inactive')),
+                                  if (widget.extraAction != null) widget.extraAction!(context, item, _load),
                                   IconButton(icon: const Icon(Icons.edit_outlined, size: 20), onPressed: () => _openForm(item: item)),
                                   IconButton(icon: const Icon(Icons.delete_outline, size: 20, color: AppColors.danger), onPressed: () => _confirmDelete(item)),
                                 ],

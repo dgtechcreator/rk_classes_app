@@ -55,6 +55,12 @@ class StudentService {
 
   Future<void> delete(int id) async => _client.post('/api/students/$id/delete');
 
+  /// Move several students into one batch (e.g. a combined class split into Maths / S P).
+  Future<int> setBatch(List<int> ids, int batchId) async {
+    final res = await _client.post('/api/students/set-batch', data: {'ids': ids, 'batchId': batchId});
+    return ((res.data as Map<String, dynamic>)['moved'] as num?)?.toInt() ?? 0;
+  }
+
   /// Delete several at once: Active ones become Inactive, Inactive ones move to Deleted Records.
   Future<({int inactive, int deleted})> bulkDelete(List<int> ids) async {
     final res = await _client.post('/api/students/bulk-delete', data: {'ids': ids});
