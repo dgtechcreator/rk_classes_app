@@ -116,7 +116,7 @@ class ParentHomeScreen extends StatelessWidget {
                   label: const FittedBox(fit: BoxFit.scaleDown, child: Text('Full report')),
                   onPressed: () {
                     final sid = ctrl.selected!.studentId;
-                    Navigator.of(context).push(MaterialPageRoute(builder: (_) => StudentReportScreen(loader: () => ParentService().getDashboard(sid), title: 'Report')));
+                    Navigator.of(context).push(MaterialPageRoute(builder: (_) => StudentReportScreen(loader: () => ParentService().getDashboard(sid), title: 'Report', parentView: true)));
                   },
                 ),
               if (ctrl.shows('notes'))

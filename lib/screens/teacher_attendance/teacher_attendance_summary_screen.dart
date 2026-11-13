@@ -6,6 +6,8 @@ import '../../models/teacher_attendance.dart';
 import '../../services/teacher_attendance_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/common.dart';
+import 'teacher_attendance_detail_screen.dart';
+import 'teacher_attendance_export.dart';
 
 class _FacultyAgg {
   _FacultyAgg(this.facultyId, this.facultyName);
@@ -68,6 +70,19 @@ class _TeacherAttendanceSummaryScreenState extends State<TeacherAttendanceSummar
     return list;
   }
 
+  static const _monthNames = [
+    '', 'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December',
+  ];
+
+  /// "November 2026", "2026", "November" or "All time" - the month / year filter in words.
+  String get _periodLabel {
+    if (_month != null && _year != null) return '${_monthNames[_month!]} $_year';
+    if (_month != null) return _monthNames[_month!];
+    if (_year != null) return '$_year';
+    return 'All time';
+  }
+
   Future<void> _openFilterSheet() async {
     final faculties = {for (final a in _all) a.facultyId: a.facultyName}.entries.toList()
       ..sort((a, b) => a.value.compareTo(b.value));
@@ -92,6 +107,14 @@ class _TeacherAttendanceSummaryScreenState extends State<TeacherAttendanceSummar
       appBar: AppBar(
         title: const Text('Attendance Summary'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.file_download_outlined),
+            tooltip: 'Export to Excel',
+            onPressed: _loading || _error != null
+                ? null
+                : () => exportTeacherAttendance(context, _filtered,
+                    title: 'Teacher Attendance ($_periodLabel)', fileLabel: _periodLabel.replaceAll(RegExp(r'[^A-Za-z0-9]+'), '_')),
+          ),
           IconButton(
             icon: Icon(Icons.filter_list, color: hasFilters ? AppColors.primary : null),
             tooltip: 'Filter',
@@ -131,13 +154,23 @@ class _TeacherAttendanceSummaryScreenState extends State<TeacherAttendanceSummar
           ...byFaculty.map((f) => Card(
                 margin: const EdgeInsets.only(bottom: 8),
                 child: ListTile(
+                  onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                    builder: (_) => TeacherAttendanceDetailScreen(
+                      facultyName: f.facultyName,
+                      entries: _filtered.where((a) => a.facultyId == f.facultyId).toList(),
+                      periodLabel: _periodLabel,
+                    ),
+                  )),
                   leading: CircleAvatar(
                     backgroundColor: AppColors.primarySoft,
                     child: Text(f.facultyName.isNotEmpty ? f.facultyName[0].toUpperCase() : '?', style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
                   ),
                   title: Text(f.facultyName, style: const TextStyle(fontWeight: FontWeight.w600)),
                   subtitle: Text('${f.days.length} day${f.days.length == 1 ? '' : 's'} • ${f.entries} ${f.entries == 1 ? 'entry' : 'entries'}'),
-                  trailing: Text('${f.totalHours.toStringAsFixed(1)} hrs', style: const TextStyle(fontWeight: FontWeight.w700, color: AppColors.primary)),
+                  trailing: Row(mainAxisSize: MainAxisSize.min, children: [
+                    Text('${f.totalHours.toStringAsFixed(1)} hrs', style: const TextStyle(fontWeight: FontWeight.w700, color: AppColors.primary)),
+                    const Icon(Icons.chevron_right, color: AppColors.textSecondary),
+                  ]),
                 ),
               )),
       ],

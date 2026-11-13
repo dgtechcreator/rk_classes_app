@@ -9,10 +9,11 @@ String _asString(dynamic v) => v?.toString() ?? '';
 LookupItem _facultyLookup(Map<String, dynamic> j) => LookupItem(id: _asInt(j['facultyId']), name: _asString(j['fullName']));
 
 class TeacherAttendanceIndexData {
-  TeacherAttendanceIndexData({required this.teachers, required this.classes, required this.batches, required this.attendance});
+  TeacherAttendanceIndexData({required this.teachers, required this.classes, required this.batches, this.sections = const [], required this.attendance});
   final List<LookupItem> teachers;
   final List<LookupItem> classes;
   final List<LookupItem> batches;
+  final List<LookupItem> sections;
   final List<TeacherAttendance> attendance;
 }
 
@@ -36,6 +37,7 @@ class TeacherAttendanceService {
       teachers: (data['teachers'] as List? ?? []).map((e) => _facultyLookup(e as Map<String, dynamic>)).toList(),
       classes: (data['classes'] as List? ?? []).map((e) => LookupItem.fromClass(e as Map<String, dynamic>)).toList(),
       batches: (data['batches'] as List? ?? []).map((e) => LookupItem.fromBatch(e as Map<String, dynamic>)).toList(),
+      sections: (data['sections'] as List? ?? []).map((e) => LookupItem.fromSection(e as Map<String, dynamic>)).toList(),
       attendance: (data['attendance'] as List? ?? []).map((e) => TeacherAttendance.fromJson(e as Map<String, dynamic>)).toList(),
     );
   }
@@ -44,6 +46,7 @@ class TeacherAttendanceService {
     required int facultyId,
     int? classId,
     int? batchId,
+    int? sectionId,
     String? subject,
     String? topic,
     required String attendanceDate,
@@ -54,6 +57,7 @@ class TeacherAttendanceService {
       'facultyId': facultyId,
       'classId': classId,
       'batchId': batchId,
+      'sectionId': sectionId,
       'subject': subject,
       'topic': topic,
       'attendanceDate': attendanceDate,

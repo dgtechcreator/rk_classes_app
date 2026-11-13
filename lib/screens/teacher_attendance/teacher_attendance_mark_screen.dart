@@ -31,11 +31,13 @@ class _TeacherAttendanceMarkScreenState extends State<TeacherAttendanceMarkScree
   List<LookupItem> _teachers = [];
   List<LookupItem> _classes = [];
   List<LookupItem> _batches = [];
+  List<LookupItem> _sections = [];
   List<TeacherAttendance> _attendance = [];
 
   int? _facultyId;
   int? _classId;
   int? _batchId;
+  int? _sectionId;
   DateTime _date = DateTime.now();
   TimeOfDay? _inTime;
   TimeOfDay? _outTime;
@@ -63,6 +65,7 @@ class _TeacherAttendanceMarkScreenState extends State<TeacherAttendanceMarkScree
         _teachers = data.teachers;
         _classes = data.classes;
         _batches = data.batches;
+        _sections = data.sections;
         _attendance = data.attendance;
         // A Class Representative works inside his own class: the server sends back only that class (and
         // his batch), so they are selected for him and cannot be changed.
@@ -76,6 +79,8 @@ class _TeacherAttendanceMarkScreenState extends State<TeacherAttendanceMarkScree
       setState(() { _error = e.message; _loading = false; });
     }
   }
+
+  String _time12(TimeOfDay t) => '${t.hourOfPeriod == 0 ? 12 : t.hourOfPeriod}:${t.minute.toString().padLeft(2, '0')} ${t.period == DayPeriod.am ? 'AM' : 'PM'}';
 
   String _formatTimeOfDay(TimeOfDay t) => '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
 
@@ -95,7 +100,12 @@ class _TeacherAttendanceMarkScreenState extends State<TeacherAttendanceMarkScree
   }
 
   Future<void> _pickTime({required bool isIn}) async {
-    final picked = await showTimePicker(context: context, initialTime: (isIn ? _inTime : _outTime) ?? TimeOfDay.now());
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: (isIn ? _inTime : _outTime) ?? TimeOfDay.now(),
+      // AM / PM picker on every phone, whatever its 24-hour clock setting is.
+      builder: (ctx, child) => MediaQuery(data: MediaQuery.of(ctx).copyWith(alwaysUse24HourFormat: false), child: child!),
+    );
     if (picked == null) return;
     setState(() { if (isIn) { _inTime = picked; } else { _outTime = picked; } });
   }
@@ -108,6 +118,7 @@ class _TeacherAttendanceMarkScreenState extends State<TeacherAttendanceMarkScree
         facultyId: _facultyId!,
         classId: _classId,
         batchId: _batchId,
+        sectionId: _sectionId,
         subject: _subjectCtrl.text.trim().isEmpty ? null : _subjectCtrl.text.trim(),
         topic: _topicCtrl.text.trim().isEmpty ? null : _topicCtrl.text.trim(),
         attendanceDate: DateFormat('yyyy-MM-dd').format(_date),
@@ -188,6 +199,8 @@ class _TeacherAttendanceMarkScreenState extends State<TeacherAttendanceMarkScree
             Expanded(child: _dropdown('Batch', _batchId, _batches, isCr && _batches.length == 1 ? null : (v) => setState(() => _batchId = v))),
           ]),
           const SizedBox(height: 12),
+          _dropdown('Stream / Medium', _sectionId, _sections, (v) => setState(() => _sectionId = v)),
+          const SizedBox(height: 12),
           TextFormField(controller: _subjectCtrl, maxLength: 100, decoration: const InputDecoration(labelText: 'Subject', counterText: '')),
           const SizedBox(height: 12),
           TextFormField(controller: _topicCtrl, maxLength: 500, maxLines: 2, decoration: const InputDecoration(labelText: 'Topic taught', counterText: '')),
@@ -220,7 +233,7 @@ class _TeacherAttendanceMarkScreenState extends State<TeacherAttendanceMarkScree
                     ),
                     title: Text(a.facultyName, style: const TextStyle(fontWeight: FontWeight.w600)),
                     subtitle: Text([
-                      if (a.classBatchLabel.isNotEmpty) a.classBatchLabel,
+                      if (a.fullLabel.isNotEmpty) a.fullLabel,
                       if ((a.subjectName ?? '').isNotEmpty) a.subjectName!,
                       if ((a.topic ?? '').isNotEmpty) a.topic!,
                       if (a.inTimeDisplay != null || a.outTimeDisplay != null) '${a.inTimeDisplay ?? '--'} - ${a.outTimeDisplay ?? '--'}',
@@ -261,7 +274,7 @@ class _TeacherAttendanceMarkScreenState extends State<TeacherAttendanceMarkScree
       onTap: onTap,
       child: InputDecorator(
         decoration: InputDecoration(labelText: label, suffixIcon: const Icon(Icons.access_time, size: 18)),
-        child: Text(value == null ? 'Not set' : value.format(context), style: TextStyle(color: value == null ? AppColors.textSecondary : null)),
+        child: Text(value == null ? 'Not set' : _time12(value), style: TextStyle(color: value == null ? AppColors.textSecondary : null)),
       ),
     );
   }

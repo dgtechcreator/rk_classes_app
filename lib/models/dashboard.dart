@@ -51,6 +51,7 @@ class DashboardStats {
     required this.feesThisMonth,
     required this.expensesThisMonth,
     required this.totalStaff,
+    this.totalFaculty = 0,
     required this.totalFeesOverall,
     required this.totalCollectedOverall,
     required this.totalDiscountOverall,
@@ -63,7 +64,11 @@ class DashboardStats {
   final int absentToday;
   final double feesThisMonth;
   final double expensesThisMonth;
+  /// Login accounts (Users).
   final int totalStaff;
+
+  /// Active faculty (teachers) - same number as the Faculty page header.
+  final int totalFaculty;
   final double totalFeesOverall;
   final double totalCollectedOverall;
   final double totalDiscountOverall;
@@ -77,6 +82,7 @@ class DashboardStats {
         feesThisMonth: _asDouble(j['feesThisMonth']),
         expensesThisMonth: _asDouble(j['expensesThisMonth']),
         totalStaff: _asInt(j['totalStaff']),
+        totalFaculty: _asInt(j['totalFaculty']),
         totalFeesOverall: _asDouble(j['totalFeesOverall']),
         totalCollectedOverall: _asDouble(j['totalCollectedOverall']),
         totalDiscountOverall: _asDouble(j['totalDiscountOverall']),

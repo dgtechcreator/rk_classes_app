@@ -14,6 +14,8 @@ class TeacherAttendance {
     this.className,
     this.batchId,
     this.batchName,
+    this.sectionId,
+    this.sectionName,
     this.subjectName,
     this.topic,
     required this.attendanceDate,
@@ -29,6 +31,9 @@ class TeacherAttendance {
   final String? className;
   final int? batchId;
   final String? batchName;
+  /// Stream / Medium (Section master: Science, Commerce, Hindi, English ...); null on older entries.
+  final int? sectionId;
+  final String? sectionName;
   final String? subjectName;
   final String? topic;
   final DateTime attendanceDate;
@@ -44,6 +49,8 @@ class TeacherAttendance {
         className: _asStringN(j['className']),
         batchId: _asIntN(j['batchId']),
         batchName: _asStringN(j['batchName']),
+        sectionId: _asIntN(j['sectionId']),
+        sectionName: _asStringN(j['sectionName']),
         subjectName: _asStringN(j['subjectName']),
         topic: _asStringN(j['topic']),
         attendanceDate: DateTime.tryParse(_asString(j['attendanceDate'])) ?? DateTime.now(),
@@ -54,8 +61,20 @@ class TeacherAttendance {
 
   String get classBatchLabel => [className, batchName].where((e) => e != null && e.isNotEmpty).join(' / ');
 
-  String? get inTimeDisplay => (inTime == null || inTime!.length < 5) ? inTime : inTime!.substring(0, 5);
-  String? get outTimeDisplay => (outTime == null || outTime!.length < 5) ? outTime : outTime!.substring(0, 5);
+  /// "12th / Commerce / Evening" - class, then stream / medium, then batch.
+  String get fullLabel => [className, sectionName, batchName].where((e) => e != null && e.trim().isNotEmpty).join(' / ');
+
+  /// Shown the way it was entered: 4 PM - 6 PM stays "4:00 PM - 6:00 PM" (never 16:00 - 18:00).
+  String? get inTimeDisplay => _to12h(inTime);
+  String? get outTimeDisplay => _to12h(outTime);
+
+  static String? _to12h(String? t) {
+    if (t == null || t.length < 5) return t;
+    final h = int.tryParse(t.substring(0, 2)), m = int.tryParse(t.substring(3, 5));
+    if (h == null || m == null) return t.substring(0, 5);
+    final h12 = h % 12 == 0 ? 12 : h % 12;
+    return '$h12:${m.toString().padLeft(2, '0')} ${h < 12 ? 'AM' : 'PM'}';
+  }
 
   bool isOnDate(DateTime date) =>
       attendanceDate.year == date.year && attendanceDate.month == date.month && attendanceDate.day == date.day;

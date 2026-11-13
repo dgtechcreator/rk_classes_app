@@ -12,9 +12,12 @@ import '../../widgets/profile_avatar.dart';
 /// One student's report: attendance pie (present / absent / late), subject-wise marks and the fee position.
 /// The same screen serves a parent (own child) and staff who have the "Student 360 View" right - only [loader] differs.
 class StudentReportScreen extends StatefulWidget {
-  const StudentReportScreen({super.key, required this.loader, this.title = 'Student Report'});
+  const StudentReportScreen({super.key, required this.loader, this.title = 'Student Report', this.parentView = false});
   final Future<ParentDashboardData> Function() loader;
   final String title;
+
+  /// A parent only sees Paid + Balance: the discount and the total fee are never shown (same rule as the parent fee page).
+  final bool parentView;
 
   @override
   State<StudentReportScreen> createState() => _StudentReportScreenState();
@@ -263,8 +266,11 @@ class _StudentReportScreenState extends State<StudentReportScreen> {
 
   // ── fees ─────────────────────────────────────────────────────────────────────────────
   Widget _feesCard(ParentDashboardData d) {
-    final paid = d.totalPaid, disc = d.discount, bal = d.balance < 0 ? 0.0 : d.balance;
+    final pv = widget.parentView;
+    final paid = d.totalPaid, disc = pv ? 0.0 : d.discount, bal = d.balance < 0 ? 0.0 : d.balance;
     final any = paid + disc + bal > 0;
+    // Parent: the share is paid / (paid + balance), so the discount can't be worked out from the numbers either.
+    final base = pv ? paid + bal : d.netTotal;
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: _card,
@@ -285,10 +291,10 @@ class _StudentReportScreenState extends State<StudentReportScreen> {
                       PieChart(PieChartData(
                         sectionsSpace: 2,
                         centerSpaceRadius: 46,
-                        sections: [_slice(paid, AppColors.success), _slice(disc, AppColors.info), _slice(bal, AppColors.danger)],
+                        sections: [_slice(paid, AppColors.success), if (!pv) _slice(disc, AppColors.info), _slice(bal, AppColors.danger)],
                       )),
                       Column(mainAxisSize: MainAxisSize.min, children: [
-                        Text('${(d.netTotal <= 0 ? 0 : paid * 100 / d.netTotal).clamp(0, 100).toStringAsFixed(0)}%', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
+                        Text('${(base <= 0 ? 0 : paid * 100 / base).clamp(0, 100).toStringAsFixed(0)}%', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
                         const Text('paid', style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
                       ]),
                     ],
@@ -299,10 +305,12 @@ class _StudentReportScreenState extends State<StudentReportScreen> {
                   child: Column(
                     children: [
                       _money3('Paid', paid, AppColors.success),
-                      _money3('Discount', disc, AppColors.info),
+                      if (!pv) _money3('Discount', disc, AppColors.info),
                       _money3('Balance', bal, AppColors.danger),
-                      const Divider(height: 14),
-                      _money3('Total fee', d.netTotal, AppColors.textSecondary),
+                      if (!pv) ...[
+                        const Divider(height: 14),
+                        _money3('Total fee', d.netTotal, AppColors.textSecondary),
+                      ],
                     ],
                   ),
                 ),

@@ -18,6 +18,7 @@ import '../finance/finance_dashboard_screen.dart';
 import '../students/student_list_screen.dart';
 import '../users/user_list_screen.dart';
 import 'coming_soon_screen.dart';
+import '../faculty/faculty_list_screen.dart';
 import 'staff_modules_screen.dart';
 
 /// Home tab — a quick "what matters right now" surface (admin KPIs + charts, then a handful of
@@ -191,7 +192,8 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
           AdminStatCard(label: 'Absent Today', value: '${s.absentToday}', color: AppColors.danger, icon: Icons.cancel_outlined, onTap: _openAbsentSheet),
           if (_birthdays.isNotEmpty)
             AdminStatCard(label: 'Birthdays Today', value: '${_birthdays.length}', color: const Color(0xFFDB2777), icon: Icons.cake_rounded, onTap: _openBirthdaySheet),
-          AdminStatCard(label: 'Total Staff', value: '${s.totalStaff}', color: AppColors.violet, icon: Icons.groups_2_rounded, onTap: () => _push(const UserListScreen())),
+          AdminStatCard(label: 'Faculty', value: '${s.totalFaculty}', color: AppColors.violet, icon: Icons.school_rounded, onTap: () => _push(const FacultyListScreen())),
+          AdminStatCard(label: 'Users (Logins)', value: '${s.totalStaff}', color: AppColors.info, icon: Icons.admin_panel_settings_outlined, onTap: () => _push(const UserListScreen())),
           AdminStatCard(label: 'Fees This Month', value: money.format(s.feesThisMonth), color: AppColors.success, icon: Icons.bar_chart_rounded, onTap: () => _push(const FeesThisMonthScreen())),
           if (context.read<Session>().hasPerm('expenses_view'))
             AdminStatCard(label: 'Expenses This Month', value: money.format(s.expensesThisMonth), color: AppColors.danger, icon: Icons.request_quote_outlined, onTap: () => _push(const ExpenseListScreen())),

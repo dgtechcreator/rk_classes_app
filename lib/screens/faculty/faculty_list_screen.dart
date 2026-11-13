@@ -23,6 +23,7 @@ class FacultyListScreen extends StatefulWidget {
 class _FacultyListScreenState extends State<FacultyListScreen> {
   final _service = FacultyService();
   final _searchCtrl = TextEditingController();
+  final _scroll = ScrollController();
   Timer? _debounce;
 
   bool _loading = true;
@@ -40,6 +41,10 @@ class _FacultyListScreenState extends State<FacultyListScreen> {
   @override
   void initState() {
     super.initState();
+    // The next page loads by itself near the bottom (15 per page) - the header count is the whole list, not just page 1.
+    _scroll.addListener(() {
+      if (_scroll.hasClients && _scroll.position.pixels >= _scroll.position.maxScrollExtent - 300) _loadMore();
+    });
     _load();
   }
 
@@ -47,6 +52,7 @@ class _FacultyListScreenState extends State<FacultyListScreen> {
   void dispose() {
     _debounce?.cancel();
     _searchCtrl.dispose();
+    _scroll.dispose();
     super.dispose();
   }
 
@@ -130,6 +136,9 @@ class _FacultyListScreenState extends State<FacultyListScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text('Faculty${_total > 0 ? ' ($_total)' : ''}'),
+        bottom: _total > 0 && !_loading && _faculty.length < _total
+            ? PreferredSize(preferredSize: const Size.fromHeight(22), child: Padding(padding: const EdgeInsets.only(bottom: 6), child: Text('Showing ${_faculty.length} of $_total - scroll for more', style: const TextStyle(color: Colors.white70, fontSize: 12))))
+            : null,
         actions: [
           IconButton(
             icon: Icon(Icons.filter_list, color: hasActiveFilters ? AppColors.primary : null),
@@ -165,6 +174,8 @@ class _FacultyListScreenState extends State<FacultyListScreen> {
                         : RefreshIndicator(
                             onRefresh: _load,
                             child: ListView.separated(
+                              controller: _scroll,
+                              physics: const AlwaysScrollableScrollPhysics(),
                               padding: const EdgeInsets.fromLTRB(12, 0, 12, 80),
                               itemCount: _faculty.length + (_page < _totalPages ? 1 : 0),
                               separatorBuilder: (_, _) => const SizedBox(height: 8),
