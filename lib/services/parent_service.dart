@@ -75,6 +75,15 @@ class ParentService {
 
   Future<void> markNotificationsRead() async => _client.post('/api/parent/notifications/read');
 
+  /// The student / parent edits the child's own details: date of birth is required, email is optional (empty clears it).
+  Future<void> updateChildDetails(int studentId, {required DateTime dateOfBirth, String? email}) async {
+    final m = dateOfBirth.month.toString().padLeft(2, '0'), d = dateOfBirth.day.toString().padLeft(2, '0');
+    await _client.post('/api/parent/students/$studentId/details', data: {
+      'dateOfBirth': '${dateOfBirth.year.toString().padLeft(4, '0')}-$m-$d',
+      'email': (email ?? '').trim().isEmpty ? null : email!.trim(),
+    });
+  }
+
   Future<void> sendContactMessage({required String name, required String email, required String subject, required String message}) async {
     await _client.post('/api/parent/contact', data: {'name': name, 'email': email, 'subject': subject, 'message': message});
   }

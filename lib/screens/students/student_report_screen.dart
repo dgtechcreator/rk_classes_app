@@ -138,15 +138,7 @@ class _StudentReportScreenState extends State<StudentReportScreen> {
                   child: Stack(
                     alignment: Alignment.center,
                     children: [
-                      PieChart(PieChartData(
-                        sectionsSpace: 2,
-                        centerSpaceRadius: 46,
-                        sections: [
-                          _slice(a.presentDays.toDouble(), AppColors.success),
-                          _slice(a.absentDays.toDouble(), AppColors.danger),
-                          _slice(a.lateDays.toDouble(), AppColors.late),
-                        ],
-                      )),
+                      _ring([(a.presentDays.toDouble(), AppColors.success), (a.absentDays.toDouble(), AppColors.danger), (a.lateDays.toDouble(), AppColors.late)]),
                       Column(mainAxisSize: MainAxisSize.min, children: [
                         Text('${a.attendancePct.toStringAsFixed(0)}%', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
                         const Text('present', style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
@@ -173,7 +165,18 @@ class _StudentReportScreenState extends State<StudentReportScreen> {
     );
   }
 
-  PieChartSectionData _slice(double v, Color c) => PieChartSectionData(value: v <= 0 ? 0.0001 : v, color: c, radius: 22, showTitle: false);
+  /// Ring chart of the non-zero parts only. A near-zero placeholder slice next to a full one (100% paid / 100% present)
+  /// made fl_chart draw no ring at all, so empty parts are left out; with a single part there is no gap line.
+  Widget _ring(List<(double, Color)> parts) {
+    final used = parts.where((p) => p.$1 > 0).toList();
+    return PieChart(PieChartData(
+      sectionsSpace: used.length > 1 ? 2 : 0,
+      centerSpaceRadius: 46,
+      sections: used.isEmpty
+          ? [PieChartSectionData(value: 1, color: AppColors.borderNeutral, radius: 22, showTitle: false)]
+          : [for (final p in used) PieChartSectionData(value: p.$1, color: p.$2, radius: 22, showTitle: false)],
+    ));
+  }
 
   Widget _legend(String label, int value, Color c) => Padding(
         padding: const EdgeInsets.symmetric(vertical: 3),
@@ -288,11 +291,7 @@ class _StudentReportScreenState extends State<StudentReportScreen> {
                   child: Stack(
                     alignment: Alignment.center,
                     children: [
-                      PieChart(PieChartData(
-                        sectionsSpace: 2,
-                        centerSpaceRadius: 46,
-                        sections: [_slice(paid, AppColors.success), if (!pv) _slice(disc, AppColors.info), _slice(bal, AppColors.danger)],
-                      )),
+                      _ring([(paid, AppColors.success), if (!pv) (disc, AppColors.info), (bal, AppColors.danger)]),
                       Column(mainAxisSize: MainAxisSize.min, children: [
                         Text('${(base <= 0 ? 0 : paid * 100 / base).clamp(0, 100).toStringAsFixed(0)}%', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
                         const Text('paid', style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),

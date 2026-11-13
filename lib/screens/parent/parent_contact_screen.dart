@@ -8,6 +8,7 @@ import '../../services/parent_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/common.dart';
 import '../auth/login_screen.dart';
+import 'my_details_card.dart';
 
 class ParentContactScreen extends StatefulWidget {
   const ParentContactScreen({super.key});
@@ -97,6 +98,10 @@ class _ParentContactScreenState extends State<ParentContactScreen> {
                 child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
+                      if (context.watch<ParentDataController>().selected != null) ...[
+                        MyDetailsCard(student: context.watch<ParentDataController>().selected!),
+                        const SizedBox(height: 20),
+                      ],
                       if (context.watch<ParentDataController>().shows('contact')) Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
