@@ -64,9 +64,11 @@ class _TasksNotificationsScreenState extends State<TasksNotificationsScreen> wit
     setState(() { _loading = _notifications.isEmpty && _tasks.isEmpty; _error = null; });
     try {
       final data = await _service.getNotifications();
+      // Tasks tab shows ALL tasks (completed ones stay, faded). data.tasks is only the pending ones the bell uses.
+      final allTasks = await _service.getTasks();
       if (!mounted) return;
       final fresh = data.notifications.where((n) => n.isUnread).map((n) => n.notificationId);
-      setState(() { _notifications = data.notifications; _tasks = data.tasks; _loading = false; _newIds.addAll(fresh); });
+      setState(() { _notifications = data.notifications; _tasks = allTasks; _loading = false; _newIds.addAll(fresh); });
       if (widget.active && data.notifications.any((n) => n.isUnread)) {
         final live = context.read<RealtimeNotificationService>();
         live.markAllReadLocally();
@@ -207,25 +209,34 @@ class _TasksNotificationsScreenState extends State<TasksNotificationsScreen> wit
 
   Widget _buildTasksTab() {
     if (_tasks.isEmpty) return const EmptyState(message: 'No tasks yet. Tap + to create one.', icon: Icons.checklist_outlined);
+    // Open tasks first, completed ones below (they stay in the list, just faded).
+    final sorted = [..._tasks]..sort((a, b) => (a.isCompleted ? 1 : 0).compareTo(b.isCompleted ? 1 : 0));
     return RefreshIndicator(
       onRefresh: _load,
       child: ListView.separated(
         padding: const EdgeInsets.all(16),
-        itemCount: _tasks.length,
+        itemCount: sorted.length,
         separatorBuilder: (_, _) => const SizedBox(height: 8),
         itemBuilder: (_, i) {
-          final t = _tasks[i];
-          return Card(
-            child: ListTile(
-              title: Text(t.title, style: const TextStyle(fontWeight: FontWeight.w600)),
-              subtitle: Text('${t.studentName != null ? '${t.studentName} • ' : ''}Due ${DateFormat.yMMMd().format(t.dueDate)}'),
-              leading: StatusBadge(status: t.status),
-              trailing: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  IconButton(icon: const Icon(Icons.check_circle_outline, color: AppColors.success), onPressed: () => _completeTask(t)),
-                  IconButton(icon: const Icon(Icons.delete_outline, color: AppColors.danger), onPressed: () => _deleteTask(t)),
-                ],
+          final t = sorted[i];
+          return Opacity(
+            opacity: t.isCompleted ? 0.55 : 1,
+            child: Card(
+              child: ListTile(
+                title: Text(
+                  t.title,
+                  style: TextStyle(fontWeight: FontWeight.w600, decoration: t.isCompleted ? TextDecoration.lineThrough : null),
+                ),
+                subtitle: Text('${t.studentName != null ? '${t.studentName} • ' : ''}Due ${DateFormat.yMMMd().format(t.dueDate)}'),
+                leading: StatusBadge(status: t.status),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (!t.isCompleted)
+                      IconButton(icon: const Icon(Icons.check_circle_outline, color: AppColors.success), onPressed: () => _completeTask(t)),
+                    IconButton(icon: const Icon(Icons.delete_outline, color: AppColors.danger), onPressed: () => _deleteTask(t)),
+                  ],
+                ),
               ),
             ),
           );
