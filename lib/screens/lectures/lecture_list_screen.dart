@@ -29,6 +29,15 @@ class _LectureListScreenState extends State<LectureListScreen> {
   late LectureFilters _f;
   LectureOptions? _options;
   LectureListResult? _result;
+  final _search = TextEditingController();
+  String _q = '';
+
+  @override
+  void dispose() {
+    _search.dispose();
+    super.dispose();
+  }
+
   bool _loading = true;
   String? _error;
   String _period = 'week';
@@ -281,6 +290,7 @@ class _LectureListScreenState extends State<LectureListScreen> {
               ],
             ),
           ),
+          ListSearchField(controller: _search, onChanged: (v) => setState(() => _q = v), hint: 'Search teacher, subject, topic, class...', padding: const EdgeInsets.fromLTRB(14, 0, 14, 4)),
           Padding(
             padding: const EdgeInsets.fromLTRB(14, 0, 14, 4),
             child: Align(alignment: Alignment.centerLeft, child: Text(_rangeLabel, style: const TextStyle(color: AppColors.textSecondary, fontSize: 12))),
@@ -295,7 +305,7 @@ class _LectureListScreenState extends State<LectureListScreen> {
   Widget _body(bool canEdit) {
     if (_loading) return const LoadingView();
     if (_error != null) return ErrorView(message: _error!, onRetry: _load);
-    final list = _result?.lectures ?? [];
+    final list = (_result?.lectures ?? []).where((l) => matchesSearch(_q, [l.teacher, l.subject, l.topic, l.className, l.sectionName, l.batchName])).toList();
     if (list.isEmpty) {
       return RefreshIndicator(
         onRefresh: _load,

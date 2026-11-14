@@ -5,6 +5,7 @@ import '../../core/api_client.dart';
 import '../../models/lecture.dart';
 import '../../services/lecture_service.dart';
 import '../../widgets/common.dart';
+import '../../widgets/app_dropdown.dart';
 
 /// Create or edit one lecture. For a new lecture "Repeat every week" creates one lecture per chosen weekday up
 /// to the end date (the server rejects the whole batch if anything clashes with an existing lecture).
@@ -25,7 +26,7 @@ class _LectureFormScreenState extends State<LectureFormScreen> {
 
   late DateTime _date;
   TimeOfDay? _start, _end;
-  int? _classId, _sectionId, _batchId, _facultyId;
+  int? _classId, _sectionId, _batchId, _facultyId, _classroomId;
   String? _subject;
   bool _repeat = false;
   final Set<int> _days = {};
@@ -47,6 +48,7 @@ class _LectureFormScreenState extends State<LectureFormScreen> {
       _classId = l.classId;
       _sectionId = l.sectionId;
       _batchId = l.batchId;
+      _classroomId = l.classroomId;
       _facultyId = l.facultyId;
       _subject = l.subject;
       _topic.text = l.topic ?? '';
@@ -110,6 +112,7 @@ class _LectureFormScreenState extends State<LectureFormScreen> {
         classId: _classId!,
         sectionId: _sectionId,
         batchId: _batchId,
+        classroomId: _classroomId,
         subject: _subject!,
         facultyId: _facultyId!,
         topic: _topic.text.trim().isEmpty ? null : _topic.text.trim(),
@@ -128,7 +131,7 @@ class _LectureFormScreenState extends State<LectureFormScreen> {
   }
 
   Widget _idDrop(String label, int? value, List<IdName> items, ValueChanged<int?> onChanged, {String allLabel = 'All', bool required = false}) {
-    return DropdownButtonFormField<int?>(
+    return AppDropdown<int?>(
       isExpanded: true,
       initialValue: items.any((e) => e.id == value) ? value : null,
       decoration: InputDecoration(labelText: required ? '$label *' : label),
@@ -178,7 +181,10 @@ class _LectureFormScreenState extends State<LectureFormScreen> {
             Expanded(child: _idDrop('Batch', _batchId, o.batches, (v) => setState(() => _batchId = v), allLabel: 'All batches')),
           ]),
           const SizedBox(height: 12),
-          DropdownButtonFormField<String?>(
+          // Where the lecture is held: students and the teacher are told, and a room cannot hold two lectures at once.
+          _idDrop('Classroom', _classroomId, o.classrooms, (v) => setState(() => _classroomId = v), allLabel: '— No classroom —'),
+          const SizedBox(height: 12),
+          AppDropdown<String?>(
             isExpanded: true,
             initialValue: o.subjects.contains(_subject) ? _subject : null,
             decoration: const InputDecoration(labelText: 'Subject *'),

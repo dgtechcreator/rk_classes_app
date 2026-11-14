@@ -14,6 +14,7 @@ import '../../services/marks_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/common.dart';
 import 'new_test_sheet.dart';
+import '../../widgets/app_dropdown.dart';
 
 /// Marks entry — mirrors MarksController.Index + Save. Pick year/class/section/batch/subject/exam
 /// (typing a new exam name starts a new test; picking a suggestion reloads any marks already entered
@@ -49,6 +50,10 @@ class _MarksEntryScreenState extends State<MarksEntryScreen> {
   DateTime _testDate = DateTime.now();
 
   List<StudentMarkRow> _students = [];
+  // Search only narrows what is SHOWN: typed marks live in per-student controllers and Save always sends every student.
+  final _search = TextEditingController();
+  String _q = '';
+  List<StudentMarkRow> get _visibleStudents => _students.where((s) => matchesSearch(_q, [s.fullName, s.admissionNo, s.rollNo])).toList();
   final Map<int, TextEditingController> _controllers = {};
   final Map<int, bool> _absent = {};
 
@@ -85,6 +90,7 @@ class _MarksEntryScreenState extends State<MarksEntryScreen> {
     _examDebounce?.cancel();
     _examCtrl.dispose();
     _maxCtrl.dispose();
+    _search.dispose();
     for (final c in _controllers.values) {
       c.dispose();
     }
@@ -393,7 +399,7 @@ class _MarksEntryScreenState extends State<MarksEntryScreen> {
               ),
               const SizedBox(height: 12),
             ],
-            DropdownButtonFormField<int?>(
+            AppDropdown<int?>(
       isExpanded: true,
               initialValue: _subjects.any((s) => s.subjectId == _subjectId) ? _subjectId : null,
               decoration: const InputDecoration(labelText: 'Subject'),
@@ -448,7 +454,7 @@ class _MarksEntryScreenState extends State<MarksEntryScreen> {
   }
 
   Widget _dropdown(String label, int? value, List<LookupItem> items, ValueChanged<int?> onChanged) {
-    return DropdownButtonFormField<int?>(
+    return AppDropdown<int?>(
       isExpanded: true,
       initialValue: items.any((e) => e.id == value) ? value : null,
       decoration: InputDecoration(labelText: label),
@@ -473,7 +479,10 @@ class _MarksEntryScreenState extends State<MarksEntryScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        for (final s in _students) ...[
+        ListSearchField(controller: _search, onChanged: (v) => setState(() => _q = v), hint: 'Search student, admission no, roll no...', padding: const EdgeInsets.only(bottom: 8)),
+        if (_q.trim().isNotEmpty && _visibleStudents.isEmpty)
+          const Padding(padding: EdgeInsets.all(20), child: Center(child: Text('No student matches your search.', style: TextStyle(color: AppColors.textSecondary)))),
+        for (final s in _visibleStudents) ...[
           _MarkEntryTile(
             student: s,
             controller: _controllers[s.studentId]!,

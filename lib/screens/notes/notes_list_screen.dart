@@ -86,6 +86,16 @@ class _NotesListScreenState extends State<NotesListScreen> {
   List<LookupItem> _classes = [];
   int? _classId;
   String? _kind;
+  final _search = TextEditingController();
+  String _q = '';
+
+  List<ClassNote> get _shown => _notes.where((n) => matchesSearch(_q, [n.title, n.subjectName, n.className, n.createdByName, n.fileName])).toList();
+
+  @override
+  void dispose() {
+    _search.dispose();
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -161,6 +171,7 @@ class _NotesListScreenState extends State<NotesListScreen> {
       floatingActionButton: canEdit ? FloatingActionButton.extended(onPressed: _upload, icon: const Icon(Icons.upload_file_rounded), label: const Text('Upload')) : null,
       body: Column(
         children: [
+          ListSearchField(controller: _search, onChanged: (v) => setState(() => _q = v), hint: 'Search title, subject, class...', padding: const EdgeInsets.fromLTRB(14, 10, 14, 0)),
           SizedBox(
             height: 52,
             child: ListView(
@@ -185,9 +196,9 @@ class _NotesListScreenState extends State<NotesListScreen> {
                             ? ListView(children: const [Padding(padding: EdgeInsets.only(top: 60), child: EmptyState(message: 'Nothing uploaded yet.', icon: Icons.description_outlined))])
                             : ListView.separated(
                                 padding: const EdgeInsets.fromLTRB(14, 6, 14, 90),
-                                itemCount: _notes.length,
+                                itemCount: _shown.length,
                                 separatorBuilder: (_, _) => const SizedBox(height: 8),
-                                itemBuilder: (_, i) => NoteTile(note: _notes[i], onOpen: () => _open(_notes[i]), onDelete: canEdit ? () => _delete(_notes[i]) : null),
+                                itemBuilder: (_, i) => NoteTile(note: _shown[i], onOpen: () => _open(_shown[i]), onDelete: canEdit ? () => _delete(_shown[i]) : null),
                               ),
                       ),
           ),

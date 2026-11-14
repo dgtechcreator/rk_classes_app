@@ -22,6 +22,7 @@ class ReceiptPdf {
     Student? student,
     double remainingBalance = 0,
     DateTime? dueDate,
+    bool showBalance = true,   // false: leave the Due date / Due fees cells empty (a parent whose "Fees: Paid & Balance" is switched off)
   }) async {
     final logo = pw.MemoryImage(
       (await rootBundle.load(
@@ -309,18 +310,22 @@ class ReceiptPdf {
                       cell('', ''),
                     ]),
                     row([
-                      cell(
-                        'Due Date:- ',
-                        (remainingBalance > 0 && dueDate != null)
-                            ? DateFormat('dd-MM-yyyy').format(dueDate)
-                            : 'Nil',
-                      ),
-                      cell(
-                        'Due fees:- ',
-                        remainingBalance > 0
-                            ? 'Rs. ${money.format(remainingBalance)}'
-                            : 'Nil',
-                      ),
+                      showBalance
+                          ? cell(
+                              'Due Date:- ',
+                              (remainingBalance > 0 && dueDate != null)
+                                  ? DateFormat('dd-MM-yyyy').format(dueDate)
+                                  : 'Nil',
+                            )
+                          : cell('', ''),
+                      showBalance
+                          ? cell(
+                              'Due fees:- ',
+                              remainingBalance > 0
+                                  ? 'Rs. ${money.format(remainingBalance)}'
+                                  : 'Nil',
+                            )
+                          : cell('', ''),
                       cell(
                         'Collected by: ',
                         payment.collectorName?.trim().isNotEmpty == true

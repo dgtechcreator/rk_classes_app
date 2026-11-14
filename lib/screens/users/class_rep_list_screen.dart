@@ -8,6 +8,7 @@ import '../../services/class_rep_service.dart';
 import '../../services/lookup_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/common.dart';
+import '../../widgets/app_dropdown.dart';
 
 /// Class Representatives (CR / Monitor) - admin only. Pick a student of a class, give him a login, switch him on / off.
 /// A CR can mark only his own class's student attendance and add teacher attendance (subject + topic).
@@ -23,6 +24,14 @@ class _ClassRepListScreenState extends State<ClassRepListScreen> {
   bool _loading = true;
   String? _error;
   List<ClassRep> _reps = [];
+  final _search = TextEditingController();
+  String _q = '';
+
+  @override
+  void dispose() {
+    _search.dispose();
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -83,11 +92,16 @@ class _ClassRepListScreenState extends State<ClassRepListScreen> {
         ),
       ]);
     }
-    return ListView.builder(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
-      itemCount: _reps.length,
+    final shown = _reps.where((r) => matchesSearch(_q, [r.studentName, r.classLabel, r.username])).toList();
+    return Column(children: [
+      ListSearchField(controller: _search, onChanged: (v) => setState(() => _q = v), hint: 'Search student, class, login...'),
+      Expanded(child: shown.isEmpty
+        ? const EmptyState(message: 'No Class Representative matches your search.', icon: Icons.search_off_rounded)
+        : ListView.builder(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
+      itemCount: shown.length,
       itemBuilder: (_, i) {
-        final r = _reps[i];
+        final r = shown[i];
         final status = r.isWorking ? 'Working' : (!r.studentActive ? 'Student inactive' : 'Switched off');
         return Card(
           child: ListTile(
@@ -104,7 +118,8 @@ class _ClassRepListScreenState extends State<ClassRepListScreen> {
           ),
         );
       },
-    );
+    )),
+    ]);
   }
 }
 
@@ -211,7 +226,7 @@ class _AssignSheetState extends State<_AssignSheet> {
   }
 
   Widget _drop(String label, int? value, List<LookupItem> items, ValueChanged<int?> onChanged, {bool allowAll = false}) {
-    return DropdownButtonFormField<int?>(
+    return AppDropdown<int?>(
       isExpanded: true,
       initialValue: items.any((e) => e.id == value) ? value : null,
       decoration: InputDecoration(labelText: label),
@@ -247,7 +262,7 @@ class _AssignSheetState extends State<_AssignSheet> {
             if (_loadingStudents)
               const Padding(padding: EdgeInsets.all(12), child: Center(child: CircularProgressIndicator(strokeWidth: 2)))
             else
-              DropdownButtonFormField<int?>(
+              AppDropdown<int?>(
                 isExpanded: true,
                 initialValue: _studentId,
                 decoration: InputDecoration(labelText: _classId == null ? 'Student * (select Std first)' : 'Student * (${_students.length})'),

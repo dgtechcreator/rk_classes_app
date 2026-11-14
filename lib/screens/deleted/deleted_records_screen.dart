@@ -19,6 +19,8 @@ class _DeletedRecordsScreenState extends State<DeletedRecordsScreen> with Single
   bool _loading = true;
   String? _error;
   DeletedRecordsData? _data;
+  final _search = TextEditingController();
+  String _q = '';
 
   final _fmt = NumberFormat.currency(symbol: '₹', decimalDigits: 0);
 
@@ -31,6 +33,7 @@ class _DeletedRecordsScreenState extends State<DeletedRecordsScreen> with Single
   @override
   void dispose() {
     _tabController.dispose();
+    _search.dispose();
     super.dispose();
   }
 
@@ -90,28 +93,35 @@ class _DeletedRecordsScreenState extends State<DeletedRecordsScreen> with Single
           ? const LoadingView()
           : _error != null
               ? ErrorView(message: _error!, onRetry: _load)
-              : TabBarView(
-                  controller: _tabController,
-                  children: [
-                    _studentsTab(d!),
-                    _facultyTab(d),
-                    _usersTab(d),
-                    _othersTab(d),
-                    _receiptsTab(d),
-                  ],
-                ),
+              : Column(children: [
+                  ListSearchField(controller: _search, onChanged: (v) => setState(() => _q = v), hint: 'Search name, admission no, receipt...'),
+                  Expanded(
+                    child: TabBarView(
+                      controller: _tabController,
+                      children: [
+                        _studentsTab(d!),
+                        _facultyTab(d),
+                        _usersTab(d),
+                        _othersTab(d),
+                        _receiptsTab(d),
+                      ],
+                    ),
+                  ),
+                ]),
     );
   }
 
   Widget _studentsTab(DeletedRecordsData d) {
     if (d.students.isEmpty) return const EmptyState(message: 'No deleted students.', icon: Icons.check_circle_outline);
+    final students = d.students.where((s) => matchesSearch(_q, [s.displayName, s.admissionNo, s.classLabel])).toList();
+    if (students.isEmpty) return const EmptyState(message: 'Nothing matches your search.', icon: Icons.search_off_rounded);
     return RefreshIndicator(
       onRefresh: _load,
       child: ListView.builder(
         padding: const EdgeInsets.all(16),
-        itemCount: d.students.length,
+        itemCount: students.length,
         itemBuilder: (_, i) {
-          final s = d.students[i];
+          final s = students[i];
           return Card(
             child: ListTile(
               title: Text(s.displayName, style: const TextStyle(fontWeight: FontWeight.w600)),
@@ -131,13 +141,15 @@ class _DeletedRecordsScreenState extends State<DeletedRecordsScreen> with Single
 
   Widget _facultyTab(DeletedRecordsData d) {
     if (d.faculty.isEmpty) return const EmptyState(message: 'No deleted faculty.', icon: Icons.check_circle_outline);
+    final faculty = d.faculty.where((f) => matchesSearch(_q, [f.fullName, f.employeeCode])).toList();
+    if (faculty.isEmpty) return const EmptyState(message: 'Nothing matches your search.', icon: Icons.search_off_rounded);
     return RefreshIndicator(
       onRefresh: _load,
       child: ListView.builder(
         padding: const EdgeInsets.all(16),
-        itemCount: d.faculty.length,
+        itemCount: faculty.length,
         itemBuilder: (_, i) {
-          final f = d.faculty[i];
+          final f = faculty[i];
           return Card(
             child: ListTile(
               title: Text(f.fullName, style: const TextStyle(fontWeight: FontWeight.w600)),
@@ -157,13 +169,15 @@ class _DeletedRecordsScreenState extends State<DeletedRecordsScreen> with Single
 
   Widget _usersTab(DeletedRecordsData d) {
     if (d.users.isEmpty) return const EmptyState(message: 'No deleted users.', icon: Icons.check_circle_outline);
+    final users = d.users.where((u) => matchesSearch(_q, [u.fullName, u.username, u.roleName])).toList();
+    if (users.isEmpty) return const EmptyState(message: 'Nothing matches your search.', icon: Icons.search_off_rounded);
     return RefreshIndicator(
       onRefresh: _load,
       child: ListView.builder(
         padding: const EdgeInsets.all(16),
-        itemCount: d.users.length,
+        itemCount: users.length,
         itemBuilder: (_, i) {
-          final u = d.users[i];
+          final u = users[i];
           return Card(
             child: ListTile(
               title: Text(u.fullName, style: const TextStyle(fontWeight: FontWeight.w600)),
@@ -183,13 +197,15 @@ class _DeletedRecordsScreenState extends State<DeletedRecordsScreen> with Single
 
   Widget _othersTab(DeletedRecordsData d) {
     if (d.others.isEmpty) return const EmptyState(message: 'No other deleted records.', icon: Icons.check_circle_outline);
+    final others = d.others.where((o) => matchesSearch(_q, [o.title, o.subtitle, o.kindLabel])).toList();
+    if (others.isEmpty) return const EmptyState(message: 'Nothing matches your search.', icon: Icons.search_off_rounded);
     return RefreshIndicator(
       onRefresh: _load,
       child: ListView.builder(
         padding: const EdgeInsets.all(16),
-        itemCount: d.others.length,
+        itemCount: others.length,
         itemBuilder: (_, i) {
-          final o = d.others[i];
+          final o = others[i];
           return Card(
             child: ListTile(
               title: Text(o.title, style: const TextStyle(fontWeight: FontWeight.w600)),
@@ -209,13 +225,15 @@ class _DeletedRecordsScreenState extends State<DeletedRecordsScreen> with Single
 
   Widget _receiptsTab(DeletedRecordsData d) {
     if (d.receipts.isEmpty) return const EmptyState(message: 'No deleted receipts.', icon: Icons.check_circle_outline);
+    final receipts = d.receipts.where((p) => matchesSearch(_q, [p.studentName, p.receiptNo])).toList();
+    if (receipts.isEmpty) return const EmptyState(message: 'Nothing matches your search.', icon: Icons.search_off_rounded);
     return RefreshIndicator(
       onRefresh: _load,
       child: ListView.builder(
         padding: const EdgeInsets.all(16),
-        itemCount: d.receipts.length,
+        itemCount: receipts.length,
         itemBuilder: (_, i) {
-          final p = d.receipts[i];
+          final p = receipts[i];
           return Card(
             child: ListTile(
               title: Text(p.studentName ?? p.receiptNo, style: const TextStyle(fontWeight: FontWeight.w600)),

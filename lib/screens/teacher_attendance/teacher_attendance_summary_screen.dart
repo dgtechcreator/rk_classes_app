@@ -8,6 +8,7 @@ import '../../theme/app_theme.dart';
 import '../../widgets/common.dart';
 import 'teacher_attendance_detail_screen.dart';
 import 'teacher_attendance_export.dart';
+import '../../widgets/app_dropdown.dart';
 
 class _FacultyAgg {
   _FacultyAgg(this.facultyId, this.facultyName);
@@ -30,6 +31,14 @@ class _TeacherAttendanceSummaryScreenState extends State<TeacherAttendanceSummar
   bool _loading = true;
   String? _error;
   List<TeacherAttendance> _all = [];
+  final _search = TextEditingController();
+  String _q = '';
+
+  @override
+  void dispose() {
+    _search.dispose();
+    super.dispose();
+  }
 
   int? _facultyId;
   int? _month;
@@ -55,6 +64,7 @@ class _TeacherAttendanceSummaryScreenState extends State<TeacherAttendanceSummar
         if (_facultyId != null && a.facultyId != _facultyId) return false;
         if (_month != null && a.attendanceDate.month != _month) return false;
         if (_year != null && a.attendanceDate.year != _year) return false;
+        if (!matchesSearch(_q, [a.facultyName, a.subjectName, a.className, a.sectionName])) return false;
         return true;
       }).toList();
 
@@ -141,6 +151,7 @@ class _TeacherAttendanceSummaryScreenState extends State<TeacherAttendanceSummar
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
+        ListSearchField(controller: _search, onChanged: (v) => setState(() => _q = v), hint: 'Search teacher, subject, class...', padding: const EdgeInsets.only(bottom: 12)),
         Row(children: [
           Expanded(child: StatCard(label: 'Total Hours', value: totalHours.toStringAsFixed(1), color: AppColors.info, icon: Icons.timer_outlined)),
           const SizedBox(width: 12),
@@ -160,7 +171,7 @@ class _TeacherAttendanceSummaryScreenState extends State<TeacherAttendanceSummar
                       entries: _filtered.where((a) => a.facultyId == f.facultyId).toList(),
                       periodLabel: _periodLabel,
                     ),
-                  )),
+                  )).then((changed) { if (changed == true) _load(); }),
                   leading: CircleAvatar(
                     backgroundColor: AppColors.primarySoft,
                     child: Text(f.facultyName.isNotEmpty ? f.facultyName[0].toUpperCase() : '?', style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
@@ -218,9 +229,10 @@ class _SummaryFilterSheetState extends State<_SummaryFilterSheet> {
         children: [
           const Text('Filter Summary', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
           const SizedBox(height: 16),
-          DropdownButtonFormField<int?>(
+          AppDropdown<int?>(
       isExpanded: true,
             initialValue: widget.faculties.any((e) => e.key == _facultyId) ? _facultyId : null,
+            alwaysSearch: true,
             decoration: const InputDecoration(labelText: 'Faculty'),
             items: [
               const DropdownMenuItem<int?>(value: null, child: Text('All')),
@@ -229,7 +241,7 @@ class _SummaryFilterSheetState extends State<_SummaryFilterSheet> {
             onChanged: (v) => setState(() => _facultyId = v),
           ),
           const SizedBox(height: 12),
-          DropdownButtonFormField<int?>(
+          AppDropdown<int?>(
       isExpanded: true,
             initialValue: _month,
             decoration: const InputDecoration(labelText: 'Month'),
@@ -240,7 +252,7 @@ class _SummaryFilterSheetState extends State<_SummaryFilterSheet> {
             onChanged: (v) => setState(() => _month = v),
           ),
           const SizedBox(height: 12),
-          DropdownButtonFormField<int?>(
+          AppDropdown<int?>(
       isExpanded: true,
             initialValue: widget.years.contains(_year) ? _year : null,
             decoration: const InputDecoration(labelText: 'Year'),

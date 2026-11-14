@@ -7,7 +7,10 @@ import '../../widgets/common.dart';
 import '../deleted/deleted_records_screen.dart';
 import '../expenses/expense_list_screen.dart';
 import '../faculty/faculty_list_screen.dart';
+import '../classrooms/classroom_screen.dart';
+import '../fee_followup/fee_followup_screen.dart';
 import '../fee_structure/fee_structure_list_screen.dart';
+import '../teacher_attendance/my_attendance_log_screen.dart';
 import '../fees/fee_collect_search_screen.dart';
 import '../finance/finance_dashboard_screen.dart';
 import '../marks/marks_entry_screen.dart';
@@ -72,17 +75,23 @@ final allModules = [
   ModuleDef('Notes & Papers', Icons.description_outlined, 'class_notes', 'Academics', screenBuilder: (_) => const NotesListScreen()),
   ModuleDef('Lecture Schedule', Icons.calendar_view_week_outlined, 'lecture_schedule', 'Academics', screenBuilder: (_) => const LectureListScreen()),
   ModuleDef('Lecture Summary', Icons.pie_chart_outline, 'lecture_summary', 'Academics', screenBuilder: (_) => const LectureSummaryScreen()),
+  ModuleDef('Classrooms', Icons.meeting_room_outlined, 'lecture_schedule', 'Academics', screenBuilder: (_) => const ClassroomScreen()),
   ModuleDef('My Lectures', Icons.menu_book_outlined, null, 'Academics',
       screenBuilder: (_) => const MyLecturesScreen(),
       visibleWhen: (s) => !s.isAdmin && s.roleName.toLowerCase().contains('teacher')),
   ModuleDef('Discontinued', Icons.person_off_outlined, 'discontinued_students', 'Academics', screenBuilder: (_) => const DiscontinuedListScreen()),
   ModuleDef('Fees', Icons.payments_outlined, 'fee_collection', 'Finance', screenBuilder: (_) => const FeeCollectSearchScreen()),
-  ModuleDef('Fee Structure', Icons.receipt_long_outlined, 'fee_structure', 'Finance', screenBuilder: (_) => const FeeStructureListScreen()),
+  ModuleDef('Fee Structure', Icons.account_tree_outlined, 'fee_structure', 'Finance', screenBuilder: (_) => const FeeStructureListScreen()),
+  ModuleDef('Fee Heads', Icons.receipt_long_outlined, 'fee_structure', 'Finance', screenBuilder: (_) => const FeeStructureListScreen(headsOnly: true)),
+  ModuleDef('Fee Follow-up', Icons.phone_in_talk_outlined, 'fees_due', 'Finance', screenBuilder: (_) => const FeeFollowupScreen()),
   ModuleDef('Expenses', Icons.request_quote_outlined, 'expenses_view', 'Finance', screenBuilder: (_) => const ExpenseListScreen()),
   ModuleDef('Finance', Icons.pie_chart_outline, 'finance_view', 'Finance', screenBuilder: (_) => const FinanceDashboardScreen()),
   ModuleDef('Faculty', Icons.school_outlined, 'faculty_view', 'Staff', screenBuilder: (_) => const FacultyListScreen()),
   ModuleDef('Teacher Attendance', Icons.badge_outlined, 'teacher_attendance', 'Staff', screenBuilder: (_) => const TeacherAttendanceMarkScreen()),
   ModuleDef('Teacher Payment', Icons.currency_rupee, 'teacher_payment', 'Staff', screenBuilder: (_) => const TeacherPaymentListScreen()),
+  ModuleDef('My Attendance', Icons.fact_check_outlined, null, 'Staff',
+      screenBuilder: (_) => const MyAttendanceLogScreen(),
+      visibleWhen: (s) => !s.isAdmin && s.roleName.toLowerCase().contains('teacher')),
   ModuleDef('My Payments', Icons.account_balance_wallet_outlined, null, 'Staff',
       screenBuilder: (_) => const TeacherPaymentSummaryScreen(mine: true),
       visibleWhen: (s) => !s.isAdmin && s.roleName.toLowerCase().contains('teacher')),

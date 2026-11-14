@@ -8,6 +8,8 @@ import '../../services/photo_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/profile_avatar.dart';
 import '../auth/login_screen.dart';
+import '../../widgets/fingerprint_tile.dart';
+import '../security/login_activity_screen.dart';
 import 'staff_modules_screen.dart';
 
 /// A real account tab — matches the "Profile" pattern nearly every top consumer/education app has
@@ -91,6 +93,17 @@ class StaffProfileScreen extends StatelessWidget {
                     _infoRow(Icons.person_outline_rounded, 'Username', session.username),
                     _divider(),
                     _infoRow(Icons.badge_outlined, 'Role', session.roleName.isEmpty ? '-' : session.roleName),
+                  ]),
+                  const SizedBox(height: 12),
+                  _sectionCard([
+                    ListTile(
+                      leading: const Icon(Icons.fingerprint_rounded, color: AppColors.primary),
+                      title: Text(session.isAdmin ? 'Login activity' : 'My login activity', style: const TextStyle(fontWeight: FontWeight.w700)),
+                      subtitle: Text(session.isAdmin ? 'Phones and browsers everyone signed in from' : 'Phones and browsers signed in to your account', style: const TextStyle(fontSize: 12)),
+                      trailing: const Icon(Icons.chevron_right_rounded),
+                      onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const LoginActivityScreen())),
+                    ),
+                    const FingerprintTile(kind: 'staff'),
                   ]),
                   const SizedBox(height: 18),
                   const _Label('Access'),

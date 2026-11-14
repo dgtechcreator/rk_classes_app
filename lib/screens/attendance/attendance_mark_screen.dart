@@ -11,6 +11,7 @@ import '../../theme/app_theme.dart';
 import '../../widgets/common.dart';
 import 'attendance_entry_screen.dart';
 import 'attendance_report_screen.dart';
+import '../../widgets/app_dropdown.dart';
 
 /// Attendance home — mirrors the web Attendance page. For the chosen date it lists every attendance
 /// batch as a card (green = attendance taken, light red = still pending, with present/total); tapping a
@@ -374,7 +375,7 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
   }
 
   Widget _dropdown(String label, int? value, List<LookupItem> items, ValueChanged<int?> onChanged) {
-    return DropdownButtonFormField<int?>(
+    return AppDropdown<int?>(
       isExpanded: true,
       initialValue: items.any((e) => e.id == value) ? value : null,
       decoration: InputDecoration(labelText: label),

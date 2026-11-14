@@ -14,6 +14,7 @@ import '../../widgets/common.dart';
 import '../../widgets/person_card.dart';
 import 'student_detail_screen.dart';
 import 'student_form_screen.dart';
+import '../../widgets/app_dropdown.dart';
 
 class StudentListScreen extends StatefulWidget {
   const StudentListScreen({super.key});
@@ -304,7 +305,7 @@ class _FilterSheetState extends State<_FilterSheet> {
           const SizedBox(height: 12),
           _dropdown('Batch', _batchId, widget.batches, (v) => setState(() => _batchId = v)),
           const SizedBox(height: 12),
-          DropdownButtonFormField<String>(
+          AppDropdown<String>(
       isExpanded: true,
             initialValue: _status,
             decoration: const InputDecoration(labelText: 'Status'),
@@ -338,7 +339,7 @@ class _FilterSheetState extends State<_FilterSheet> {
   }
 
   Widget _dropdown(String label, int? value, List<LookupItem> items, ValueChanged<int?> onChanged) {
-    return DropdownButtonFormField<int?>(
+    return AppDropdown<int?>(
       isExpanded: true,
       initialValue: value,
       decoration: InputDecoration(labelText: label),

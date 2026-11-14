@@ -12,12 +12,15 @@ import '../../widgets/profile_avatar.dart';
 /// One student's report: attendance pie (present / absent / late), subject-wise marks and the fee position.
 /// The same screen serves a parent (own child) and staff who have the "Student 360 View" right - only [loader] differs.
 class StudentReportScreen extends StatefulWidget {
-  const StudentReportScreen({super.key, required this.loader, this.title = 'Student Report', this.parentView = false});
+  const StudentReportScreen({super.key, required this.loader, this.title = 'Student Report', this.parentView = false, this.showFees = true});
   final Future<ParentDashboardData> Function() loader;
   final String title;
 
   /// A parent only sees Paid + Balance: the discount and the total fee are never shown (same rule as the parent fee page).
   final bool parentView;
+
+  /// False: no Fees card (a parent whose "Fees: Paid & Balance" is switched off in Roles & Access).
+  final bool showFees;
 
   @override
   State<StudentReportScreen> createState() => _StudentReportScreenState();
@@ -64,8 +67,10 @@ class _StudentReportScreenState extends State<StudentReportScreen> {
                       _attendanceCard(_d!),
                       const SizedBox(height: 12),
                       _marksCard(_d!),
-                      const SizedBox(height: 12),
-                      _feesCard(_d!),
+                      if (widget.showFees) ...[
+                        const SizedBox(height: 12),
+                        _feesCard(_d!),
+                      ],
                     ],
                   ),
                 ),

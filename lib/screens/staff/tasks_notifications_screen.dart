@@ -7,6 +7,7 @@ import '../../core/realtime_notification_service.dart';
 import '../../models/student_activity.dart';
 import '../../models/task_notification.dart';
 import '../../services/task_service.dart';
+import '../teacher_attendance/my_attendance_log_screen.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/common.dart';
 
@@ -151,6 +152,7 @@ class _TasksNotificationsScreenState extends State<TasksNotificationsScreen> wit
         'Lecture' => ActivityLook.of('lecture'),
         'FeesDue' => ActivityLook.of('fee'),
         'Attendance' => ActivityLook.of('absent'),
+        'TeacherAttendance' => ActivityLook.of('absent'),
         _ => const ActivityLook(Icons.notifications_rounded, AppColors.info, AppColors.infoSoft, ActivityGroup.attendance),
       };
 
@@ -174,7 +176,11 @@ class _TasksNotificationsScreenState extends State<TasksNotificationsScreen> wit
               border: Border.all(color: isNew ? AppColors.border : AppColors.borderNeutral),
             ),
             child: InkWell(
-              onTap: () => _markRead(n),
+              onTap: () {
+                _markRead(n);
+                // "your entry was deleted / edited": open the log that shows which entry, who did it and when
+                if (n.type == 'TeacherAttendance') Navigator.of(context).push(MaterialPageRoute(builder: (_) => const MyAttendanceLogScreen()));
+              },
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [

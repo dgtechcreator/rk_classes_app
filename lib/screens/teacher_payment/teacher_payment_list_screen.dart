@@ -11,6 +11,7 @@ import '../../theme/app_theme.dart';
 import '../../widgets/common.dart';
 import 'teacher_payment_form_sheet.dart';
 import 'teacher_payment_summary_screen.dart';
+import '../../widgets/app_dropdown.dart';
 
 /// Teacher payment dues + this month's payments — mirrors TeacherPaymentController.Index. The API only
 /// ever returns all-time unpaid dues plus the current month's payments (see service doc comment), so
@@ -27,6 +28,14 @@ class _TeacherPaymentListScreenState extends State<TeacherPaymentListScreen> {
   bool _loading = true;
   String? _error;
   TeacherPaymentIndexData? _data;
+  final _search = TextEditingController();
+  String _q = '';
+
+  @override
+  void dispose() {
+    _search.dispose();
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -109,25 +118,31 @@ class _TeacherPaymentListScreenState extends State<TeacherPaymentListScreen> {
 
   Widget _buildBody(bool canEdit) {
     final data = _data!;
-    return RefreshIndicator(
+    bool hit(TeacherPayment p) => matchesSearch(_q, [p.facultyName, p.typeLabel, p.monthYearLabel, p.paymentMode]);
+    final unpaid = data.unpaidPayments.where(hit).toList();
+    final monthly = data.monthlyPayments.where(hit).toList();
+    return Column(children: [
+      ListSearchField(controller: _search, onChanged: (v) => setState(() => _q = v), hint: 'Search teacher, type, month...'),
+      Expanded(child: RefreshIndicator(
       onRefresh: _load,
       child: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
         children: [
-          SectionHeader(title: 'Unpaid Dues (${data.unpaidPayments.length})'),
-          if (data.unpaidPayments.isEmpty)
+          SectionHeader(title: 'Unpaid Dues (${unpaid.length})'),
+          if (unpaid.isEmpty)
             const EmptyState(message: 'No unpaid dues.', icon: Icons.check_circle_outline)
           else
-            ...data.unpaidPayments.map((p) => _PaymentTile(payment: p, canEdit: canEdit, onMarkPaid: () => _markPaid(p), onEdit: () => _editPayment(p), onDelete: () => _deletePayment(p))),
+            ...unpaid.map((p) => _PaymentTile(payment: p, canEdit: canEdit, onMarkPaid: () => _markPaid(p), onEdit: () => _editPayment(p), onDelete: () => _deletePayment(p))),
           const SizedBox(height: 20),
-          SectionHeader(title: 'This Month (${data.monthlyPayments.length})'),
-          if (data.monthlyPayments.isEmpty)
+          SectionHeader(title: 'This Month (${monthly.length})'),
+          if (monthly.isEmpty)
             const EmptyState(message: 'No payments recorded this month.', icon: Icons.currency_rupee)
           else
-            ...data.monthlyPayments.map((p) => _PaymentTile(payment: p, canEdit: canEdit, onMarkPaid: p.isPaid ? null : () => _markPaid(p), onEdit: () => _editPayment(p), onDelete: () => _deletePayment(p))),
+            ...monthly.map((p) => _PaymentTile(payment: p, canEdit: canEdit, onMarkPaid: p.isPaid ? null : () => _markPaid(p), onEdit: () => _editPayment(p), onDelete: () => _deletePayment(p))),
         ],
       ),
-    );
+    )),
+    ]);
   }
 }
 
@@ -207,7 +222,7 @@ class _MarkPaidDialogState extends State<_MarkPaidDialog> {
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          DropdownButtonFormField<String>(
+          AppDropdown<String>(
       isExpanded: true,
             initialValue: _mode,
             decoration: const InputDecoration(labelText: 'Payment Mode'),

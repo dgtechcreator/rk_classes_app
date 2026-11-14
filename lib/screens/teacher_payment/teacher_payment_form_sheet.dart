@@ -8,6 +8,7 @@ import '../../services/lookup_service.dart';
 import '../../services/teacher_payment_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/common.dart';
+import '../../widgets/app_dropdown.dart';
 
 /// Add a teacher payment entry, or EDIT an existing one (pending or paid) - same fields as the website's Edit page.
 /// A paid entry also lets you correct the payment mode (from the Masters list), reference and paid date.
@@ -117,9 +118,10 @@ class _TeacherPaymentFormSheetState extends State<TeacherPaymentFormSheet> {
                 if (widget.isEdit) Padding(padding: const EdgeInsets.only(top: 2), child: Text('${widget.existing!.facultyName}${paid ? ' · paid' : ' · pending'}', style: const TextStyle(color: AppColors.textSecondary))),
                 const SizedBox(height: 16),
                 if (!widget.isEdit) ...[
-                  DropdownButtonFormField<int>(
+                  AppDropdown<int>(
                     isExpanded: true,
                     initialValue: _facultyId,
+                    alwaysSearch: true,
                     decoration: const InputDecoration(labelText: 'Faculty *'),
                     items: widget.faculty.map((f) => DropdownMenuItem(value: f.id, child: Text(f.name, overflow: TextOverflow.ellipsis))).toList(),
                     onChanged: (v) => setState(() {
@@ -134,7 +136,7 @@ class _TeacherPaymentFormSheetState extends State<TeacherPaymentFormSheet> {
                   ),
                   const SizedBox(height: 12),
                 ],
-                DropdownButtonFormField<String>(
+                AppDropdown<String>(
                   isExpanded: true,
                   initialValue: _type,
                   decoration: const InputDecoration(labelText: 'Payment Type'),
@@ -166,7 +168,7 @@ class _TeacherPaymentFormSheetState extends State<TeacherPaymentFormSheet> {
                 const SizedBox(height: 12),
                 Row(children: [
                   Expanded(
-                    child: DropdownButtonFormField<int>(
+                    child: AppDropdown<int>(
                       isExpanded: true,
                       initialValue: _month,
                       decoration: const InputDecoration(labelText: 'Month'),
@@ -176,7 +178,7 @@ class _TeacherPaymentFormSheetState extends State<TeacherPaymentFormSheet> {
                   ),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: DropdownButtonFormField<int>(
+                    child: AppDropdown<int>(
                       isExpanded: true,
                       initialValue: _year,
                       decoration: const InputDecoration(labelText: 'Year'),
@@ -187,7 +189,7 @@ class _TeacherPaymentFormSheetState extends State<TeacherPaymentFormSheet> {
                 ]),
                 if (paid) ...[
                   const SizedBox(height: 12),
-                  DropdownButtonFormField<String>(
+                  AppDropdown<String>(
                     isExpanded: true,
                     initialValue: _mode != null && _modes.contains(_mode) ? _mode : null,
                     decoration: const InputDecoration(labelText: 'Payment Mode'),

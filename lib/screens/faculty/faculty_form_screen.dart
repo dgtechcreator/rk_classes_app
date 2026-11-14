@@ -8,6 +8,7 @@ import '../../theme/app_theme.dart';
 import '../../services/photo_service.dart';
 import '../../widgets/common.dart';
 import '../../widgets/profile_avatar.dart';
+import '../../widgets/app_dropdown.dart';
 
 class FacultyFormScreen extends StatefulWidget {
   const FacultyFormScreen({super.key, this.faculty});
@@ -184,7 +185,7 @@ class _FacultyFormScreenState extends State<FacultyFormScreen> {
                   const SizedBox(height: 12),
                   Row(children: [
                     Expanded(
-                      child: DropdownButtonFormField<String>(
+                      child: AppDropdown<String>(
       isExpanded: true,
                         initialValue: _gender,
                         decoration: const InputDecoration(labelText: 'Gender'),
@@ -198,7 +199,7 @@ class _FacultyFormScreenState extends State<FacultyFormScreen> {
                     ),
                     const SizedBox(width: 12),
                     Expanded(
-                      child: DropdownButtonFormField<String>(
+                      child: AppDropdown<String>(
       isExpanded: true,
                         initialValue: _bloodGroup,
                         decoration: const InputDecoration(labelText: 'Blood Group'),
@@ -222,7 +223,7 @@ class _FacultyFormScreenState extends State<FacultyFormScreen> {
                   TextFormField(controller: _address, maxLines: 2, decoration: const InputDecoration(labelText: 'Address', alignLabelWithHint: true)),
                   const SizedBox(height: 20),
                   const SectionHeader(title: 'Professional'),
-                  DropdownButtonFormField<int?>(
+                  AppDropdown<int?>(
       isExpanded: true,
                     initialValue: _designations.any((e) => e.designationId == _designationId) ? _designationId : null,
                     decoration: const InputDecoration(labelText: 'Designation *'),
@@ -237,7 +238,7 @@ class _FacultyFormScreenState extends State<FacultyFormScreen> {
                   const SizedBox(height: 12),
                   TextFormField(controller: _specialization, decoration: const InputDecoration(labelText: 'Specialization / Subjects', hintText: 'e.g. Mathematics, Science')),
                   const SizedBox(height: 12),
-                  DropdownButtonFormField<String>(
+                  AppDropdown<String>(
                     isExpanded: true,
                     initialValue: _salaryType,
                     decoration: const InputDecoration(labelText: 'Salary Type'),
@@ -256,7 +257,7 @@ class _FacultyFormScreenState extends State<FacultyFormScreen> {
                   ),
                   if (widget.isEdit) ...[
                     const SizedBox(height: 12),
-                    DropdownButtonFormField<String>(
+                    AppDropdown<String>(
       isExpanded: true,
                       initialValue: _status,
                       decoration: const InputDecoration(labelText: 'Status'),

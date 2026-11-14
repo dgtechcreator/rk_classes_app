@@ -22,6 +22,12 @@ class TeacherAttendance {
     this.inTime,
     this.outTime,
     this.totalHours,
+    this.source,
+    this.updatedByName,
+    this.updatedAt,
+    this.isDeleted = false,
+    this.deletedByName,
+    this.deletedAt,
   });
 
   final int attendanceId;
@@ -41,6 +47,16 @@ class TeacherAttendance {
   final String? outTime;
   final double? totalHours;
 
+  /// "student" = made automatically when the student attendance was saved with teacher + subject + start / end time.
+  final String? source;
+  final String? updatedByName;
+  final DateTime? updatedAt;
+  final bool isDeleted;
+  final String? deletedByName;
+  final DateTime? deletedAt;
+
+  bool get isAuto => source == 'student';
+
   factory TeacherAttendance.fromJson(Map<String, dynamic> j) => TeacherAttendance(
         attendanceId: _asInt(j['attendanceId']),
         facultyId: _asInt(j['facultyId']),
@@ -57,6 +73,12 @@ class TeacherAttendance {
         inTime: _asStringN(j['inTime']),
         outTime: _asStringN(j['outTime']),
         totalHours: _asDoubleN(j['totalHours']),
+        source: _asStringN(j['source']),
+        updatedByName: _asStringN(j['updatedByName']),
+        updatedAt: j['updatedAt'] == null ? null : DateTime.tryParse(_asString(j['updatedAt'])),
+        isDeleted: j['isDeleted'] == true,
+        deletedByName: _asStringN(j['deletedByName']),
+        deletedAt: j['deletedAt'] == null ? null : DateTime.tryParse(_asString(j['deletedAt'])),
       );
 
   String get classBatchLabel => [className, batchName].where((e) => e != null && e.isNotEmpty).join(' / ');

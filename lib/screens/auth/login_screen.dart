@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/biometric_login.dart';
 import '../../core/api_client.dart';
 import '../../core/realtime_notification_service.dart';
 import '../../core/session.dart';
@@ -34,6 +35,64 @@ class _LoginScreenState extends State<LoginScreen> {
 
   final _authService = AuthService();
 
+  // fingerprint sign-in: the phone supports it, and it was switched on for staff / parent logins
+  bool _bioAvailable = false, _bioStaff = false, _bioParent = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadBio();
+  }
+
+  Future<void> _loadBio() async {
+    final a = await BiometricLogin.available();
+    final s = a && await BiometricLogin.isEnabled('staff');
+    final p = a && await BiometricLogin.isEnabled('parent');
+    if (mounted) setState(() { _bioAvailable = a; _bioStaff = s; _bioParent = p; });
+  }
+
+  /// After a password sign-in: offer the fingerprint once, or quietly refresh the saved password when it is already on.
+  Future<void> _offerBio(String kind, String id, String password) async {
+    if (!_bioAvailable) return;
+    if (await BiometricLogin.isEnabled(kind)) {
+      await BiometricLogin.enable(kind, id, password);
+      return;
+    }
+    if (!mounted) return;
+    final yes = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Sign in with fingerprint?'),
+        content: const Text('Next time just touch the fingerprint sensor instead of typing your password. Your details stay on this phone, encrypted.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Not now')),
+          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Turn on')),
+        ],
+      ),
+    );
+    if (yes == true) await BiometricLogin.enable(kind, id, password);
+  }
+
+  Future<void> _bioLogin(String kind) async {
+    final c = await BiometricLogin.unlock(kind);
+    if (c == null) return;
+    if (kind == 'staff') {
+      _staffUsername.text = c.id;
+      _staffPassword.text = c.password;
+      await _submitStaff(fromBio: true);
+    } else {
+      _parentPhone.text = c.id;
+      _parentPassword.text = c.password;
+      await _submitParentLogin(fromBio: true);
+    }
+  }
+
+  /// The saved password no longer works (it was changed): forget it and ask for the password again.
+  Future<void> _bioFailed(String kind) async {
+    await BiometricLogin.disable(kind);
+    if (mounted) setState(() { if (kind == 'staff') { _bioStaff = false; _staffPassword.clear(); } else { _bioParent = false; _parentPassword.clear(); } });
+  }
+
   final _staffUsername = TextEditingController();
   final _staffPassword = TextEditingController();
 
@@ -57,7 +116,7 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  Future<void> _submitStaff() async {
+  Future<void> _submitStaff({bool fromBio = false}) async {
     if (_staffUsername.text.trim().isEmpty || _staffPassword.text.isEmpty) {
       setState(() => _error = 'Enter username and password.');
       return;
@@ -65,6 +124,8 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() { _loading = true; _error = null; });
     try {
       final r = await _authService.staffLogin(_staffUsername.text.trim(), _staffPassword.text);
+      if (!mounted) return;
+      if (!fromBio) await _offerBio('staff', _staffUsername.text.trim(), _staffPassword.text);
       if (!mounted) return;
       await context.read<Session>().applyStaffLogin(
             token: r.token, userId: r.userId, fullName: r.fullName, displayName: r.displayName, username: r.username,
@@ -77,7 +138,8 @@ class _LoginScreenState extends State<LoginScreen> {
       if (!mounted) return;
       Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => const StaffShell()));
     } on ApiException catch (e) {
-      setState(() => _error = e.message);
+      if (fromBio) await _bioFailed('staff');
+      setState(() => _error = fromBio ? 'Sign in failed (${e.message}). Please sign in with your password.' : e.message);
     } catch (e) {
       setState(() => _error = 'Could not connect to server. Please check your internet connection.');
     } finally {
@@ -85,7 +147,7 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  Future<void> _submitParentLogin() async {
+  Future<void> _submitParentLogin({bool fromBio = false}) async {
     if (_parentPhone.text.trim().isEmpty || _parentPassword.text.isEmpty) {
       setState(() => _error = 'Enter phone number and password.');
       return;
@@ -93,9 +155,11 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() { _loading = true; _error = null; });
     try {
       final r = await _authService.parentLogin(_parentPhone.text.trim(), _parentPassword.text);
+      if (!fromBio) await _offerBio('parent', _parentPhone.text.trim(), _parentPassword.text);
       await _onParentLoggedIn(r);
     } on ApiException catch (e) {
-      setState(() => _error = e.message);
+      if (fromBio) await _bioFailed('parent');
+      setState(() => _error = fromBio ? 'Sign in failed (${e.message}). Please sign in with your password.' : e.message);
     } catch (e) {
       setState(() => _error = 'Could not connect to server. Please check your internet connection.');
     } finally {
@@ -342,9 +406,19 @@ class _LoginScreenState extends State<LoginScreen> {
           onPressed: _loading ? null : _submitStaff,
           child: _loading ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const Text('Sign In'),
         ),
+        if (_bioStaff) _bioButton('staff'),
       ],
     );
   }
+
+  Widget _bioButton(String kind) => Padding(
+        padding: const EdgeInsets.only(top: 10),
+        child: OutlinedButton.icon(
+          onPressed: _loading ? null : () => _bioLogin(kind),
+          icon: const Icon(Icons.fingerprint_rounded, size: 24),
+          label: const Text('Login with fingerprint'),
+        ),
+      );
 
   Widget _buildParentForm() {
     if (_showRegister) {
@@ -399,6 +473,7 @@ class _LoginScreenState extends State<LoginScreen> {
           onPressed: _loading ? null : _submitParentLogin,
           child: _loading ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const Text('Sign In'),
         ),
+        if (_bioParent) _bioButton('parent'),
         const SizedBox(height: 12),
         TextButton(onPressed: () => setState(() { _showRegister = true; _error = null; }), child: const Text("New parent? Create an account")),
       ],

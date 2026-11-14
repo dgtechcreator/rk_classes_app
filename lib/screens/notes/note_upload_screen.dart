@@ -10,6 +10,7 @@ import '../../services/lookup_service.dart';
 import '../../services/notes_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/common.dart';
+import '../../widgets/app_dropdown.dart';
 
 /// Upload notes or the daily practice paper for a class (optionally one medium / batch). The class's parents are notified.
 class NoteUploadScreen extends StatefulWidget {
@@ -105,7 +106,7 @@ class _NoteUploadScreenState extends State<NoteUploadScreen> {
     }
   }
 
-  Widget _drop<T>(String label, T? value, List<DropdownMenuItem<T>> items, ValueChanged<T?> onChanged) => DropdownButtonFormField<T>(
+  Widget _drop<T>(String label, T? value, List<DropdownMenuItem<T>> items, ValueChanged<T?> onChanged) => AppDropdown<T>(
         isExpanded: true,
         initialValue: value,
         decoration: InputDecoration(labelText: label),

@@ -10,6 +10,7 @@ import '../../services/teacher_attendance_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/common.dart';
 import 'teacher_attendance_summary_screen.dart';
+import '../../widgets/app_dropdown.dart';
 
 class TeacherAttendanceMarkScreen extends StatefulWidget {
   const TeacherAttendanceMarkScreen({super.key});
@@ -238,8 +239,9 @@ class _TeacherAttendanceMarkScreenState extends State<TeacherAttendanceMarkScree
                       if ((a.topic ?? '').isNotEmpty) a.topic!,
                       if (a.inTimeDisplay != null || a.outTimeDisplay != null) '${a.inTimeDisplay ?? '--'} - ${a.outTimeDisplay ?? '--'}',
                       if (a.totalHours != null) '${a.totalHours!.toStringAsFixed(2)} hrs',
+                      if (a.isAuto) 'Auto - from student attendance',
                     ].where((e) => e.isNotEmpty).join(' • ')),
-                    isThreeLine: false,
+                    isThreeLine: a.isAuto,
                     trailing: IconButton(icon: const Icon(Icons.delete_outline, color: AppColors.danger), onPressed: () => _deleteEntry(a)),
                   ),
                 )),
@@ -249,9 +251,10 @@ class _TeacherAttendanceMarkScreenState extends State<TeacherAttendanceMarkScree
   }
 
   Widget _dropdown(String label, int? value, List<LookupItem> items, ValueChanged<int?>? onChanged, {bool validator = false}) {
-    return DropdownButtonFormField<int?>(
+    return AppDropdown<int?>(
       isExpanded: true,
       initialValue: items.any((e) => e.id == value) ? value : null,
+      alwaysSearch: label.toLowerCase().contains('faculty') || label.toLowerCase().contains('teacher'),
       decoration: InputDecoration(labelText: label),
       items: items.map((e) => DropdownMenuItem<int?>(value: e.id, child: Text(e.name, overflow: TextOverflow.ellipsis))).toList(),
       onChanged: onChanged,

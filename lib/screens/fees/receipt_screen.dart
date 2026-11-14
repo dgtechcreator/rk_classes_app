@@ -27,6 +27,8 @@ class ReceiptScreen extends StatefulWidget {
     this.remainingBalance,
     this.dueDate,
     this.allowSendToParent = true,
+    this.allowShare = true,
+    this.showBalance = true,
   });
   final FeePayment payment;
 
@@ -38,14 +40,20 @@ class ReceiptScreen extends StatefulWidget {
   /// Staff can push the PDF to a parent's WhatsApp; a parent just shares / saves their own copy.
   final bool allowSendToParent;
 
+  /// Print / Share buttons. Switched off for parents for now (view only) - FUTURE: pass true from openForParent to allow it again.
+  final bool allowShare;
+
+  /// False hides the Due date / Due fees on the receipt (parent whose "Fees: Paid & Balance" is off).
+  final bool showBalance;
+
   /// Resolves to true when the receipt was edited or deleted here, so the caller can reload its list.
   static Future<bool> open(BuildContext context, FeePayment payment) async =>
       await Navigator.of(context).push<bool>(MaterialPageRoute(builder: (_) => ReceiptScreen(payment: payment))) ?? false;
 
   /// Parent view: no staff lookups, only Share / Print.
-  static Future<void> openForParent(BuildContext context, FeePayment payment, {required Student student, required double balance, DateTime? dueDate}) =>
+  static Future<void> openForParent(BuildContext context, FeePayment payment, {required Student student, required double balance, DateTime? dueDate, bool showBalance = true}) =>
       Navigator.of(context).push(MaterialPageRoute(
-        builder: (_) => ReceiptScreen(payment: payment, student: student, remainingBalance: balance, dueDate: dueDate, allowSendToParent: false),
+        builder: (_) => ReceiptScreen(payment: payment, student: student, remainingBalance: balance, dueDate: dueDate, allowSendToParent: false, allowShare: false, showBalance: showBalance),
       ));
 
   @override
@@ -87,6 +95,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
         student: widget.student ?? info?.student,
         remainingBalance: widget.remainingBalance ?? info?.balance ?? 0,
         dueDate: _p.dueDate ?? widget.dueDate ?? info?.dueDate,
+        showBalance: widget.showBalance,
       );
       if (mounted) setState(() { _info = info; _pdf = bytes; _loading = false; });
     } catch (e) {
@@ -210,11 +219,12 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
             IconButton(tooltip: 'Edit receipt', icon: const Icon(Icons.edit_outlined), onPressed: _loading ? null : _edit),
             IconButton(tooltip: 'Delete receipt', icon: const Icon(Icons.delete_outline), onPressed: _loading ? null : _delete),
           ],
-          IconButton(
-            tooltip: 'Print',
-            icon: const Icon(Icons.print_outlined),
-            onPressed: _pdf == null ? null : () => Printing.layoutPdf(name: 'Receipt_${_p.receiptNo}.pdf', onLayout: (_) async => _pdf!),
-          ),
+          if (widget.allowShare)
+            IconButton(
+              tooltip: 'Print',
+              icon: const Icon(Icons.print_outlined),
+              onPressed: _pdf == null ? null : () => Printing.layoutPdf(name: 'Receipt_${_p.receiptNo}.pdf', onLayout: (_) async => _pdf!),
+            ),
         ],
       ),
       body: _loading
@@ -233,7 +243,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
                         scrollViewDecoration: const BoxDecoration(color: AppColors.background),
                       ),
                     ),
-                    _bottomBar(),
+                    if (widget.allowShare) _bottomBar(),   // Send to Parent / Share: staff only for now
                   ],
                 ),
     );

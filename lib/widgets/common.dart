@@ -665,3 +665,44 @@ double sheetBottomInset(BuildContext context) {
   final m = MediaQuery.of(context);
   return m.viewInsets.bottom > m.padding.bottom ? m.viewInsets.bottom : m.padding.bottom;
 }
+
+/// The same search box on every list: a magnifier, a clear button and a hint saying what can be searched.
+/// The caller keeps the [controller] and filters its list in [onChanged] (setState).
+class ListSearchField extends StatelessWidget {
+  const ListSearchField({super.key, required this.controller, required this.onChanged, this.hint = 'Search...', this.padding = const EdgeInsets.fromLTRB(16, 10, 16, 6)});
+  final TextEditingController controller;
+  final ValueChanged<String> onChanged;
+  final String hint;
+  final EdgeInsetsGeometry padding;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: padding,
+      child: TextField(
+        controller: controller,
+        onChanged: onChanged,
+        textInputAction: TextInputAction.search,
+        decoration: InputDecoration(
+          hintText: hint,
+          isDense: true,
+          prefixIcon: const Icon(Icons.search_rounded),
+          suffixIcon: ValueListenableBuilder<TextEditingValue>(
+            valueListenable: controller,
+            builder: (_, v, _) => v.text.isEmpty
+                ? const SizedBox.shrink()
+                : IconButton(icon: const Icon(Icons.close_rounded), onPressed: () { controller.clear(); onChanged(''); }),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Case-insensitive "all the typed words appear somewhere in [haystack]" (so "aarav 8th" finds "Aarav Sharma - 8th").
+bool matchesSearch(String query, Iterable<String?> haystack) {
+  final words = query.toLowerCase().split(RegExp(r'\s+')).where((w) => w.isNotEmpty);
+  if (words.isEmpty) return true;
+  final text = haystack.whereType<String>().join(' ').toLowerCase();
+  return words.every(text.contains);
+}

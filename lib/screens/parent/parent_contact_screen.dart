@@ -8,6 +8,8 @@ import '../../services/parent_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/common.dart';
 import '../auth/login_screen.dart';
+import '../../widgets/fingerprint_tile.dart';
+import '../security/login_activity_screen.dart';
 import 'my_details_card.dart';
 
 class ParentContactScreen extends StatefulWidget {
@@ -138,6 +140,13 @@ class _ParentContactScreenState extends State<ParentContactScreen> {
                         ),
                       ),
                       const SizedBox(height: 20),
+                      const FingerprintTile(kind: 'parent'),
+                      OutlinedButton.icon(
+                        onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const LoginActivityScreen())),
+                        icon: const Icon(Icons.fingerprint_rounded),
+                        label: const Text('My login activity'),
+                      ),
+                      const SizedBox(height: 10),
                       OutlinedButton.icon(
                         onPressed: _confirmLogout,
                         icon: const Icon(Icons.logout, color: AppColors.danger),

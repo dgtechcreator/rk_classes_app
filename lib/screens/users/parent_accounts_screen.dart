@@ -7,13 +7,16 @@ import '../../theme/app_theme.dart';
 import '../../widgets/common.dart';
 
 class _ParentAccount {
-  _ParentAccount(this.parentId, this.phone, this.password, this.fullName, this.isActive, this.lastLogin);
+  _ParentAccount(this.parentId, this.phone, this.password, this.fullName, this.isActive, this.lastLogin, this.students);
   final int parentId;
   final String phone;
   final String password;
   final String fullName;
   final bool isActive;
   final DateTime? lastLogin;
+
+  /// Student name + class + medium / stream (+ batch) of every child linked to this login.
+  final List<String> students;
 
   factory _ParentAccount.fromJson(Map<String, dynamic> j) => _ParentAccount(
         (j['parentId'] as num?)?.toInt() ?? 0,
@@ -22,6 +25,11 @@ class _ParentAccount {
         j['fullName']?.toString() ?? '',
         j['isActive'] != false,
         DateTime.tryParse(j['lastLogin']?.toString() ?? ''),
+        ((j['students'] as List?) ?? const []).map((e) {
+          final m = e as Map<String, dynamic>;
+          final info = [m['className'], m['sectionName'], m['batchName']].where((x) => x != null && x.toString().trim().isNotEmpty).join(' · ');
+          return info.isEmpty ? (m['name']?.toString() ?? '') : '${m['name']}\n$info';
+        }).toList(),
       );
 }
 
@@ -123,6 +131,17 @@ class _ParentAccountsScreenState extends State<ParentAccountsScreen> {
               const SizedBox(width: 6),
             ],
           ),
+          for (final st in a.students)
+            Padding(
+              padding: const EdgeInsets.only(top: 2, bottom: 2),
+              child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                const Padding(padding: EdgeInsets.only(top: 2), child: Icon(Icons.school_outlined, size: 15, color: AppColors.primary)),
+                const SizedBox(width: 6),
+                Expanded(child: Text(st, style: const TextStyle(fontSize: 12.5, height: 1.3, color: AppColors.textSecondary))),
+              ]),
+            ),
+          if (a.students.isEmpty)
+            const Padding(padding: EdgeInsets.only(top: 2), child: Text('No student linked to this number', style: TextStyle(fontSize: 12, color: AppColors.textMuted))),
           const SizedBox(height: 6),
           _credRow('Login ID (phone)', a.phone, () => _copy('Phone', a.phone)),
           _credRow('Password', a.password, () => _copy('Password', a.password)),

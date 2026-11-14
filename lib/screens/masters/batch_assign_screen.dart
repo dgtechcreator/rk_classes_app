@@ -7,6 +7,7 @@ import '../../services/lookup_service.dart';
 import '../../services/student_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/common.dart';
+import '../../widgets/app_dropdown.dart';
 
 /// Put students into one batch (e.g. split a combined 12th Commerce into "Commerce (Maths)" and
 /// "Commerce (S P)"), so By-class attendance and every batch filter finds them.
@@ -98,7 +99,7 @@ class _BatchAssignScreenState extends State<BatchAssignScreen> {
   }
 
   Widget _dropdown(String label, int? value, List<LookupItem> items, ValueChanged<int?> onChanged) {
-    return DropdownButtonFormField<int?>(
+    return AppDropdown<int?>(
       isExpanded: true,
       initialValue: items.any((e) => e.id == value) ? value : null,
       decoration: InputDecoration(labelText: label),

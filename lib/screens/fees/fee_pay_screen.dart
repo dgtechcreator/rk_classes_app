@@ -10,6 +10,7 @@ import '../../services/lookup_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/common.dart';
 import 'receipt_screen.dart';
+import '../../widgets/app_dropdown.dart';
 
 /// A student's fee status + collect-payment flow — mirrors FeesController.Pay. Shows fee structure
 /// breakdown, running balance and payment history, with a bottom-sheet form to record a new payment.
@@ -416,7 +417,7 @@ class _CollectPaymentSheetState extends State<_CollectPaymentSheet> {
                   Expanded(child: TextFormField(controller: _chargesCtrl, decoration: const InputDecoration(labelText: 'Late Fine', prefixText: '₹ '), keyboardType: const TextInputType.numberWithOptions(decimal: true))),
                 ]),
                 const SizedBox(height: 12),
-                DropdownButtonFormField<String>(
+                AppDropdown<String>(
       isExpanded: true,
                   initialValue: _mode,
                   decoration: const InputDecoration(labelText: 'Payment Mode'),

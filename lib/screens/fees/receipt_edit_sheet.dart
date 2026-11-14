@@ -6,6 +6,7 @@ import '../../models/student.dart';
 import '../../services/fees_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/common.dart';
+import '../../widgets/app_dropdown.dart';
 
 /// What staff typed in a receipt's remarks (the "Additional Charges: ₹x" part is kept by the server and edited
 /// from the Collect screen, so it is hidden here).
@@ -149,7 +150,7 @@ class _ReceiptEditSheetState extends State<_ReceiptEditSheet> {
               ],
             ),
             const SizedBox(height: 10),
-            DropdownButtonFormField<String>(
+            AppDropdown<String>(
               initialValue: _mode,
               decoration: const InputDecoration(labelText: 'Payment mode'),
               items: [for (final m in modes) DropdownMenuItem(value: m, child: Text(m))],

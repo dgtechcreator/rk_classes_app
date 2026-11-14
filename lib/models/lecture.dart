@@ -29,6 +29,8 @@ class Lecture {
     this.statusNote,
     this.isRepeating = false,
     this.needsUpdate = false,
+    this.classroomId,
+    this.classroom,
   });
 
   final int lectureId;
@@ -42,6 +44,10 @@ class Lecture {
   final int? batchId;
   final String? batchName;
   final String groupLabel;
+
+  /// The room the lecture is held in (null = not set).
+  final int? classroomId;
+  final String? classroom;
   final String subject;
   final int facultyId;
   final String? teacher;
@@ -79,6 +85,8 @@ class Lecture {
         statusNote: _asStringN(j['statusNote']),
         isRepeating: j['isRepeating'] == true,
         needsUpdate: j['needsUpdate'] == true,
+        classroomId: _asIntN(j['classroomId']),
+        classroom: _asStringN(j['classroom']),
       );
 }
 
@@ -118,8 +126,8 @@ class IdName {
 
 /// Dropdown data for the schedule form and the filter bars.
 class LectureOptions {
-  LectureOptions({required this.classes, required this.sections, required this.batches, required this.subjects, required this.teachers});
-  final List<IdName> classes, sections, batches, teachers;
+  LectureOptions({required this.classes, required this.sections, required this.batches, required this.subjects, required this.teachers, this.classrooms = const []});
+  final List<IdName> classes, sections, batches, teachers, classrooms;
   final List<String> subjects;
 
   factory LectureOptions.fromJson(Map<String, dynamic> j) {
@@ -130,6 +138,7 @@ class LectureOptions {
       sections: list('sections'),
       batches: list('batches'),
       teachers: list('teachers', 'displayName'),
+      classrooms: list('classrooms'),
       subjects: (j['subjects'] as List? ?? []).map((e) => e.toString()).toList(),
     );
   }

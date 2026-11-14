@@ -12,6 +12,7 @@ import '../../widgets/common.dart';
 import '../../widgets/person_card.dart';
 import 'faculty_detail_screen.dart';
 import 'faculty_form_screen.dart';
+import '../../widgets/app_dropdown.dart';
 
 class FacultyListScreen extends StatefulWidget {
   const FacultyListScreen({super.key});
@@ -263,7 +264,7 @@ class _FilterSheetState extends State<_FilterSheet> {
         children: [
           const Text('Filter Faculty', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
           const SizedBox(height: 16),
-          DropdownButtonFormField<int?>(
+          AppDropdown<int?>(
       isExpanded: true,
             initialValue: widget.designations.any((e) => e.designationId == _designationId) ? _designationId : null,
             decoration: const InputDecoration(labelText: 'Designation'),
@@ -274,7 +275,7 @@ class _FilterSheetState extends State<_FilterSheet> {
             onChanged: (v) => setState(() => _designationId = v),
           ),
           const SizedBox(height: 12),
-          DropdownButtonFormField<String>(
+          AppDropdown<String>(
       isExpanded: true,
             initialValue: _status,
             decoration: const InputDecoration(labelText: 'Status'),

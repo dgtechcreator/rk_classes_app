@@ -25,6 +25,16 @@ class _FeesThisMonthScreenState extends State<FeesThisMonthScreen> {
   String? _error;
   List<FeePayment> _payments = [];
   double _total = 0;
+  final _search = TextEditingController();
+  String _q = '';
+
+  List<FeePayment> get _shown => _payments.where((p) => matchesSearch(_q, [p.studentName, p.receiptNo, p.admissionNo, p.paymentMode])).toList();
+
+  @override
+  void dispose() {
+    _search.dispose();
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -52,15 +62,23 @@ class _FeesThisMonthScreenState extends State<FeesThisMonthScreen> {
               ? ErrorView(message: _error!, onRetry: _load)
               : _payments.isEmpty
                   ? const EmptyState(message: 'No payments received this month yet.', icon: Icons.payments_outlined)
-                  : RefreshIndicator(
-                      onRefresh: _load,
-                      child: ListView.separated(
-                        padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-                        itemCount: _payments.length + 1,
-                        separatorBuilder: (_, _) => const SizedBox(height: 8),
-                        itemBuilder: (_, i) => i == 0 ? _summary() : _row(_payments[i - 1]),
+                  : Column(children: [
+                      ListSearchField(controller: _search, onChanged: (v) => setState(() => _q = v), hint: 'Search student, receipt no, mode...'),
+                      Expanded(
+                        child: Builder(builder: (context) {
+                          final shown = _shown;
+                          return RefreshIndicator(
+                            onRefresh: _load,
+                            child: ListView.separated(
+                              padding: const EdgeInsets.fromLTRB(16, 6, 16, 24),
+                              itemCount: shown.length + 1,
+                              separatorBuilder: (_, _) => const SizedBox(height: 8),
+                              itemBuilder: (_, i) => i == 0 ? _summary() : _row(shown[i - 1]),
+                            ),
+                          );
+                        }),
                       ),
-                    ),
+                    ]),
     );
   }
 

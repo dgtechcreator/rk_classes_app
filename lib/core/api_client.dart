@@ -1,6 +1,8 @@
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'device_headers.dart';
+
 /// Points at the SchoolMS2 JWT API (SchoolMS.Web/Controllers/Api/*).
 /// Exactly one of the two lines below should be active — swap when switching environments, then do a
 /// full rebuild (`flutter build apk`), not just hot reload.
@@ -54,6 +56,7 @@ class ApiClient {
         if (_token != null) {
           options.headers['Authorization'] = 'Bearer $_token';
         }
+        options.headers.addAll(DeviceHeaders.value);   // phone model / OS / app version -> Login Activity
         handler.next(options);
       },
     ));

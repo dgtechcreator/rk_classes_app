@@ -109,14 +109,14 @@ class ParentHomeScreen extends StatelessWidget {
           Builder(builder: (context) {
             // "Full report" needs attendance + marks + fees; each button only shows when its section is on.
             final buttons = <Widget>[
-              if (ctrl.shows('attendance') && ctrl.shows('marks') && ctrl.shows('fees'))
+              if (ctrl.shows('attendance') && ctrl.shows('marks'))
                 OutlinedButton.icon(
                   style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(44), padding: const EdgeInsets.symmetric(horizontal: 8)),
                   icon: const Icon(Icons.pie_chart_rounded, size: 18),
                   label: const FittedBox(fit: BoxFit.scaleDown, child: Text('Full report')),
                   onPressed: () {
                     final sid = ctrl.selected!.studentId;
-                    Navigator.of(context).push(MaterialPageRoute(builder: (_) => StudentReportScreen(loader: () => ParentService().getDashboard(sid), title: 'Report', parentView: true)));
+                    Navigator.of(context).push(MaterialPageRoute(builder: (_) => StudentReportScreen(loader: () => ParentService().getDashboard(sid), title: 'Report', parentView: true, showFees: ctrl.showsFeeNumbers)));
                   },
                 ),
               if (ctrl.shows('notes'))
@@ -137,8 +137,8 @@ class ParentHomeScreen extends StatelessWidget {
           }),
         ],
         if (d != null) ...[
-          if (ctrl.shows('attendance') || ctrl.shows('fees')) const SizedBox(height: 20),
-          if (ctrl.shows('attendance') || ctrl.shows('fees')) Container(
+          if (ctrl.shows('attendance') || ctrl.showsFeeNumbers) const SizedBox(height: 20),
+          if (ctrl.shows('attendance') || ctrl.showsFeeNumbers) Container(
             padding: const EdgeInsets.all(18),
             decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(AppRadius.xl), boxShadow: AppShadows.card),
             child: Row(
@@ -159,8 +159,8 @@ class ParentHomeScreen extends StatelessWidget {
                       if (ctrl.shows('attendance'))
                         _miniStatRow(Icons.event_available_rounded, AppColors.info,
                             d.attendance == null ? '-' : '${d.attendance!.presentDays}/${d.attendance!.totalDays}', 'Present Days'),
-                      if (ctrl.shows('attendance') && ctrl.shows('fees')) const SizedBox(height: 14),
-                      if (ctrl.shows('fees'))
+                      if (ctrl.shows('attendance') && ctrl.showsFeeNumbers) const SizedBox(height: 14),
+                      if (ctrl.showsFeeNumbers)
                         _miniStatRow(Icons.account_balance_wallet_outlined, d.balance > 0 ? AppColors.danger : AppColors.success,
                             NumberFormat.currency(symbol: '₹').format(d.balance), 'Balance Due'),
                     ],
@@ -225,6 +225,7 @@ class ParentHomeScreen extends StatelessWidget {
               child: const Text('Details'),
             ),
           ),
+          if (ctrl.showsFeeNumbers)
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(AppRadius.lg), boxShadow: AppShadows.soft),
@@ -235,7 +236,7 @@ class ParentHomeScreen extends StatelessWidget {
               ],
             ),
           ),
-          if (d.balance > 0.5 && d.dueDate != null)
+          if (ctrl.showsFeeNumbers && d.balance > 0.5 && d.dueDate != null)
             Padding(
               padding: const EdgeInsets.only(top: 8),
               child: Row(
@@ -247,7 +248,7 @@ class ParentHomeScreen extends StatelessWidget {
                 ],
               ),
             ),
-          if (d.feeHistory.isNotEmpty) ...[
+          if (ctrl.showsReceipts && d.feeHistory.isNotEmpty) ...[
             const SizedBox(height: 14),
             ...d.feeHistory.take(3).map((p) => Padding(
                   padding: const EdgeInsets.only(bottom: 10),
@@ -255,7 +256,7 @@ class ParentHomeScreen extends StatelessWidget {
                     decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(AppRadius.md), boxShadow: AppShadows.soft),
                     child: ListTile(
                       dense: true,
-                      onTap: () => ReceiptScreen.openForParent(context, p, student: ctrl.selected ?? d.student, balance: d.balance, dueDate: d.dueDate),
+                      onTap: () => ReceiptScreen.openForParent(context, p, student: ctrl.selected ?? d.student, balance: d.balance, dueDate: d.dueDate, showBalance: ctrl.showsFeeNumbers),
                       leading: const CircleAvatar(radius: 18, backgroundColor: AppColors.successSoft, child: Icon(Icons.payments_outlined, color: AppColors.success, size: 18)),
                       title: Text(NumberFormat.currency(locale: 'en_IN', symbol: '₹', decimalDigits: 0).format(p.netAmount), style: const TextStyle(fontWeight: FontWeight.w800)),
                       subtitle: Text('${DateFormat('dd MMM yyyy').format(p.paymentDate)} · ${p.paymentMode}'),

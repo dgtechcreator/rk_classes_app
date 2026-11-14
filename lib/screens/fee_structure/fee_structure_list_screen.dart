@@ -10,9 +10,13 @@ import '../../services/lookup_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/common.dart';
 import '../finance/finance_students_screen.dart';
+import '../../widgets/app_dropdown.dart';
 
+/// Two screens on the same data: "Fee Structure" (class + medium summary: fees set, collected, pending) and "Fee Heads"
+/// ([headsOnly]: the fee heads themselves - add, edit, delete).
 class FeeStructureListScreen extends StatefulWidget {
-  const FeeStructureListScreen({super.key});
+  const FeeStructureListScreen({super.key, this.headsOnly = false});
+  final bool headsOnly;
 
   @override
   State<FeeStructureListScreen> createState() => _FeeStructureListScreenState();
@@ -29,6 +33,14 @@ class _FeeStructureListScreenState extends State<FeeStructureListScreen> {
 
   List<LookupItem> _years = [], _classes = [], _sections = [], _feeTypes = [];
   int? _yearId, _classId, _sectionId;
+  final _search = TextEditingController();
+  String _q = '';
+
+  @override
+  void dispose() {
+    _search.dispose();
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -239,7 +251,7 @@ class _FeeStructureListScreenState extends State<FeeStructureListScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Fee Structure${_list.isNotEmpty ? ' (${_list.length})' : ''}'),
+        title: Text(widget.headsOnly ? 'Fee Heads${_list.isNotEmpty ? ' (${_list.length})' : ''}' : 'Fee Structure'),
         actions: [
           IconButton(
             icon: Icon(Icons.filter_list, color: hasActiveFilters ? AppColors.primary : null),
@@ -260,26 +272,28 @@ class _FeeStructureListScreenState extends State<FeeStructureListScreen> {
                       : ListView(
                           padding: const EdgeInsets.fromLTRB(12, 12, 12, 80),
                           children: [
-                            Row(
-                              children: [
-                                Expanded(child: StatCard(label: 'Fee Heads', value: '${_list.length}', color: AppColors.info, icon: Icons.receipt_long_outlined)),
-                                const SizedBox(width: 10),
-                                Expanded(child: StatCard(label: 'Total / Month', value: '₹${totalMonthly.toStringAsFixed(0)}', color: AppColors.primary, icon: Icons.calendar_month_outlined)),
+                            if (!widget.headsOnly) ...[
+                              Row(
+                                children: [
+                                  Expanded(child: StatCard(label: 'Fee Heads', value: '${_list.length}', color: AppColors.info, icon: Icons.receipt_long_outlined)),
+                                  const SizedBox(width: 10),
+                                  Expanded(child: StatCard(label: 'Total / Month', value: '₹${totalMonthly.toStringAsFixed(0)}', color: AppColors.primary, icon: Icons.calendar_month_outlined)),
+                                ],
+                              ),
+                              if (_summary.isNotEmpty) ...[
+                                const SizedBox(height: 16),
+                                const SectionHeader(title: 'Class Summary'),
+                                ..._summary.map((s) => _classSummaryCard(s)),
                               ],
-                            ),
-                            if (_summary.isNotEmpty) ...[
-                              const SizedBox(height: 16),
-                              const SectionHeader(title: 'Class Summary'),
-                              ..._summary.map((s) => _classSummaryCard(s)),
+                            ] else ...[
+                              ListSearchField(controller: _search, onChanged: (v) => setState(() => _q = v), hint: 'Search fee head, class, medium...', padding: const EdgeInsets.only(bottom: 8)),
+                              ..._list.where((fs) => matchesSearch(_q, [fs.feeTypeName, fs.className, fs.sectionName])).map((fs) => _FeeStructureTile(
+                                    structure: fs,
+                                    canEdit: canEdit,
+                                    onTap: canEdit ? () => _openForm(structure: fs) : null,
+                                    onDelete: canEdit ? () => _delete(fs) : null,
+                                  )),
                             ],
-                            const SizedBox(height: 16),
-                            const SectionHeader(title: 'Fee Heads'),
-                            ..._list.map((fs) => _FeeStructureTile(
-                                  structure: fs,
-                                  canEdit: canEdit,
-                                  onTap: canEdit ? () => _openForm(structure: fs) : null,
-                                  onDelete: canEdit ? () => _delete(fs) : null,
-                                )),
                           ],
                         ),
                 ),
@@ -382,7 +396,7 @@ class _FilterSheetState extends State<_FilterSheet> {
   }
 
   Widget _dropdown(String label, int? value, List<LookupItem> items, ValueChanged<int?> onChanged) {
-    return DropdownButtonFormField<int?>(
+    return AppDropdown<int?>(
       isExpanded: true,
       initialValue: items.any((e) => e.id == value) ? value : null,
       decoration: InputDecoration(labelText: label),
@@ -543,7 +557,7 @@ class _FeeStructureFormSheetState extends State<_FeeStructureFormSheet> {
   }
 
   Widget _dropdown(String label, int? value, List<LookupItem> items, ValueChanged<int?> onChanged) {
-    return DropdownButtonFormField<int?>(
+    return AppDropdown<int?>(
       isExpanded: true,
       initialValue: items.any((e) => e.id == value) ? value : null,
       decoration: InputDecoration(labelText: label),

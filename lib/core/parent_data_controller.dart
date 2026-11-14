@@ -23,6 +23,10 @@ class ParentDataController extends ChangeNotifier {
   List<BirthdayCard> birthdays = const [];
   bool shows(String section) => !hidden.contains(section);
 
+  /// The two Fees switches of Roles & Access. `shows('fees')` (the Fees tab) is on while at least one of them is.
+  bool get showsFeeNumbers => shows('fees_summary');   // Paid / Balance, due alerts, next installment, fee pie
+  bool get showsReceipts => shows('fees_receipts');    // payment list + receipt (view only)
+
   /// Class toppers for the selected child; stays null when the server has none / is older than the app.
   ClassToppers? toppers;
 

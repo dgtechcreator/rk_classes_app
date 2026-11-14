@@ -7,6 +7,7 @@ import '../../services/discontinued_service.dart';
 import '../../services/lookup_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/common.dart';
+import '../../widgets/app_dropdown.dart';
 
 /// Take a student off the roll: pick class / medium / batch, then the student, check the full picture, give the reason and save.
 /// The student becomes Inactive and disappears from every count and list (same as the website).
@@ -103,7 +104,7 @@ class _DiscontinueNewScreenState extends State<DiscontinueNewScreen> {
   }
 
   Widget _drop(String label, int? value, List<LookupItem> items, String allLabel, ValueChanged<int?> onChanged) {
-    return DropdownButtonFormField<int?>(
+    return AppDropdown<int?>(
       initialValue: value,
       isExpanded: true,
       decoration: InputDecoration(labelText: label),
@@ -130,7 +131,7 @@ class _DiscontinueNewScreenState extends State<DiscontinueNewScreen> {
             Expanded(child: _drop('Batch', _batchId, _batches, 'All', (v) { _batchId = v; _loadStudents(); })),
           ]),
           const SizedBox(height: 10),
-          DropdownButtonFormField<int?>(
+          AppDropdown<int?>(
             key: ValueKey('stu-$_classId-$_sectionId-$_batchId-${_students.length}'),
             initialValue: _studentId,
             isExpanded: true,

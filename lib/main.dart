@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'core/api_client.dart';
+import 'core/device_headers.dart';
 import 'core/maintenance_controller.dart';
 import 'widgets/app_gate.dart';
 import 'core/realtime_notification_service.dart';
@@ -30,7 +31,9 @@ void showLiveNotificationSnack(AppNotification notif) {
   );
 }
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await DeviceHeaders.init();   // which phone this is, sent with every request (Login Activity)
   runApp(const RkClassesApp());
 }
 

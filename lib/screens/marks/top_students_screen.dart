@@ -10,6 +10,7 @@ import '../../services/lookup_service.dart';
 import '../../services/marks_service.dart';
 import '../../widgets/common.dart';
 import '../../widgets/toppers_card.dart';
+import '../../widgets/app_dropdown.dart';
 
 /// Admin / staff view of everyone's rankers — mirrors Marks → Top 5 Students on the web (Overall, Class-wise,
 /// Test-wise and Subject-wise Top 5, optionally narrowed to one class / medium). Parents only ever see the
@@ -24,6 +25,14 @@ class TopStudentsScreen extends StatefulWidget {
 class _TopStudentsScreenState extends State<TopStudentsScreen> {
   final _marks = MarksService();
   final _lookup = LookupService();
+  final _search = TextEditingController();
+  String _q = '';
+
+  @override
+  void dispose() {
+    _search.dispose();
+    super.dispose();
+  }
 
   bool _loading = true;
   String? _error;
@@ -75,7 +84,7 @@ class _TopStudentsScreenState extends State<TopStudentsScreen> {
       );
 
   Widget _dropdown(String label, int? value, List<LookupItem> items, ValueChanged<int?> onChanged) {
-    return DropdownButtonFormField<int?>(
+    return AppDropdown<int?>(
       isExpanded: true,
       initialValue: items.any((e) => e.id == value) ? value : null,
       decoration: InputDecoration(labelText: label),
@@ -145,10 +154,24 @@ class _TopStudentsScreenState extends State<TopStudentsScreen> {
       2 => r.testwiseTop5,
       _ => r.subjectwiseTop5,
     };
-    final entries = groups.entries.where((e) => e.value.isNotEmpty).toList();
-    if (entries.isEmpty) {
+    // Search shows only the matching students (their rank stays what it really is) - or a whole group when its class / test / subject name matches.
+    final entries = <MapEntry<String, List<TopStudentRow>>>[];
+    for (final e in groups.entries) {
+      if (e.value.isEmpty) continue;
+      if (_q.trim().isEmpty || matchesSearch(_q, [e.key])) { entries.add(e); continue; }
+      final hit = e.value.where((x) => matchesSearch(_q, [x.fullName])).toList();
+      if (hit.isNotEmpty) entries.add(MapEntry(e.key, hit));
+    }
+    if (groups.values.every((v) => v.isEmpty)) {
       return const EmptyState(message: 'No marks recorded for this selection yet.', icon: Icons.emoji_events_outlined);
     }
+    return Column(children: [
+      ListSearchField(controller: _search, onChanged: (v) => setState(() => _q = v), hint: 'Search student, class, test or subject...'),
+      Expanded(child: entries.isEmpty ? const EmptyState(message: 'Nothing matches your search.', icon: Icons.search_off_rounded) : _toppersList(entries)),
+    ]);
+  }
+
+  Widget _toppersList(List<MapEntry<String, List<TopStudentRow>>> entries) {
     return RefreshIndicator(
       onRefresh: _load,
       child: ListView.separated(

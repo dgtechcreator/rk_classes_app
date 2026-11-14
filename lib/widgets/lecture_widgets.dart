@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../models/lecture.dart';
 import '../widgets/common.dart';
 import '../theme/app_theme.dart';
+import 'app_dropdown.dart';
 
 /// 2.25 -> "2.25", 3.0 -> "3", 1.5 -> "1.5".
 String formatHours(double h) {
@@ -78,6 +79,15 @@ class LectureCard extends StatelessWidget {
                         const Icon(Icons.groups_outlined, size: 15, color: AppColors.textSecondary),
                         const SizedBox(width: 5),
                         Expanded(child: Text(l.groupLabel, style: const TextStyle(color: AppColors.textSecondary, fontSize: 13))),
+                      ]),
+                    ),
+                  if ((l.classroom ?? '').isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 2),
+                      child: Row(children: [
+                        const Icon(Icons.meeting_room_outlined, size: 15, color: AppColors.primary),
+                        const SizedBox(width: 5),
+                        Expanded(child: Text('Classroom: ${l.classroom!.trim()}', style: const TextStyle(color: AppColors.primary, fontSize: 13, fontWeight: FontWeight.w700))),
                       ]),
                     ),
                   if (showTeacher && (l.teacher ?? '').isNotEmpty)
@@ -247,7 +257,7 @@ Future<LectureFilters?> showLectureFilterSheet(BuildContext context, LectureOpti
     shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
     builder: (ctx) => StatefulBuilder(
       builder: (ctx, setState) {
-        Widget idDrop(String label, int? value, List<IdName> items, ValueChanged<int?> onChanged) => DropdownButtonFormField<int?>(
+        Widget idDrop(String label, int? value, List<IdName> items, ValueChanged<int?> onChanged) => AppDropdown<int?>(
               isExpanded: true,
               initialValue: items.any((e) => e.id == value) ? value : null,
               decoration: InputDecoration(labelText: label),
@@ -272,7 +282,7 @@ Future<LectureFilters?> showLectureFilterSheet(BuildContext context, LectureOpti
                 const SizedBox(height: 12),
                 idDrop('Batch', f.batchId, options.batches, (v) => f.batchId = v),
                 const SizedBox(height: 12),
-                DropdownButtonFormField<String?>(
+                AppDropdown<String?>(
                   isExpanded: true,
                   initialValue: options.subjects.contains(f.subject) ? f.subject : null,
                   decoration: const InputDecoration(labelText: 'Subject'),
@@ -288,7 +298,7 @@ Future<LectureFilters?> showLectureFilterSheet(BuildContext context, LectureOpti
                 ],
                 if (showStatus) ...[
                   const SizedBox(height: 12),
-                  DropdownButtonFormField<String?>(
+                  AppDropdown<String?>(
                     isExpanded: true,
                     initialValue: f.status,
                     decoration: const InputDecoration(labelText: 'Status'),

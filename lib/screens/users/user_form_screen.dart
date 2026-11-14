@@ -10,6 +10,7 @@ import '../../core/session.dart';
 import '../../services/photo_service.dart';
 import '../../widgets/common.dart';
 import '../../widgets/profile_avatar.dart';
+import '../../widgets/app_dropdown.dart';
 
 /// Create/edit a staff user — mirrors UsersController.Save. Role list is fetched fresh from
 /// GET /api/users/roles (added alongside this screen; there was previously no way to know the role
@@ -136,7 +137,7 @@ class _UserFormScreenState extends State<UserFormScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        DropdownButtonFormField<int>(
+        AppDropdown<int>(
           isExpanded: true,
           initialValue: _facultyId == 0 || o.faculties.any((f) => f.facultyId == _facultyId) ? _facultyId : 0,
           decoration: const InputDecoration(labelText: 'Linked Faculty profile'),
@@ -201,7 +202,7 @@ class _UserFormScreenState extends State<UserFormScreen> {
                       const SizedBox(height: 12),
                       TextFormField(controller: _phoneCtrl, decoration: const InputDecoration(labelText: 'Phone'), keyboardType: TextInputType.phone),
                       const SizedBox(height: 12),
-                      DropdownButtonFormField<int>(
+                      AppDropdown<int>(
       isExpanded: true,
                         initialValue: _roles.any((r) => r.roleId == _roleId) ? _roleId : null,
                         decoration: const InputDecoration(labelText: 'Role *'),
@@ -226,7 +227,7 @@ class _UserFormScreenState extends State<UserFormScreen> {
                         },
                       ),
                       const SizedBox(height: 12),
-                      DropdownButtonFormField<String>(
+                      AppDropdown<String>(
                         isExpanded: true,
                         initialValue: _gender,
                         decoration: const InputDecoration(labelText: "Gender (for Sir / Ma'am greeting)"),

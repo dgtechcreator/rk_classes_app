@@ -5,6 +5,7 @@ import '../../models/message_template.dart';
 import '../../services/message_template_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/common.dart';
+import '../../widgets/app_dropdown.dart';
 
 /// Masters → Templates. The WhatsApp texts the app sends (absent alert, fee reminder…) live here, so
 /// wording changes never need an app update.
@@ -58,7 +59,7 @@ class _MessageTemplatesTabState extends State<MessageTemplatesTab> {
               children: [
                 Text(item == null ? 'Add Template' : 'Edit Template', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
                 const SizedBox(height: 16),
-                DropdownButtonFormField<String>(
+                AppDropdown<String>(
                   isExpanded: true,
                   initialValue: category,
                   decoration: const InputDecoration(labelText: 'Used for'),

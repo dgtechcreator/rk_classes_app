@@ -69,6 +69,44 @@ class TeacherAttendanceService {
     return _asInt(data['attendanceId']);
   }
 
+  /// Edit an entry; the teacher is notified (what changed, who did it, when).
+  Future<void> update(int attendanceId, {
+    required int facultyId,
+    int? classId,
+    int? batchId,
+    int? sectionId,
+    String? subject,
+    String? topic,
+    required String attendanceDate,
+    String? inTime,
+    String? outTime,
+  }) async {
+    final res = await _client.post('/api/teacher-attendance/$attendanceId/update', data: {
+      'facultyId': facultyId,
+      'classId': classId,
+      'batchId': batchId,
+      'sectionId': sectionId,
+      'subject': subject,
+      'topic': topic,
+      'attendanceDate': attendanceDate,
+      'inTime': inTime,
+      'outTime': outTime,
+    });
+    final data = res.data as Map<String, dynamic>;
+    if (data['success'] != true) throw ApiException(_asString(data['message']).isEmpty ? 'Failed to update attendance.' : _asString(data['message']));
+  }
+
+  /// A teacher's own log: all entries, including deleted ones (who deleted, when) and edited ones (who edited, when).
+  Future<({bool linked, String? message, List<TeacherAttendance> entries})> myLog() async {
+    final res = await _client.get('/api/my-attendance');
+    final data = res.data as Map<String, dynamic>;
+    return (
+      linked: data['linked'] == true,
+      message: data['message']?.toString(),
+      entries: (data['entries'] as List? ?? []).map((e) => TeacherAttendance.fromJson(e as Map<String, dynamic>)).toList(),
+    );
+  }
+
   Future<void> delete(int attendanceId) async {
     final res = await _client.post('/api/teacher-attendance/$attendanceId/delete');
     final data = res.data as Map<String, dynamic>;

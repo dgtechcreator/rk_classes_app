@@ -13,6 +13,7 @@ import '../../theme/app_theme.dart';
 import '../../services/photo_service.dart';
 import '../../widgets/common.dart';
 import '../../widgets/profile_avatar.dart';
+import '../../widgets/app_dropdown.dart';
 
 class StudentFormScreen extends StatefulWidget {
   const StudentFormScreen({super.key, this.student});
@@ -125,8 +126,16 @@ class _StudentFormScreenState extends State<StudentFormScreen> {
 
   double get _agreedAmount => double.tryParse(_agreedDiscount.text.trim()) ?? 0;
 
+  bool _dateMissing = false;   // Date of Birth / Admission Date left empty on a new student
+
   Future<void> _save() async {
-    if (!_formKey.currentState!.validate()) return;
+    final fieldsOk = _formKey.currentState!.validate();
+    final datesOk = widget.isEdit || (_dateOfBirth != null && _admissionDate != null);
+    setState(() => _dateMissing = !datesOk);
+    if (!fieldsOk || !datesOk) {
+      if (!datesOk && fieldsOk) showSnack(context, 'Date of Birth and Admission Date are required.', isError: true);
+      return;
+    }
     final canDiscount = context.read<Session>().hasPerm('fee_collection');
     if (canDiscount && _agreedAmount > 0 && _agreedReason.text.trim().isEmpty) {
       showSnack(context, 'Please enter the reason for the agreed discount.', isError: true);
@@ -224,17 +233,18 @@ class _StudentFormScreenState extends State<StudentFormScreen> {
                   const SizedBox(height: 12),
                   Row(children: [
                     Expanded(
-                      child: DropdownButtonFormField<String>(
+                      child: AppDropdown<String>(
       isExpanded: true,
                         initialValue: _gender,
-                        decoration: const InputDecoration(labelText: 'Gender'),
+                        decoration: InputDecoration(labelText: _req('Gender')),
                         items: const [DropdownMenuItem(value: 'Male', child: Text('Male')), DropdownMenuItem(value: 'Female', child: Text('Female')), DropdownMenuItem(value: 'Other', child: Text('Other'))],
+                        validator: (v) => (!widget.isEdit && (v == null || v.isEmpty)) ? 'Required' : null,
                         onChanged: (v) => setState(() => _gender = v),
                       ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
-                      child: DropdownButtonFormField<String>(
+                      child: AppDropdown<String>(
       isExpanded: true,
                         initialValue: _bloodGroup,
                         decoration: const InputDecoration(labelText: 'Blood Group'),
@@ -244,7 +254,7 @@ class _StudentFormScreenState extends State<StudentFormScreen> {
                     ),
                   ]),
                   const SizedBox(height: 12),
-                  _dateField('Date of Birth', _dateOfBirth, () => _pickDate(isDob: true)),
+                  _dateField(_req('Date of Birth'), _dateOfBirth, () => _pickDate(isDob: true), missing: _dateMissing && _dateOfBirth == null),
                   const SizedBox(height: 20),
                   const SectionHeader(title: 'Class & Batch'),
                   _dropdown('Academic Year', _yearId, _years, (v) => setState(() => _yearId = v)),
@@ -255,7 +265,7 @@ class _StudentFormScreenState extends State<StudentFormScreen> {
                   const SizedBox(height: 12),
                   _dropdown('Batch', _batchId, _batches, (v) => setState(() => _batchId = v)),
                   const SizedBox(height: 12),
-                  _dateField('Admission Date', _admissionDate, () => _pickDate(isDob: false)),
+                  _dateField(_req('Admission Date'), _admissionDate, () => _pickDate(isDob: false), missing: _dateMissing && _admissionDate == null),
                   if (context.read<Session>().hasPerm('fee_collection')) ...[
                     const SizedBox(height: 20),
                     const SectionHeader(title: 'Agreed Discount'),
@@ -280,22 +290,22 @@ class _StudentFormScreenState extends State<StudentFormScreen> {
                   ],
                   const SizedBox(height: 20),
                   const SectionHeader(title: 'Contact'),
-                  TextFormField(controller: _phone, keyboardType: TextInputType.phone, decoration: const InputDecoration(labelText: 'Student Phone')),
+                  TextFormField(controller: _phone, keyboardType: TextInputType.phone, decoration: InputDecoration(labelText: _req('Contact No.')), validator: _requiredText),
                   const SizedBox(height: 12),
-                  TextFormField(controller: _fatherName, decoration: const InputDecoration(labelText: "Father's Name")),
+                  TextFormField(controller: _fatherName, decoration: InputDecoration(labelText: _req("Father's Name")), validator: _requiredText),
                   const SizedBox(height: 12),
                   TextFormField(controller: _fatherPhone, keyboardType: TextInputType.phone, decoration: const InputDecoration(labelText: "Father's Phone")),
                   const SizedBox(height: 12),
-                  TextFormField(controller: _motherName, decoration: const InputDecoration(labelText: "Mother's Name")),
+                  TextFormField(controller: _motherName, decoration: InputDecoration(labelText: _req("Mother's Name")), validator: _requiredText),
                   const SizedBox(height: 12),
                   TextFormField(controller: _motherPhone, keyboardType: TextInputType.phone, decoration: const InputDecoration(labelText: "Mother's Phone")),
                   const SizedBox(height: 12),
                   TextFormField(controller: _email, keyboardType: TextInputType.emailAddress, decoration: const InputDecoration(labelText: 'Email')),
                   const SizedBox(height: 12),
-                  TextFormField(controller: _address, maxLines: 2, decoration: const InputDecoration(labelText: 'Address', alignLabelWithHint: true)),
+                  TextFormField(controller: _address, maxLines: 2, decoration: InputDecoration(labelText: _req('Address'), alignLabelWithHint: true), validator: _requiredText),
                   if (widget.isEdit) ...[
                     const SizedBox(height: 12),
-                    DropdownButtonFormField<String>(
+                    AppDropdown<String>(
       isExpanded: true,
                       initialValue: _status,
                       decoration: const InputDecoration(labelText: 'Status'),
@@ -317,7 +327,7 @@ class _StudentFormScreenState extends State<StudentFormScreen> {
   }
 
   Widget _dropdown(String label, int? value, List<LookupItem> items, ValueChanged<int?> onChanged) {
-    return DropdownButtonFormField<int?>(
+    return AppDropdown<int?>(
       isExpanded: true,
       initialValue: items.any((e) => e.id == value) ? value : null,
       decoration: InputDecoration(labelText: label),
@@ -326,11 +336,16 @@ class _StudentFormScreenState extends State<StudentFormScreen> {
     );
   }
 
-  Widget _dateField(String label, DateTime? value, VoidCallback onTap) {
+  /// Label with a star while registering a NEW student (these fields are compulsory then; editing old records is not blocked).
+  String _req(String label) => widget.isEdit ? label : '$label *';
+
+  String? _requiredText(String? v) => (!widget.isEdit && (v == null || v.trim().isEmpty)) ? 'Required' : null;
+
+  Widget _dateField(String label, DateTime? value, VoidCallback onTap, {bool missing = false}) {
     return InkWell(
       onTap: onTap,
       child: InputDecorator(
-        decoration: InputDecoration(labelText: label, suffixIcon: const Icon(Icons.calendar_today_outlined, size: 18)),
+        decoration: InputDecoration(labelText: label, errorText: missing ? 'Required' : null, suffixIcon: const Icon(Icons.calendar_today_outlined, size: 18)),
         child: Text(value == null ? 'Not set' : DateFormat.yMMMd().format(value), style: TextStyle(color: value == null ? AppColors.textSecondary : null)),
       ),
     );

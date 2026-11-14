@@ -5,6 +5,7 @@ import '../../models/masters.dart';
 import '../../services/masters_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/common.dart';
+import '../../widgets/app_dropdown.dart';
 
 /// Masters → Attendance Batches (mirrors Masters/AttendanceBatches on the web): named groups of students
 /// such as "5th English Morning" that show up as green / light-red cards on the Attendance screen.
@@ -209,7 +210,7 @@ class _AttendanceBatchEditScreenState extends State<AttendanceBatchEditScreen> {
   }
 
   Widget _dropdown<T>(String label, int? value, List<T> items, int Function(T) idOf, String Function(T) nameOf, ValueChanged<int?> onChanged) {
-    return DropdownButtonFormField<int?>(
+    return AppDropdown<int?>(
       isExpanded: true,
       initialValue: items.any((e) => idOf(e) == value) ? value : null,
       decoration: InputDecoration(labelText: label),

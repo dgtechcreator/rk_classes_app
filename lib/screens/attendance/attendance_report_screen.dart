@@ -10,6 +10,7 @@ import '../../services/attendance_service.dart';
 import '../../services/lookup_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/common.dart';
+import '../../widgets/app_dropdown.dart';
 
 /// Monthly attendance summary per student — mirrors AttendanceController.Report. Filter by
 /// class/section/batch + month/year, see each student's present/absent/late/total, tap a student for
@@ -230,7 +231,7 @@ class _FilterSheetState extends State<_FilterSheet> {
           Row(
             children: [
               Expanded(
-                child: DropdownButtonFormField<int>(
+                child: AppDropdown<int>(
       isExpanded: true,
                   initialValue: _month,
                   decoration: const InputDecoration(labelText: 'Month'),
@@ -242,7 +243,7 @@ class _FilterSheetState extends State<_FilterSheet> {
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: DropdownButtonFormField<int>(
+                child: AppDropdown<int>(
       isExpanded: true,
                   initialValue: _year,
                   decoration: const InputDecoration(labelText: 'Year'),
@@ -281,7 +282,7 @@ class _FilterSheetState extends State<_FilterSheet> {
   }
 
   Widget _dropdown(String label, int? value, List<LookupItem> items, ValueChanged<int?> onChanged) {
-    return DropdownButtonFormField<int?>(
+    return AppDropdown<int?>(
       isExpanded: true,
       initialValue: value,
       decoration: InputDecoration(labelText: label),

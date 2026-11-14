@@ -11,6 +11,7 @@ import '../../widgets/common.dart';
 import '../../widgets/profile_avatar.dart';
 import '../../widgets/contact_actions.dart';
 import '../../models/contact_number.dart';
+import '../../widgets/app_dropdown.dart';
 
 /// Mark / review attendance for one set of students on one date. The set is either an attendance batch
 /// ([attBatchId], the green/red cards) or a Class/Section/Batch filter — same data the web page shows.
@@ -53,6 +54,16 @@ class _AttendanceEntryScreenState extends State<AttendanceEntryScreen> {
   String? _error;
 
   List<AttendanceRecord> _records = [];
+  // Search only narrows what is SHOWN. Counts, "All Present / All Absent" and Save always use every student of the list.
+  final _search = TextEditingController();
+  String _q = '';
+  List<AttendanceRecord> get _visible => _records.where((r) => matchesSearch(_q, [r.fullName, r.admissionNo, r.rollNo])).toList();
+
+  @override
+  void dispose() {
+    _search.dispose();
+    super.dispose();
+  }
   final Map<int, String> _statuses = {};
   int _alreadyMarked = 0;
   bool _isHoliday = false;
@@ -430,7 +441,10 @@ class _AttendanceEntryScreenState extends State<AttendanceEntryScreen> {
             ],
           ),
           const SizedBox(height: 10),
-          for (final r in _records) ...[
+          ListSearchField(controller: _search, onChanged: (v) => setState(() => _q = v), hint: 'Search student, admission no, roll no...', padding: const EdgeInsets.only(bottom: 8)),
+          if (_q.trim().isNotEmpty && _visible.isEmpty)
+            const Padding(padding: EdgeInsets.all(20), child: Center(child: Text('No student matches your search.', style: TextStyle(color: AppColors.textSecondary)))),
+          for (final r in _visible) ...[
             _StudentAttendanceTile(
               record: r,
               status: _statuses[r.studentId] ?? 'Present',
@@ -493,7 +507,7 @@ class _AttendanceEntryScreenState extends State<AttendanceEntryScreen> {
               maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12)),
           childrenPadding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
           children: [
-            DropdownButtonFormField<String?>(
+            AppDropdown<String?>(
               isExpanded: true,
               initialValue: subjects.contains(_subject) ? _subject : null,
               decoration: const InputDecoration(labelText: 'Subject'),
@@ -504,9 +518,10 @@ class _AttendanceEntryScreenState extends State<AttendanceEntryScreen> {
               onChanged: (v) => setState(() { _subject = v; _dirty = true; }),
             ),
             const SizedBox(height: 12),
-            DropdownButtonFormField<String?>(
+            AppDropdown<String?>(
               isExpanded: true,
               initialValue: teachers.any((t) => t.fullName == _sirName) ? _sirName : null,
+              alwaysSearch: true,
               decoration: const InputDecoration(labelText: 'Faculty name'),
               items: [
                 const DropdownMenuItem<String?>(value: null, child: Text('— Select Teacher —')),

@@ -12,6 +12,7 @@ import '../../services/teacher_payment_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/common.dart';
 import 'teacher_payment_form_sheet.dart';
+import '../../widgets/app_dropdown.dart';
 
 /// Teacher-payment summary. Admin / accountant ([mine] = false): filter by year, month, teacher and status and
 /// see totals plus a per-teacher breakdown. A teacher ([mine] = true): only their own payments — when each
@@ -34,6 +35,14 @@ class _TeacherPaymentSummaryScreenState extends State<TeacherPaymentSummaryScree
   String? _error;
   TeacherPaymentReport? _report;
   List<TeacherPayment> _all = [];
+  final _search = TextEditingController();
+  String _q = '';
+
+  @override
+  void dispose() {
+    _search.dispose();
+    super.dispose();
+  }
 
   late int _year = widget.mine ? 0 : DateTime.now().year; // 0 = all years
   int _month = 0; // 0 = whole year
@@ -73,6 +82,7 @@ class _TeacherPaymentSummaryScreenState extends State<TeacherPaymentSummaryScree
       if (_facultyId != null && p.facultyId != _facultyId) return false;
       if (_status == 'paid' && !p.isPaid) return false;
       if (_status == 'pending' && p.isPaid) return false;
+      if (!matchesSearch(_q, [p.facultyName, p.typeLabel, p.monthYearLabel, p.paymentMode])) return false;
       return true;
     }).toList();
     // newest period first, then most recently paid
@@ -193,6 +203,7 @@ class _TeacherPaymentSummaryScreenState extends State<TeacherPaymentSummaryScree
               padding: const EdgeInsets.only(bottom: 10),
               child: Text(r.facultyName!, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
             ),
+          if (!widget.mine) ListSearchField(controller: _search, onChanged: (v) => setState(() => _q = v), hint: 'Search teacher, type, month...', padding: const EdgeInsets.only(bottom: 10)),
           _filters(r),
           const SizedBox(height: 12),
           Row(
@@ -240,7 +251,7 @@ class _TeacherPaymentSummaryScreenState extends State<TeacherPaymentSummaryScree
       for (final y in years) DropdownMenuItem(value: y, child: Text('$y')),
     ];
     if (widget.mine) {
-      return DropdownButtonFormField<int>(
+      return AppDropdown<int>(
         isExpanded: true,
         initialValue: yearItems.any((e) => e.value == _year) ? _year : 0,
         decoration: const InputDecoration(labelText: 'Year', isDense: true),
@@ -254,7 +265,7 @@ class _TeacherPaymentSummaryScreenState extends State<TeacherPaymentSummaryScree
         Row(
           children: [
             Expanded(
-              child: DropdownButtonFormField<int>(
+              child: AppDropdown<int>(
                 isExpanded: true,
                 initialValue: _year == 0 || years.contains(_year) ? _year : 0,
                 decoration: const InputDecoration(labelText: 'Year', isDense: true),
@@ -264,7 +275,7 @@ class _TeacherPaymentSummaryScreenState extends State<TeacherPaymentSummaryScree
             ),
             const SizedBox(width: 10),
             Expanded(
-              child: DropdownButtonFormField<int>(
+              child: AppDropdown<int>(
                 isExpanded: true,
                 initialValue: _month,
                 decoration: const InputDecoration(labelText: 'Month', isDense: true),
@@ -278,9 +289,10 @@ class _TeacherPaymentSummaryScreenState extends State<TeacherPaymentSummaryScree
           ],
         ),
         const SizedBox(height: 10),
-        DropdownButtonFormField<int?>(
+        AppDropdown<int?>(
           isExpanded: true,
           initialValue: faculty.any((f) => f.id == _facultyId) ? _facultyId : null,
+          alwaysSearch: true,
           decoration: const InputDecoration(labelText: 'Teacher', isDense: true),
           items: [
             const DropdownMenuItem<int?>(value: null, child: Text('All teachers')),

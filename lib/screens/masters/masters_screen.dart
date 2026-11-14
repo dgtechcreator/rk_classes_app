@@ -8,6 +8,7 @@ import '../../widgets/common.dart';
 import 'attendance_batches_tab.dart';
 import 'batch_assign_screen.dart';
 import 'message_templates_tab.dart';
+import '../../widgets/app_dropdown.dart';
 
 /// Single admin settings screen mirroring MastersController.Index, which shows Academic Years,
 /// Classes, Sections, Batches, Subjects and Expense Categories together on one page — here as tabs
@@ -643,8 +644,6 @@ class _SubjectsTabState extends State<_SubjectsTab> {
     if (_classId == null) return;
     final nameCtrl = TextEditingController(text: subject?.subjectName ?? '');
     final codeCtrl = TextEditingController(text: subject?.subjectCode ?? '');
-    final maxMarksCtrl = TextEditingController(text: '${subject?.maxMarks ?? 100}');
-    final passMarksCtrl = TextEditingController(text: '${subject?.passMarks ?? 35}');
     bool isActive = subject?.isActive ?? true;
     final saved = await showModalBottomSheet<bool>(
       context: context,
@@ -659,11 +658,7 @@ class _SubjectsTabState extends State<_SubjectsTab> {
             const SizedBox(height: 12),
             TextField(controller: codeCtrl, decoration: const InputDecoration(labelText: 'Subject Code')),
             const SizedBox(height: 12),
-            Row(children: [
-              Expanded(child: TextField(controller: maxMarksCtrl, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Max Marks'))),
-              const SizedBox(width: 12),
-              Expanded(child: TextField(controller: passMarksCtrl, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Pass Marks'))),
-            ]),
+            // No Max / Pass marks here: they differ from test to test (20, 30, 50, 100 ...), the teacher sets them when the test is created.
             const SizedBox(height: 8),
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
@@ -686,8 +681,8 @@ class _SubjectsTabState extends State<_SubjectsTab> {
         subjectName: name,
         subjectCode: codeCtrl.text.trim().isEmpty ? null : codeCtrl.text.trim(),
         classId: _classId!,
-        maxMarks: int.tryParse(maxMarksCtrl.text.trim()) ?? 100,
-        passMarks: int.tryParse(passMarksCtrl.text.trim()) ?? 35,
+        maxMarks: subject?.maxMarks ?? 100,   // not asked any more; an old subject keeps the value it had (nothing reads it)
+        passMarks: subject?.passMarks ?? 35,
         isActive: isActive,
       );
       if (mounted) { showSnack(context, subject == null ? 'Subject added.' : 'Subject updated.'); _loadSubjects(); }
@@ -732,7 +727,7 @@ class _SubjectsTabState extends State<_SubjectsTab> {
                       children: [
                         Padding(
                           padding: const EdgeInsets.all(12),
-                          child: DropdownButtonFormField<int>(
+                          child: AppDropdown<int>(
       isExpanded: true,
                             initialValue: _classId,
                             decoration: const InputDecoration(labelText: 'Class'),
@@ -758,7 +753,7 @@ class _SubjectsTabState extends State<_SubjectsTab> {
                                               return Card(
                                                 child: ListTile(
                                                   title: Text(s.subjectName, style: const TextStyle(fontWeight: FontWeight.w600)),
-                                                  subtitle: Text('${s.subjectCode ?? '—'} • Max ${s.maxMarks} / Pass ${s.passMarks}'),
+                                                  subtitle: Text(s.subjectCode ?? '—'),
                                                   trailing: Row(
                                                     mainAxisSize: MainAxisSize.min,
                                                     children: [

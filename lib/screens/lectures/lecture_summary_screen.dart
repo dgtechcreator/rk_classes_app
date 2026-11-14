@@ -23,6 +23,14 @@ class LectureSummaryScreen extends StatefulWidget {
 
 class _LectureSummaryScreenState extends State<LectureSummaryScreen> {
   final _service = LectureService();
+  final _search = TextEditingController();
+  String _q = '';
+
+  @override
+  void dispose() {
+    _search.dispose();
+    super.dispose();
+  }
 
   late DateTime _month; // first day of the shown month
   String _groupBy = 'teacher';
@@ -201,11 +209,21 @@ class _LectureSummaryScreenState extends State<LectureSummaryScreen> {
     if (_error != null) return ErrorView(message: _error!, onRetry: _load);
     final rows = _result?.rows ?? [];
     if (rows.isEmpty) return const EmptyState(message: 'No lectures in this month.', icon: Icons.pie_chart_outline);
+    // The bars stay relative to the busiest row of the whole month, so searching never changes what a bar means.
     final max = rows.map((r) => r.total).fold<int>(1, (a, b) => b > a ? b : a);
+    final all = rows;
+    final shown = all.where((r) => matchesSearch(_q, [r.label])).toList();
+    return Column(children: [
+      ListSearchField(controller: _search, onChanged: (v) => setState(() => _q = v), hint: 'Search teacher, class or subject...'),
+      Expanded(child: _summaryList(shown, max)),
+    ]);
+  }
+
+  Widget _summaryList(List<LectureSummaryRow> rows, int max) {
     return RefreshIndicator(
       onRefresh: _load,
       child: ListView.separated(
-        padding: const EdgeInsets.fromLTRB(12, 8, 12, 24),
+        padding: const EdgeInsets.fromLTRB(12, 4, 12, 24),
         itemCount: rows.length + 1,
         separatorBuilder: (_, _) => const SizedBox(height: 8),
         itemBuilder: (_, i) {

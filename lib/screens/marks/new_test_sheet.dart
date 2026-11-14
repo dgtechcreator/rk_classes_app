@@ -7,6 +7,7 @@ import '../../models/lookup.dart';
 import '../../models/marks.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/common.dart';
+import '../../widgets/app_dropdown.dart';
 
 /// What the "New Test" sheet hands back: everything needed to open the marks grid for one subject of one test.
 class NewTestResult {
@@ -175,7 +176,7 @@ class _NewTestSheetState extends State<NewTestSheet> {
               Row(
                 children: [
                   Expanded(
-                    child: DropdownButtonFormField<int?>(
+                    child: AppDropdown<int?>(
                       isExpanded: true,
                       initialValue: widget.classes.any((c) => c.id == _classId) ? _classId : null,
                       decoration: const InputDecoration(labelText: 'Std *'),
@@ -185,7 +186,7 @@ class _NewTestSheetState extends State<NewTestSheet> {
                   ),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: DropdownButtonFormField<int?>(
+                    child: AppDropdown<int?>(
                       key: ValueKey('subject-$_classId-${_subjects.length}'),
                       isExpanded: true,
                       initialValue: _subjects.any((s) => s.subjectId == _subjectId) ? _subjectId : null,
@@ -257,7 +258,7 @@ class _NewTestSheetState extends State<NewTestSheet> {
   }
 
   Widget _optional(String label, int? value, List<LookupItem> items, ValueChanged<int?> onChanged) {
-    return DropdownButtonFormField<int?>(
+    return AppDropdown<int?>(
       isExpanded: true,
       initialValue: items.any((e) => e.id == value) ? value : null,
       decoration: InputDecoration(labelText: '$label (optional)'),

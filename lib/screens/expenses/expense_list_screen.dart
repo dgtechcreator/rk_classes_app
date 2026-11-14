@@ -12,6 +12,7 @@ import '../../services/teacher_payment_service.dart';
 import '../teacher_payment/teacher_payment_form_sheet.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/common.dart';
+import '../../widgets/app_dropdown.dart';
 
 /// Expense list with filters + add/edit/delete — mirrors ExpensesController.Index.
 class ExpenseListScreen extends StatefulWidget {
@@ -429,7 +430,7 @@ class _ExpenseFormSheetState extends State<_ExpenseFormSheet> {
                   validator: (v) => (v ?? '').trim().isEmpty ? 'Required' : null,
                 ),
                 const SizedBox(height: 12),
-                DropdownButtonFormField<int?>(
+                AppDropdown<int?>(
       isExpanded: true,
                   initialValue: widget.categories.any((c) => c.id == _categoryId) ? _categoryId : null,
                   decoration: const InputDecoration(labelText: 'Category'),
@@ -444,7 +445,7 @@ class _ExpenseFormSheetState extends State<_ExpenseFormSheet> {
                   validator: (v) => (double.tryParse((v ?? '').trim()) ?? 0) <= 0 ? 'Enter a valid amount' : null,
                 ),
                 const SizedBox(height: 12),
-                DropdownButtonFormField<String>(
+                AppDropdown<String>(
       isExpanded: true,
                   initialValue: _mode,
                   decoration: const InputDecoration(labelText: 'Payment Mode'),

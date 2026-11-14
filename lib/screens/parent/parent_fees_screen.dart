@@ -53,6 +53,7 @@ class ParentFeesScreen extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const SizedBox(height: 6),
+        if (ctrl.showsFeeNumbers) ...[
         Container(
           padding: const EdgeInsets.all(18),
           decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(AppRadius.xl), boxShadow: AppShadows.card),
@@ -76,21 +77,24 @@ class ParentFeesScreen extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 14),
-        SectionHeader(title: 'Payments & Receipts (${d.feeHistory.length})'),
-        if (d.feeHistory.isEmpty)
-          const EmptyState(message: 'No payments recorded yet.', icon: Icons.history)
-        else
-          for (final p in d.feeHistory) _paymentCard(context, p, money, student, d),
+        ],
+        if (ctrl.showsReceipts) ...[
+          SectionHeader(title: 'Payments & Receipts (${d.feeHistory.length})'),
+          if (d.feeHistory.isEmpty)
+            const EmptyState(message: 'No payments recorded yet.', icon: Icons.history)
+          else
+            for (final p in d.feeHistory) _paymentCard(context, p, money, student, d, ctrl.showsFeeNumbers),
+        ],
       ],
     );
   }
 
-  Widget _paymentCard(BuildContext context, FeePayment p, NumberFormat money, Student student, ParentDashboardData d) {
+  Widget _paymentCard(BuildContext context, FeePayment p, NumberFormat money, Student student, ParentDashboardData d, bool showBalance) {
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       child: InkWell(
         borderRadius: BorderRadius.circular(AppRadius.md),
-        onTap: () => ReceiptScreen.openForParent(context, p, student: student, balance: d.balance, dueDate: d.dueDate),
+        onTap: () => ReceiptScreen.openForParent(context, p, student: student, balance: d.balance, dueDate: d.dueDate, showBalance: showBalance),
         child: Padding(
           padding: const EdgeInsets.fromLTRB(14, 10, 8, 10),
           child: Row(
@@ -114,9 +118,9 @@ class ParentFeesScreen extends StatelessWidget {
                 ),
               ),
               TextButton.icon(
-                onPressed: () => ReceiptScreen.openForParent(context, p, student: student, balance: d.balance, dueDate: d.dueDate),
+                onPressed: () => ReceiptScreen.openForParent(context, p, student: student, balance: d.balance, dueDate: d.dueDate, showBalance: showBalance),
                 icon: const Icon(Icons.receipt_long_outlined, size: 18),
-                label: const Text('Receipt'),
+                label: const Text('View'),
               ),
             ],
           ),
