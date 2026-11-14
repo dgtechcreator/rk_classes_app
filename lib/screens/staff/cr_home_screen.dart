@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../core/session.dart';
 import '../../theme/app_theme.dart';
+import '../../widgets/rk_header.dart';
 import '../attendance/attendance_mark_screen.dart';
 import '../marks/marks_entry_screen.dart';
 import '../teacher_attendance/teacher_attendance_mark_screen.dart';
@@ -18,39 +19,20 @@ class CrHomeScreen extends StatelessWidget {
     final s = context.watch<Session>();
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: SafeArea(
-        bottom: false,
+      body: Column(
+        children: [
+          // the same header as every other Home
+          RkHomeHeader(
+            name: s.displayName.isEmpty ? s.fullName : s.displayName,
+            roleLabel: 'Class Representative',
+            roleIcon: Icons.shield_rounded,
+            photoPath: s.profilePicPath,
+            sideNote: s.crLabel.isEmpty ? null : s.crLabel,
+          ),
+          Expanded(
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+          padding: const EdgeInsets.fromLTRB(14, 12, 14, 24),
           children: [
-            Text('Hello, ${s.fullName.split(' ').first}', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
-            const SizedBox(height: 4),
-            const Text('Class Representative', style: TextStyle(color: AppColors.textSecondary, fontWeight: FontWeight.w600)),
-            const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                gradient: AppGradients.primary,
-                borderRadius: BorderRadius.circular(AppRadius.md),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.shield_outlined, color: Colors.white, size: 30),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text('Your class', style: TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.w600)),
-                        Text(s.crLabel.isEmpty ? '—' : s.crLabel,
-                            style: const TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.w800)),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 20),
             if (s.hasPerm('attendance_entry'))
               _action(context, Icons.event_available_outlined, 'Student Attendance', 'Mark present / absent for your class',
                   () => const AttendanceMarkScreen()),
@@ -74,16 +56,19 @@ class CrHomeScreen extends StatelessWidget {
                 textAlign: TextAlign.center, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
           ],
         ),
+          ),
+        ],
       ),
     );
   }
 
   Widget _action(BuildContext context, IconData icon, String title, String subtitle, Widget Function() screen) {
     return Card(
-      margin: const EdgeInsets.only(bottom: 12),
+      margin: const EdgeInsets.only(bottom: 8),
       child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        leading: CircleAvatar(backgroundColor: AppColors.primarySoft, child: Icon(icon, color: AppColors.primary)),
+        dense: true,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+        leading: CircleAvatar(radius: 18, backgroundColor: AppColors.primarySoft, child: Icon(icon, size: 19, color: AppColors.primary)),
         title: Text(title, style: const TextStyle(fontWeight: FontWeight.w700)),
         subtitle: Text(subtitle),
         trailing: const Icon(Icons.chevron_right),

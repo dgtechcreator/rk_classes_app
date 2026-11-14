@@ -7,14 +7,14 @@ import '../../core/session.dart';
 import '../../services/photo_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/profile_avatar.dart';
+import '../../widgets/profile_widgets.dart';
 import '../auth/login_screen.dart';
 import '../../widgets/fingerprint_tile.dart';
 import '../security/login_activity_screen.dart';
 import 'staff_modules_screen.dart';
 
-/// A real account tab — matches the "Profile" pattern nearly every top consumer/education app has
-/// (avatar, role, quick facts, settings-shaped rows, sign-out at the bottom) instead of burying
-/// logout as a stray icon in the dashboard app bar.
+/// A real account tab: a blue banner with a big photo, name and role, three quick facts, then the account, security and
+/// access cards and the sign-out button.
 class StaffProfileScreen extends StatelessWidget {
   const StaffProfileScreen({super.key});
 
@@ -46,74 +46,95 @@ class StaffProfileScreen extends StatelessWidget {
       final mods = allModules.where((m) => m.group == g).toList();
       return mods.any((m) => m.permKey == null || session.hasPerm(m.permKey!));
     }).toList();
+    final moduleCount = allModules.where((m) => m.isVisibleTo(session)).length;
+    final shownName = session.displayName.isEmpty ? session.fullName : session.displayName;
+    final role = session.roleName.isEmpty ? 'Staff' : session.roleName;
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: SafeArea(
-        bottom: false,
-        child: CustomScrollView(
-          slivers: [
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 20, 16, 8),
-                child: Column(
+      body: ListView(
+        padding: EdgeInsets.zero,
+        children: [
+          ProfileBanner(
+            title: 'My Profile',
+            name: shownName,
+            roleLabel: role,
+            roleIcon: session.isAdmin ? Icons.shield_rounded : Icons.verified_user_rounded,
+            chips: [if (session.username.isNotEmpty) '@${session.username}'],
+            hint: 'Tap the photo to view it · tap the camera to change it',
+            avatar: EditableAvatar(
+              name: session.fullName,
+              photoPath: session.profilePicPath,
+              owner: PhotoOwner.user,
+              id: session.userId,
+              size: 112,
+              border: Border.all(color: Colors.white, width: 3),
+              onChanged: (path) => session.setProfilePic(path),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 14, 14, 20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(children: [
+                  Expanded(child: ProfileFact(icon: Icons.badge_rounded, color: const Color(0xFF7C3AED), value: role, label: 'Role')),
+                  const SizedBox(width: 8),
+                  Expanded(child: ProfileFact(icon: Icons.apps_rounded, color: AppColors.info, value: '$moduleCount', label: 'Modules')),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: FutureBuilder<PackageInfo>(
+                      future: PackageInfo.fromPlatform(),
+                      builder: (_, snap) => ProfileFact(icon: Icons.system_update_rounded, color: AppColors.success, value: snap.data?.version ?? '-', label: 'App version'),
+                    ),
+                  ),
+                ]),
+                const SizedBox(height: 12),
+                ProfileCard(
+                  title: 'Account',
+                  icon: Icons.person_rounded,
                   children: [
-                    EditableAvatar(
-                      name: session.fullName,
-                      photoPath: session.profilePicPath,
-                      owner: PhotoOwner.user,
-                      id: session.userId,
-                      size: 96,
-                      border: Border.all(color: Colors.white, width: 3),
-                      onChanged: (path) => session.setProfilePic(path),
-                    ),
-                    const SizedBox(height: 14),
-                    Text(session.displayName.isEmpty ? session.fullName : session.displayName, style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w800)),
-                    const SizedBox(height: 4),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: session.isAdmin ? AppColors.violetSoft : AppColors.infoSoft,
-                        borderRadius: BorderRadius.circular(AppRadius.pill),
-                      ),
-                      child: Text(
-                        session.roleName.isEmpty ? 'Staff' : session.roleName,
-                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: session.isAdmin ? AppColors.violet : AppColors.info),
-                      ),
-                    ),
+                    ProfileInfoRow(icon: Icons.badge_outlined, label: 'Full name', value: session.fullName.isEmpty ? '-' : session.fullName),
+                    const ProfileDivider(),
+                    ProfileInfoRow(icon: Icons.alternate_email_rounded, label: 'Username', value: session.username.isEmpty ? '-' : session.username),
+                    const ProfileDivider(),
+                    ProfileInfoRow(icon: Icons.verified_user_outlined, label: 'Role', value: role),
                   ],
                 ),
-              ),
-            ),
-            SliverPadding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-              sliver: SliverList(
-                delegate: SliverChildListDelegate([
-                  _sectionCard([
-                    _infoRow(Icons.person_outline_rounded, 'Username', session.username),
-                    _divider(),
-                    _infoRow(Icons.badge_outlined, 'Role', session.roleName.isEmpty ? '-' : session.roleName),
-                  ]),
-                  const SizedBox(height: 12),
-                  _sectionCard([
-                    ListTile(
-                      leading: const Icon(Icons.fingerprint_rounded, color: AppColors.primary),
-                      title: Text(session.isAdmin ? 'Login activity' : 'My login activity', style: const TextStyle(fontWeight: FontWeight.w700)),
-                      subtitle: Text(session.isAdmin ? 'Phones and browsers everyone signed in from' : 'Phones and browsers signed in to your account', style: const TextStyle(fontSize: 12)),
-                      trailing: const Icon(Icons.chevron_right_rounded),
+                const SizedBox(height: 12),
+                ProfileCard(
+                  title: 'Security',
+                  icon: Icons.lock_rounded,
+                  children: [
+                    InkWell(
+                      borderRadius: BorderRadius.circular(12),
                       onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const LoginActivityScreen())),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 4),
+                        child: Row(children: [
+                          const ProfileIconBox(Icons.devices_rounded, AppColors.info),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                              Text(session.isAdmin ? 'Login activity' : 'My login activity', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: profileInk)),
+                              const SizedBox(height: 2),
+                              Text(session.isAdmin ? 'Phones and browsers everyone signed in from' : 'Phones and browsers signed in to your account', style: const TextStyle(fontSize: 12, color: profileMuted)),
+                            ]),
+                          ),
+                          const Icon(Icons.chevron_right_rounded, color: AppColors.textMuted),
+                        ]),
+                      ),
                     ),
-                    const FingerprintTile(kind: 'staff'),
-                  ]),
-                  const SizedBox(height: 18),
-                  const _Label('Access'),
-                  const SizedBox(height: 10),
-                  _sectionCard([
+                    const FingerprintTile(kind: 'staff', flush: true),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                ProfileCard(
+                  title: 'Your access',
+                  icon: Icons.key_rounded,
+                  children: [
                     if (grantedGroups.isEmpty)
-                      const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 4),
-                        child: Text('No module access granted yet.', style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
-                      )
+                      const Text('No module access granted yet.', style: TextStyle(color: profileMuted, fontSize: 13))
                     else
                       Wrap(
                         spacing: 8,
@@ -134,65 +155,15 @@ class StaffProfileScreen extends StatelessWidget {
                           );
                         }).toList(),
                       ),
-                  ]),
-                  const SizedBox(height: 18),
-                  const _Label('App'),
-                  const SizedBox(height: 10),
-                  _sectionCard([
-                    FutureBuilder<PackageInfo>(
-                      future: PackageInfo.fromPlatform(),
-                      builder: (_, snap) {
-                        final i = snap.data;
-                        // The real installed version (e.g. 1.0.5), so it moves with every Play Store update.
-                        return _infoRow(Icons.info_outline_rounded, 'Version', i == null ? '-' : i.version);
-                      },
-                    ),
-                  ]),
-                  const SizedBox(height: 24),
-                  SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton.icon(
-                      onPressed: () => _confirmLogout(context),
-                      icon: const Icon(Icons.logout_rounded, color: AppColors.danger),
-                      label: const Text('Logout', style: TextStyle(color: AppColors.danger, fontWeight: FontWeight.w700)),
-                      style: OutlinedButton.styleFrom(side: const BorderSide(color: AppColors.danger)),
-                    ),
-                  ),
-                ]),
-              ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                ProfileLogoutButton(onPressed: () => _confirmLogout(context)),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
-
-  Widget _sectionCard(List<Widget> children) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(AppRadius.lg), boxShadow: AppShadows.soft),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: children),
-    );
-  }
-
-  Widget _divider() => const Padding(padding: EdgeInsets.symmetric(vertical: 10), child: Divider(height: 1));
-
-  Widget _infoRow(IconData icon, String label, String value) {
-    return Row(
-      children: [
-        Icon(icon, size: 19, color: AppColors.textMuted),
-        const SizedBox(width: 12),
-        Expanded(child: Text(label, style: const TextStyle(fontSize: 13.5, color: AppColors.textSecondary))),
-        Text(value, style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700)),
-      ],
-    );
-  }
-}
-
-class _Label extends StatelessWidget {
-  const _Label(this.text);
-  final String text;
-  @override
-  Widget build(BuildContext context) => Text(text, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.textSecondary));
 }

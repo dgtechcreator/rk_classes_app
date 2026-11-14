@@ -2,10 +2,14 @@ import '../core/api_client.dart';
 import '../models/task_notification.dart';
 
 class TaskAndNotifications {
-  TaskAndNotifications({required this.notifications, required this.tasks, required this.unreadCount});
+  TaskAndNotifications({required this.notifications, required this.tasks, required this.unreadCount, required this.unreadNotifications, required this.pendingTasks});
   final List<AppNotification> notifications;
   final List<TaskItem> tasks;
+  /// Old meaning: unread notifications + pending tasks.
   final int unreadCount;
+  /// Notifications not read yet (what the bell / tab badge shows).
+  final int unreadNotifications;
+  final int pendingTasks;
 }
 
 class TaskService {
@@ -19,10 +23,14 @@ class TaskService {
   Future<TaskAndNotifications> getNotifications() async {
     final res = await _client.get('/api/tasks/notifications');
     final data = res.data as Map<String, dynamic>;
+    final notes = (data['notifications'] as List? ?? []).map((e) => AppNotification.fromJson(e as Map<String, dynamic>)).toList();
     return TaskAndNotifications(
-      notifications: (data['notifications'] as List? ?? []).map((e) => AppNotification.fromJson(e as Map<String, dynamic>)).toList(),
+      notifications: notes,
       tasks: (data['tasks'] as List? ?? []).map((e) => TaskItem.fromJson(e as Map<String, dynamic>)).toList(),
-      unreadCount: data['unreadCount'] as int? ?? 0,
+      unreadCount: (data['unreadCount'] as num?)?.toInt() ?? 0,
+      // an older server has no split: count the unread ones from the list itself
+      unreadNotifications: (data['unreadNotifications'] as num?)?.toInt() ?? notes.where((n) => n.isUnread).length,
+      pendingTasks: (data['pendingTasks'] as num?)?.toInt() ?? ((data['tasks'] as List?)?.length ?? 0),
     );
   }
 

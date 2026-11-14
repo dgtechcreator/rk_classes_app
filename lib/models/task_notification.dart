@@ -20,7 +20,7 @@ class AppNotification {
   final String title;
   final String message;
   final String type;
-  final String status;
+  String status;   // 'Unread' / 'Read' - changed in place when the user taps it (optimistic)
   final DateTime createdAt;
   final String? action;
   final int? referenceId;

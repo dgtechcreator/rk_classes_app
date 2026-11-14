@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/login_role.dart';
 import '../../core/parent_data_controller.dart';
 import '../../core/parent_notification_controller.dart';
 import '../../core/session.dart';
@@ -10,8 +11,8 @@ import '../../theme/app_theme.dart';
 import '../../theme/subject_visuals.dart';
 import '../../widgets/attendance_ring.dart';
 import '../../widgets/common.dart';
-import '../../widgets/notification_bell.dart';
 import '../../widgets/profile_avatar.dart';
+import '../../widgets/rk_header.dart';
 import '../../services/parent_service.dart';
 import '../../services/photo_service.dart';
 import '../fees/receipt_screen.dart';
@@ -44,34 +45,42 @@ class ParentHomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final parentName = context.watch<Session>().parentName;
+    final session = context.watch<Session>();
+    final parentName = session.parentName;
     final ctrl = context.watch<ParentDataController>();
+    // a student who signed in with his own number is not "a parent": his own name and photo, no "your child"
+    final studentLogin = isStudentLogin(session.phone, ctrl.children);
+    final me = ctrl.selected;
 
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
+        top: false,
         bottom: false,
         child: RefreshIndicator(
-          onRefresh: ctrl.load,
+          edgeOffset: MediaQuery.of(context).padding.top + 60,
+          onRefresh: () async {
+            context.read<ParentNotificationController>().refresh();   // the bell count too
+            await ctrl.load();
+          },
           child: CustomScrollView(
             slivers: [
               SliverToBoxAdapter(
-                child: GreetingHeader(
+                // the same header as the admin / teacher Home
+                child: RkHomeHeader(
                   greeting: 'Hello,',
-                  name: parentName.isEmpty ? 'Parent' : parentName.split(' ').first,
-                  leadingIcon: Icons.family_restroom,
-                  actions: [
-                    if (ctrl.shows('notifications'))
-                      NotificationBell(
-                        count: context.watch<ParentNotificationController>().unread,
-                        onTap: () => _openNotifications(context),
-                      ),
-                  ],
+                  name: studentLogin && me != null ? firstWord(me.fullName) : (parentName.isEmpty ? 'Parent' : firstWord(parentName)),
+                  photoPath: studentLogin ? me?.profilePicPath : null,
+                  roleLabel: portalRoleLabel(session.phone, ctrl.children),
+                  roleIcon: studentLogin ? Icons.school_rounded : Icons.family_restroom_rounded,
+                  sideNote: ctrl.selected?.classLabel,
+                  unread: ctrl.shows('notifications') ? context.watch<ParentNotificationController>().unread : 0,
+                  onBell: ctrl.shows('notifications') ? () => _openNotifications(context) : null,
                 ),
               ),
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
+                  padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
                   child: _buildBody(context, ctrl),
                 ),
               ),
@@ -103,9 +112,13 @@ class ParentHomeScreen extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         for (final b in ctrl.birthdays) _BirthdayCard(card: b),
-        _ChildCard(ctrl: ctrl),
-        if (ctrl.selected != null) ...[
+        // the header already shows a student his own name, photo and class: the card is only for a parent ("your child")
+        if (!isStudentLogin(context.watch<Session>().phone, ctrl.children)) ...[
+          _ChildCard(ctrl: ctrl, studentLogin: false),
           const SizedBox(height: 12),
+        ],
+        if (ctrl.selected != null) ...[
+
           Builder(builder: (context) {
             // "Full report" needs attendance + marks + fees; each button only shows when its section is on.
             final buttons = <Widget>[
@@ -137,9 +150,9 @@ class ParentHomeScreen extends StatelessWidget {
           }),
         ],
         if (d != null) ...[
-          if (ctrl.shows('attendance') || ctrl.showsFeeNumbers) const SizedBox(height: 20),
+          if (ctrl.shows('attendance') || ctrl.showsFeeNumbers) const SizedBox(height: 12),
           if (ctrl.shows('attendance') || ctrl.showsFeeNumbers) Container(
-            padding: const EdgeInsets.all(18),
+            padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(AppRadius.xl), boxShadow: AppShadows.card),
             child: Row(
               children: [
@@ -156,10 +169,15 @@ class ParentHomeScreen extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      if (ctrl.shows('attendance'))
-                        _miniStatRow(Icons.event_available_rounded, AppColors.info,
-                            d.attendance == null ? '-' : '${d.attendance!.presentDays}/${d.attendance!.totalDays}', 'Present Days'),
-                      if (ctrl.shows('attendance') && ctrl.showsFeeNumbers) const SizedBox(height: 14),
+                      if (ctrl.shows('attendance')) ...[
+                        _miniStatRow(Icons.event_available_rounded, AppColors.success,
+                            d.attendance == null ? '-' : '${d.attendance!.presentDays}/${d.attendance!.totalDays}', 'Present days'),
+                        const SizedBox(height: 10),
+                        _miniStatRow(Icons.event_busy_rounded, AppColors.danger, d.attendance == null ? '-' : '${d.attendance!.absentDays}', 'Absent days'),
+                        const SizedBox(height: 10),
+                        _miniStatRow(Icons.schedule_rounded, AppColors.warning, d.attendance == null ? '-' : '${d.attendance!.lateDays}', 'Late days'),
+                      ],
+                      if (ctrl.shows('attendance') && ctrl.showsFeeNumbers) const SizedBox(height: 10),
                       if (ctrl.showsFeeNumbers)
                         _miniStatRow(Icons.account_balance_wallet_outlined, d.balance > 0 ? AppColors.danger : AppColors.success,
                             NumberFormat.currency(symbol: '₹').format(d.balance), 'Balance Due'),
@@ -170,7 +188,7 @@ class ParentHomeScreen extends StatelessWidget {
             ),
           ),
           if (ctrl.shows('marks') && subjects.isNotEmpty) ...[
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
             const SectionHeader(title: 'Subjects'),
             SizedBox(
               height: 92,
@@ -192,7 +210,7 @@ class ParentHomeScreen extends StatelessWidget {
             ),
           ],
           if (ctrl.shows('marks') && d.marks.isNotEmpty) ...[
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
             SectionHeader(
               title: 'Recent Grades',
               action: TextButton(
@@ -217,7 +235,7 @@ class ParentHomeScreen extends StatelessWidget {
             }),
           ],
           if (ctrl.shows('fees')) ...[
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
           SectionHeader(
             title: 'Fees',
             action: TextButton(
@@ -340,48 +358,50 @@ class _BirthdayCard extends StatelessWidget {
 }
 
 class _ChildCard extends StatelessWidget {
-  const _ChildCard({required this.ctrl});
+  const _ChildCard({required this.ctrl, this.studentLogin = false});
   final ParentDataController ctrl;
+  /// The student signed in himself: "You" instead of "Your child".
+  final bool studentLogin;
 
   @override
   Widget build(BuildContext context) {
     final s = ctrl.selected;
     if (s == null) return const SizedBox.shrink();
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(14, 10, 14, 12),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-        boxShadow: AppShadows.card,
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: [BoxShadow(color: const Color(0xFF192D82).withValues(alpha: 0.06), blurRadius: 8, offset: const Offset(0, 2))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(Icons.school_rounded, size: 14, color: AppColors.textMuted),
+              Icon(Icons.school_rounded, size: 13, color: AppColors.textMuted),
               const SizedBox(width: 6),
-              const Text('YOUR CHILD', style: TextStyle(color: AppColors.textMuted, fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: 0.6)),
+              Text(studentLogin ? 'YOU · STUDENT' : 'YOUR CHILD', style: TextStyle(color: AppColors.textMuted, fontSize: 10, fontWeight: FontWeight.w800, letterSpacing: 0.6)),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
           Row(
             children: [
               // Tap = full-screen photo; the camera badge lets the parent / student set their own profile photo.
               EditableAvatar(
-                name: s.displayName,
+                name: s.fullName,
                 photoPath: s.profilePicPath,
                 owner: PhotoOwner.child,
                 id: s.studentId,
-                size: 56,
+                size: 58,
                 onChanged: (_) => ctrl.load(),
               ),
-              const SizedBox(width: 14),
+              const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(s.displayName, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
+                    Text(s.displayName, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
                     const SizedBox(height: 3),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),

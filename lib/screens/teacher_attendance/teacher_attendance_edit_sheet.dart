@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../core/api_client.dart';
-import '../../models/lookup.dart';
 import '../../models/teacher_attendance.dart';
 import '../../services/teacher_attendance_service.dart';
 import '../../widgets/app_dropdown.dart';

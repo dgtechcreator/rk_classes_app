@@ -20,6 +20,9 @@ import '../users/user_list_screen.dart';
 import 'coming_soon_screen.dart';
 import '../faculty/faculty_list_screen.dart';
 import 'staff_modules_screen.dart';
+import 'tasks_notifications_screen.dart' show notificationLook;
+import '../../models/task_notification.dart';
+import 'package:intl/intl.dart' as intl;
 
 /// Home tab — a quick "what matters right now" surface (admin KPIs + charts, then a handful of
 /// one-tap shortcuts). The full permission-filtered module directory lives in the Modules tab so
@@ -91,13 +94,19 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
   Widget build(BuildContext context) {
     final session = context.watch<Session>();
     final unreadCount = context.watch<RealtimeNotificationService>().unreadCount;
-    final quickActions = allModules.where((m) => m.isVisibleTo(session)).take(6).toList();
+    // the admin gets six shortcuts (the rest is in Modules); a teacher / staff member has few modules, so all of them are shown
+    final visible = allModules.where((m) => m.isVisibleTo(session)).toList();
+    final quickActions = session.isAdmin ? visible.take(6).toList() : visible;
+    final live = context.watch<RealtimeNotificationService>();
 
     return Scaffold(
       backgroundColor: AppColors.background,
       body: RefreshIndicator(
         edgeOffset: MediaQuery.of(context).padding.top + 60,
-        onRefresh: session.isAdmin ? () async { await _load(); await _loadYear(); } : () async {},
+        onRefresh: () async {
+          context.read<RealtimeNotificationService>().refresh();   // the bell count too
+          if (session.isAdmin) { await _load(); await _loadYear(); }
+        },
         child: CustomScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           slivers: [
@@ -109,6 +118,7 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
                 photoPath: session.profilePicPath,
                 unread: unreadCount,
                 onBell: widget.onOpenTasks,
+                sideNote: _yearLabel == null ? null : 'AY $_yearLabel',
               ),
             ),
             SliverToBoxAdapter(
@@ -116,11 +126,12 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 720),
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(14, 0, 14, 20),
+                    padding: const EdgeInsets.fromLTRB(14, 0, 14, 12),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         if (session.isAdmin) ..._buildAdminDashboard(),
+                        if (!session.isAdmin) ...[const SizedBox(height: 14), _NotificationsCard(live: live, onViewAll: widget.onOpenTasks)],
                         if (quickActions.isNotEmpty) ..._buildQuickActions(quickActions),
                       ],
                     ),
@@ -138,58 +149,60 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
 
   List<Widget> _buildQuickActions(List<ModuleDef> items) {
     return [
-      AdminSectionTitle(
-        'Quick Actions',
-        trailing: widget.onOpenModules == null
+      const SizedBox(height: 10),
+      AdminCard(
+        title: 'Quick Actions',
+        icon: Icons.bolt_rounded,
+        action: widget.onOpenModules == null
             ? null
-            : Align(
-                alignment: Alignment.centerRight,
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(AppRadius.pill),
-                  onTap: widget.onOpenModules,
-                  child: const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-                    child: Row(mainAxisSize: MainAxisSize.min, children: [
-                      Text('Manage', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.primary)),
-                      Icon(Icons.chevron_right_rounded, size: 22, color: AppColors.primary),
-                    ]),
-                  ),
+            : InkWell(
+                borderRadius: BorderRadius.circular(AppRadius.pill),
+                onTap: widget.onOpenModules,
+                child: const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  child: Row(mainAxisSize: MainAxisSize.min, children: [
+                    Text('All modules', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF1B3BB5))),
+                    Icon(Icons.chevron_right_rounded, size: 18, color: Color(0xFF1B3BB5)),
+                  ]),
                 ),
               ),
-      ),
-      AdminQuickGrid(
-        children: [
-          for (var i = 0; i < items.length; i++)
-            AdminQuickTile(
-              icon: items[i].icon,
-              label: items[i].label,
-              color: _quickPalette[i % _quickPalette.length],
-              onTap: () => Navigator.of(context).push(MaterialPageRoute(
-                builder: items[i].screenBuilder ?? (_) => ComingSoonScreen(title: items[i].label, icon: items[i].icon),
-              )),
-            ),
-        ],
+        child: AdminQuickGrid(
+          children: [
+            for (var i = 0; i < items.length; i++)
+              AdminQuickTile(
+                flat: true,
+                icon: items[i].icon,
+                label: items[i].label,
+                color: _quickPalette[i % _quickPalette.length],
+                onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                  builder: items[i].screenBuilder ?? (_) => ComingSoonScreen(title: items[i].label, icon: items[i].icon),
+                )),
+              ),
+          ],
+        ),
       ),
     ];
   }
 
   List<Widget> _buildAdminDashboard() {
-    final title = AdminSectionTitle(
-      'Overview',
-      trailing: _yearLabel == null ? null : Align(alignment: Alignment.centerRight, child: AdminYearPill(label: 'Academic Year $_yearLabel')),
-    );
-    if (_loading && _data == null) return [title, const Padding(padding: EdgeInsets.symmetric(vertical: 40), child: LoadingView())];
-    if (_error != null && _data == null) return [title, ErrorView(message: _error!, onRetry: _load)];
+    if (_loading && _data == null) return const [Padding(padding: EdgeInsets.symmetric(vertical: 40), child: LoadingView())];
+    if (_error != null && _data == null) return [const SizedBox(height: 12), ErrorView(message: _error!, onRetry: _load)];
     if (_data == null) return const [];
     final s = _data!.stats;
     final money = NumberFormat.currency(symbol: '₹', decimalDigits: 0);
     return [
-      title,
+      const SizedBox(height: 12),
+      AdminAttendanceStrip(
+        present: s.presentToday,
+        absent: s.absentToday,
+        total: s.totalStudents,
+        onPresent: _openPresentSheet,
+        onAbsent: _openAbsentSheet,
+        onTotal: _openStudents,
+      ),
+      const SizedBox(height: 10),
       AdminStatGrid(
         children: [
-          AdminStatCard(label: 'Total Students', value: '${s.totalStudents}', color: AppColors.info, icon: Icons.groups_rounded, onTap: _openStudents),
-          AdminStatCard(label: 'Present Today', value: '${s.presentToday}', color: AppColors.success, icon: Icons.check_circle_outline_rounded, onTap: _openPresentSheet),
-          AdminStatCard(label: 'Absent Today', value: '${s.absentToday}', color: AppColors.danger, icon: Icons.cancel_outlined, onTap: _openAbsentSheet),
           if (_birthdays.isNotEmpty)
             AdminStatCard(label: 'Birthdays Today', value: '${_birthdays.length}', color: const Color(0xFFDB2777), icon: Icons.cake_rounded, onTap: _openBirthdaySheet),
           AdminStatCard(label: 'Faculty', value: '${s.totalFaculty}', color: AppColors.violet, icon: Icons.school_rounded, onTap: () => _push(const FacultyListScreen())),
@@ -197,7 +210,6 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
           AdminStatCard(label: 'Fees This Month', value: money.format(s.feesThisMonth), color: AppColors.success, icon: Icons.bar_chart_rounded, onTap: () => _push(const FeesThisMonthScreen())),
           if (context.read<Session>().hasPerm('expenses_view'))
             AdminStatCard(label: 'Expenses This Month', value: money.format(s.expensesThisMonth), color: AppColors.danger, icon: Icons.request_quote_outlined, onTap: () => _push(const ExpenseListScreen())),
-          AdminStatCard(label: 'Balance Overall', value: money.format(s.balanceOverall), color: s.balanceOverall > 0 ? AppColors.danger : AppColors.success, icon: Icons.account_balance_wallet_outlined, onTap: () => _push(const FinanceDashboardScreen())),
         ],
       ),
       const SizedBox(height: 10),
@@ -228,6 +240,89 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (_) => _TodayStudentsSheet(title: 'Present Today', emptyMessage: 'No attendance marked as present yet today.', loader: _service.getPresentToday, showActions: false),
+    );
+  }
+}
+
+/// Latest notifications on the Home (teachers / staff): unread ones tinted, tap opens the Notifications tab.
+class _NotificationsCard extends StatelessWidget {
+  const _NotificationsCard({required this.live, this.onViewAll});
+  final RealtimeNotificationService live;
+  final VoidCallback? onViewAll;
+
+  @override
+  Widget build(BuildContext context) {
+    final items = live.notifications.where((n) => n.status != 'Dismissed').take(3).toList();
+    final unread = live.unreadCount;
+    return AdminCard(
+      title: 'Notifications',
+      icon: Icons.notifications_rounded,
+      action: InkWell(
+        borderRadius: BorderRadius.circular(AppRadius.pill),
+        onTap: onViewAll,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+          child: Row(mainAxisSize: MainAxisSize.min, children: [
+            if (unread > 0)
+              Container(
+                margin: const EdgeInsets.only(right: 6),
+                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 1),
+                decoration: BoxDecoration(color: AppColors.danger, borderRadius: BorderRadius.circular(999)),
+                child: Text('$unread new', style: const TextStyle(color: Colors.white, fontSize: 10.5, fontWeight: FontWeight.w800)),
+              ),
+            const Text('View all', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF1B3BB5))),
+            const Icon(Icons.chevron_right_rounded, size: 18, color: Color(0xFF1B3BB5)),
+          ]),
+        ),
+      ),
+      child: items.isEmpty
+          ? const Padding(
+              padding: EdgeInsets.fromLTRB(2, 0, 2, 4),
+              child: Row(children: [
+                Icon(Icons.check_circle_rounded, size: 18, color: AppColors.success),
+                SizedBox(width: 8),
+                Text("You're all caught up", style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF5B6478))),
+              ]),
+            )
+          : Column(children: [for (final n in items) _row(n, onViewAll)]),
+    );
+  }
+
+  static Widget _row(AppNotification n, VoidCallback? onTap) {
+    final look = notificationLook(n.type);
+    final isNew = n.isUnread;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Material(
+        color: isNew ? const Color(0xFFE3EBFF) : const Color(0xFFF6F8FD),
+        borderRadius: BorderRadius.circular(14),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(14),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
+            child: Row(children: [
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(color: isNew ? Colors.white : look.soft, borderRadius: BorderRadius.circular(10)),
+                child: Icon(look.icon, size: 17, color: look.color),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text(n.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 13, fontWeight: isNew ? FontWeight.w800 : FontWeight.w600, color: const Color(0xFF0F1B3D))),
+                  const SizedBox(height: 1),
+                  Text(n.message, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 11.5, color: Color(0xFF5B6478))),
+                ]),
+              ),
+              const SizedBox(width: 8),
+              Text(intl.DateFormat('d MMM').format(n.createdAt), style: const TextStyle(fontSize: 10.5, color: Color(0xFF9CA3AF))),
+              if (isNew) Container(width: 8, height: 8, margin: const EdgeInsets.only(left: 6), decoration: const BoxDecoration(color: AppColors.primary, shape: BoxShape.circle)),
+            ]),
+          ),
+        ),
+      ),
     );
   }
 }

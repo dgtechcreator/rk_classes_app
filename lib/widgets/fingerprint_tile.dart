@@ -5,7 +5,10 @@ import '../theme/app_theme.dart';
 
 /// Profile row for fingerprint sign-in. It can be switched OFF here; it is switched ON at sign-in (that is when the app has the password).
 class FingerprintTile extends StatefulWidget {
-  const FingerprintTile({super.key, required this.kind});
+  const FingerprintTile({super.key, required this.kind, this.flush = false});
+
+  /// Inside a card: no side padding, and a thin line above the row (only drawn when the row itself is shown).
+  final bool flush;
 
   /// "staff" or "parent".
   final String kind;
@@ -32,7 +35,8 @@ class _FingerprintTileState extends State<FingerprintTile> {
   @override
   Widget build(BuildContext context) {
     if (!_available) return const SizedBox.shrink();
-    return SwitchListTile(
+    final tile = SwitchListTile(
+      contentPadding: widget.flush ? EdgeInsets.zero : null,
       secondary: const Icon(Icons.fingerprint_rounded, color: AppColors.primary),
       title: const Text('Fingerprint login', style: TextStyle(fontWeight: FontWeight.w700)),
       subtitle: Text(
@@ -49,5 +53,7 @@ class _FingerprintTileState extends State<FingerprintTile> {
             }
           : null,
     );
+    if (!widget.flush) return tile;
+    return Column(children: [const Padding(padding: EdgeInsets.only(top: 4, bottom: 4), child: Divider(height: 1, color: Color(0xFFE9EDF6))), tile]);
   }
 }

@@ -8,6 +8,7 @@ import '../../models/student.dart';
 import '../../services/parent_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/common.dart';
+import '../../widgets/profile_widgets.dart';
 
 /// The student's own basic details, editable by the student / parent: date of birth (required) and email (optional).
 /// The photo is changed from the avatar on Home.
@@ -30,33 +31,22 @@ class MyDetailsCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final dob = student.dateOfBirth;
     final email = (student.email ?? '').trim();
-    Widget row(IconData icon, String label, String value, {bool warn = false}) => Padding(
-          padding: const EdgeInsets.symmetric(vertical: 6),
-          child: Row(children: [
-            Icon(icon, size: 18, color: AppColors.textSecondary),
-            const SizedBox(width: 10),
-            Text(label, style: const TextStyle(color: AppColors.textSecondary, fontSize: 13)),
-            const SizedBox(width: 12),
-            Expanded(child: Text(value, textAlign: TextAlign.end, overflow: TextOverflow.ellipsis, style: TextStyle(fontWeight: FontWeight.w600, color: warn ? AppColors.danger : null))),
-          ]),
-        );
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(AppRadius.lg), boxShadow: AppShadows.card),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(children: [
-            const Icon(Icons.badge_outlined, size: 18, color: AppColors.primary),
-            const SizedBox(width: 8),
-            const Expanded(child: Text('My Details', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16))),
-            TextButton.icon(onPressed: () => _edit(context), icon: const Icon(Icons.edit_outlined, size: 16), label: const Text('Edit')),
-          ]),
-          row(Icons.person_outline, 'Name', student.displayName),
-          row(Icons.cake_outlined, 'Date of Birth', dob == null ? 'Not set - please add' : DateFormat('d MMM yyyy').format(dob), warn: dob == null),
-          row(Icons.mail_outline, 'Email', email.isEmpty ? 'Not added' : email),
-        ],
+    return ProfileCard(
+      title: 'My Details',
+      icon: Icons.badge_outlined,
+      action: TextButton.icon(
+        onPressed: () => _edit(context),
+        style: TextButton.styleFrom(visualDensity: VisualDensity.compact, padding: const EdgeInsets.symmetric(horizontal: 8)),
+        icon: const Icon(Icons.edit_outlined, size: 16),
+        label: const Text('Edit', style: TextStyle(fontWeight: FontWeight.w800)),
       ),
+      children: [
+        ProfileInfoRow(icon: Icons.person_outline, label: 'Name', value: student.displayName),
+        const ProfileDivider(),
+        ProfileInfoRow(icon: Icons.cake_outlined, label: 'Date of Birth', value: dob == null ? 'Not set - please add' : DateFormat('d MMM yyyy').format(dob), warn: dob == null),
+        const ProfileDivider(),
+        ProfileInfoRow(icon: Icons.mail_outline, label: 'Email', value: email.isEmpty ? 'Not added' : email),
+      ],
     );
   }
 }

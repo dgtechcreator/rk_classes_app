@@ -22,22 +22,26 @@ class PremiumBottomNav extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bottomInset = MediaQuery.of(context).padding.bottom;
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
-        boxShadow: AppShadows.navBar,
-      ),
-      padding: EdgeInsets.fromLTRB(10, 10, 10, bottomInset > 0 ? bottomInset + 2 : 12),
+    // A floating rounded bar (the Home design): small gap round it, the selected tab in a soft blue pill.
+    return Padding(
+      padding: EdgeInsets.fromLTRB(14, 6, 14, bottomInset > 0 ? bottomInset + 4 : 12),
       child: Center(
         heightFactor: 1,
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 560),
-          child: Row(
-            children: [
-              for (var i = 0; i < items.length; i++)
-                Expanded(child: _NavTile(item: items[i], selected: i == currentIndex, compact: items.length > 4, onTap: () => onTap(i))),
-            ],
+          child: Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: [BoxShadow(color: const Color(0xFF192D82).withValues(alpha: 0.14), blurRadius: 20, offset: const Offset(0, 6))],
+            ),
+            child: Row(
+              children: [
+                for (var i = 0; i < items.length; i++)
+                  Expanded(child: _NavTile(item: items[i], selected: i == currentIndex, compact: items.length > 4, onTap: () => onTap(i))),
+              ],
+            ),
           ),
         ),
       ),
@@ -54,7 +58,7 @@ class _NavTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = selected ? AppColors.primary : AppColors.textMuted;
+    final color = selected ? const Color(0xFF1B3BB5) : const Color(0xFF5B6478);
     return Semantics(
       button: true,
       selected: selected,
@@ -65,11 +69,11 @@ class _NavTile extends StatelessWidget {
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 220),
           curve: Curves.easeOutCubic,
-          margin: const EdgeInsets.symmetric(horizontal: 3),
-          padding: const EdgeInsets.symmetric(vertical: 8),
+          margin: const EdgeInsets.symmetric(horizontal: 2),
+          padding: const EdgeInsets.symmetric(vertical: 7),
           decoration: BoxDecoration(
-            color: selected ? AppColors.primarySoft : Colors.transparent,
-            borderRadius: BorderRadius.circular(20),
+            color: selected ? const Color(0xFFE4EAFF) : Colors.transparent,
+            borderRadius: BorderRadius.circular(18),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -77,7 +81,7 @@ class _NavTile extends StatelessWidget {
               Stack(
                 clipBehavior: Clip.none,
                 children: [
-                  Icon(selected ? item.selectedIcon : item.icon, color: color, size: compact ? 24 : 27),
+                  Icon(selected ? item.selectedIcon : item.icon, color: color, size: compact ? 21 : 22),
                   if (item.badge > 0)
                     Positioned(
                       top: -4,
@@ -99,13 +103,13 @@ class _NavTile extends StatelessWidget {
                     ),
                 ],
               ),
-              const SizedBox(height: 3),
+              const SizedBox(height: 2),
               Text(
                 item.label,
                 maxLines: 1,
                 softWrap: false,
                 overflow: TextOverflow.ellipsis,
-                style: TextStyle(color: color, fontSize: compact ? 10.5 : 12, fontWeight: selected ? FontWeight.w700 : FontWeight.w500),
+                style: TextStyle(color: color, fontSize: compact ? 9.5 : 10.5, fontWeight: selected ? FontWeight.w800 : FontWeight.w700),
               ),
             ],
           ),

@@ -5,7 +5,7 @@ import 'package:flutter/foundation.dart';
 import '../services/parent_service.dart';
 
 /// The parent's unread badge. There is no push service behind the app, so this asks the server for the count when the
-/// shell opens, whenever the app comes back to the foreground, and once a minute while it is open.
+/// shell opens, whenever the app comes back to the foreground, and every 20 seconds while it is open (and on pull-to-refresh).
 class ParentNotificationController extends ChangeNotifier {
   final _service = ParentService();
   Timer? _timer;
@@ -13,7 +13,7 @@ class ParentNotificationController extends ChangeNotifier {
 
   void start() {
     refresh();
-    _timer ??= Timer.periodic(const Duration(seconds: 60), (_) => refresh());
+    _timer ??= Timer.periodic(const Duration(seconds: 20), (_) => refresh());
   }
 
   Future<void> refresh() async {

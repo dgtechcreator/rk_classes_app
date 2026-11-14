@@ -13,7 +13,7 @@ import 'staff_profile_screen.dart';
 import 'tasks_notifications_screen.dart';
 
 /// Staff shell with a real bottom-tab structure: Home (dashboard + quick actions), Modules (the full
-/// permission-filtered directory), Tasks (notifications, badge-counted), Profile (account + logout).
+/// permission-filtered directory), Alerts (notifications with an unread badge; tasks sit inside it), Profile (account + logout).
 /// A Class Representative (CR / Monitor) gets a reduced shell: his class home + profile only.
 /// Rights are re-read from the server whenever the app comes back to the foreground, so a right the
 /// admin changed (or an account that was switched off) takes effect without logging in again.
@@ -44,6 +44,7 @@ class _StaffShellState extends State<StaffShell> with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed && mounted) {
       context.read<Session>().refreshFromServer();
+      context.read<RealtimeNotificationService>().refresh();   // news that came while the app was in the background
     }
   }
 
@@ -85,7 +86,7 @@ class _StaffShellState extends State<StaffShell> with WidgetsBindingObserver {
         items: [
           const PremiumNavItem(icon: Icons.home_outlined, selectedIcon: Icons.home_rounded, label: 'Home'),
           const PremiumNavItem(icon: Icons.apps_outlined, selectedIcon: Icons.apps_rounded, label: 'Modules'),
-          PremiumNavItem(icon: Icons.checklist_outlined, selectedIcon: Icons.checklist_rounded, label: 'Tasks', badge: unread),
+          PremiumNavItem(icon: Icons.notifications_none_rounded, selectedIcon: Icons.notifications_rounded, label: 'Notifications', badge: unread),
           const PremiumNavItem(icon: Icons.person_outline_rounded, selectedIcon: Icons.person_rounded, label: 'Profile'),
         ],
       ),

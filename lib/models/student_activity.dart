@@ -52,7 +52,7 @@ extension ActivityGroupLabel on ActivityGroup {
         ActivityGroup.fees => 'Fees',
         ActivityGroup.lectures => 'Lectures',
         ActivityGroup.notes => 'Notes',
-        ActivityGroup.wishes => 'Wishes',
+        ActivityGroup.wishes => 'Wishes & notices',
       };
 }
 
@@ -77,6 +77,7 @@ class ActivityLook {
         'lecture_cancel' => const ActivityLook(Icons.event_busy_rounded, AppColors.danger, AppColors.dangerSoft, ActivityGroup.lectures),
         'birthday' => const ActivityLook(Icons.cake_rounded, Color(0xFFDB2777), Color(0xFFFCE7F3), ActivityGroup.wishes),
         'holiday' => const ActivityLook(Icons.beach_access_rounded, Color(0xFFB45309), AppColors.warningSoft, ActivityGroup.attendance),
+        'notice' => const ActivityLook(Icons.campaign_rounded, AppColors.primary, AppColors.primarySoft, ActivityGroup.wishes),
         'lecture_done' => const ActivityLook(Icons.task_alt_rounded, AppColors.success, AppColors.successSoft, ActivityGroup.lectures),
         _ => const ActivityLook(Icons.notifications_rounded, AppColors.textSecondary, AppColors.borderNeutral, ActivityGroup.attendance),
       };
