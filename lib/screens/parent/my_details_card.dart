@@ -16,6 +16,9 @@ class MyDetailsCard extends StatelessWidget {
   const MyDetailsCard({super.key, required this.student});
   final Student student;
 
+  /// Shown value for an empty field: "—" (not blank, so a missing roll is visible).
+  static String _or(String? v) => (v ?? '').trim().isEmpty ? '—' : v!.trim();
+
   Future<void> _edit(BuildContext context) async {
     final ctrl = context.read<ParentDataController>();
     final saved = await showModalBottomSheet<bool>(
@@ -42,6 +45,16 @@ class MyDetailsCard extends StatelessWidget {
       ),
       children: [
         ProfileInfoRow(icon: Icons.person_outline, label: 'Name', value: student.displayName),
+        const ProfileDivider(),
+        ProfileInfoRow(icon: Icons.confirmation_number_outlined, label: 'Admission No', value: _or(student.admissionNo)),
+        const ProfileDivider(),
+        ProfileInfoRow(icon: Icons.class_outlined, label: 'Class', value: _or(student.className)),
+        const ProfileDivider(),
+        ProfileInfoRow(icon: Icons.account_tree_outlined, label: 'Stream / Medium', value: _or(student.sectionName)),
+        const ProfileDivider(),
+        ProfileInfoRow(icon: Icons.groups_outlined, label: 'Batch', value: _or(student.batchName)),
+        const ProfileDivider(),
+        ProfileInfoRow(icon: Icons.format_list_numbered, label: 'Roll No', value: _or(student.rollNo)),
         const ProfileDivider(),
         ProfileInfoRow(icon: Icons.cake_outlined, label: 'Date of Birth', value: dob == null ? 'Not set - please add' : DateFormat('d MMM yyyy').format(dob), warn: dob == null),
         const ProfileDivider(),

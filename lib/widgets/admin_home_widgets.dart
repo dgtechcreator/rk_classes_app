@@ -226,6 +226,9 @@ class AdminStatGrid extends StatelessWidget {
       final cols = c.maxWidth >= 560 ? 3 : 2;
       const extent = 52.0;
       return GridView.count(
+        // Not primary: a primary grid adds the status-bar inset as top padding, which showed as a big empty gap.
+        primary: false,
+        padding: EdgeInsets.zero,
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
         crossAxisCount: cols,
@@ -496,6 +499,9 @@ class AdminQuickGrid extends StatelessWidget {
       final cols = c.maxWidth >= 560 ? 4 : 3;
       const gap = 8.0, extent = 82.0;
       return GridView.count(
+        // Not primary: a primary grid adds the status-bar inset as top padding, which showed as a big empty gap.
+        primary: false,
+        padding: EdgeInsets.zero,
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
         crossAxisCount: cols,

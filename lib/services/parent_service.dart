@@ -1,6 +1,7 @@
 import '../core/api_client.dart';
 import '../models/student.dart';
 import '../models/student_activity.dart';
+import '../models/papers.dart';
 import '../models/toppers.dart';
 
 class BirthdayCard {
@@ -56,6 +57,12 @@ class ParentService {
   Future<ClassToppers> getToppers(int studentId) async {
     final res = await _client.get('/api/parent/toppers', query: {'studentId': studentId});
     return ClassToppers.fromJson(res.data as Map<String, dynamic>);
+  }
+
+  /// All paper list of the child's class and medium: papers by subject, each with the child's marks and that paper's Top 5.
+  Future<PapersData> getPapers(int studentId) async {
+    final res = await _client.get('/api/parent/papers', query: {'studentId': studentId});
+    return PapersData.fromJson(res.data as Map<String, dynamic>);
   }
 
   /// What happened to my children, newest first. [studentId] limits it to one child.

@@ -26,6 +26,7 @@ class RkHomeHeader extends StatelessWidget {
     this.onAvatarTap,
     this.isAdmin = false,
     this.sideNote,
+    this.extraNote,
     this.roleIcon,
   });
 
@@ -41,6 +42,8 @@ class RkHomeHeader extends StatelessWidget {
   final bool isAdmin;
   /// Small chip next to the role: "AY 2026-27", the child's class ...
   final String? sideNote;
+  /// Own chip next to the role (e.g. "Roll No 7"), kept apart from [sideNote] so both show in full.
+  final String? extraNote;
   final IconData? roleIcon;
 
   static const double avatarSize = 84;
@@ -123,19 +126,21 @@ class RkHomeHeader extends StatelessWidget {
                             const SizedBox(height: 2),
                             Text(name, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w800, letterSpacing: -0.5, height: 1.15)),
                             const SizedBox(height: 8),
+                            // Role + roll on one line (short chips), then the class / stream / medium / batch chip on its
+                            // own full-width line. It is a Column child, so it gets the whole width and may use two lines
+                            // instead of being cut.
                             Wrap(
                               spacing: 6,
                               runSpacing: 6,
                               children: [
                                 if (roleLabel.isNotEmpty) _roleChip(),
-                                if ((sideNote ?? '').isNotEmpty)
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
-                                    decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(999)),
-                                    child: Text(sideNote!, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white, fontSize: 11.5, fontWeight: FontWeight.w700)),
-                                  ),
+                                if ((extraNote ?? '').isNotEmpty) _noteChip(extraNote!, maxLines: 1),
                               ],
                             ),
+                            if ((sideNote ?? '').isNotEmpty) ...[
+                              const SizedBox(height: 6),
+                              _noteChip(sideNote!, maxLines: 2),
+                            ],
                           ],
                         ),
                       ),
@@ -149,6 +154,17 @@ class RkHomeHeader extends StatelessWidget {
       ),
     );
   }
+
+  Widget _noteChip(String text, {required int maxLines}) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+        decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(12)),
+        child: Text(
+          text,
+          maxLines: maxLines,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(color: Colors.white, fontSize: 11.5, fontWeight: FontWeight.w700, height: 1.25),
+        ),
+      );
 
   Widget _roleChip() => Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),

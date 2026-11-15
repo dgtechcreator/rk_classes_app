@@ -589,7 +589,10 @@ class LectureBar extends StatelessWidget {
           for (var n = 1; n <= last; n++) ...[
             ChoiceChip(
               label: Text('${ordinal(n)} lecture'),
-              avatar: done.contains(n) ? const Icon(Icons.check_circle, size: 16, color: AppColors.success) : null,
+              // On the selected (blue) chip the tick is white so it reads clearly; unselected ticks stay green.
+              avatar: done.contains(n)
+                  ? Icon(Icons.check_circle, size: 16, color: selected == n ? Colors.white : AppColors.success)
+                  : null,
               selected: selected == n,
               onSelected: (_) => onChanged(n),
             ),
@@ -663,9 +666,21 @@ class AttendanceDateBar extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              ChoiceChip(label: const Text('Today'), selected: isToday, onSelected: (_) => onChanged(today)),
+              ChoiceChip(
+                label: const Text('Today'),
+                selected: isToday,
+                checkmarkColor: Colors.white,
+                labelStyle: TextStyle(color: isToday ? Colors.white : AppColors.textPrimary),
+                onSelected: (_) => onChanged(today),
+              ),
               const SizedBox(width: 8),
-              ChoiceChip(label: const Text('Yesterday'), selected: isYesterday, onSelected: (_) => onChanged(today.subtract(const Duration(days: 1)))),
+              ChoiceChip(
+                label: const Text('Yesterday'),
+                selected: isYesterday,
+                checkmarkColor: Colors.white,
+                labelStyle: TextStyle(color: isYesterday ? Colors.white : AppColors.textPrimary),
+                onSelected: (_) => onChanged(today.subtract(const Duration(days: 1))),
+              ),
               const SizedBox(width: 8),
               if (allowFuture) ...[
                 ChoiceChip(label: const Text('Tomorrow'), selected: DateUtils.isSameDay(date, today.add(const Duration(days: 1))), onSelected: (_) => onChanged(today.add(const Duration(days: 1)))),
@@ -696,11 +711,9 @@ class _StudentAttendanceTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final sub = [
-      record.admissionNo,
-      if (record.rollNo?.isNotEmpty == true) 'Roll ${record.rollNo}',
-      if (record.className?.isNotEmpty == true) record.className!,
-    ].where((e) => e.isNotEmpty).join(' • ');
+    // Roll is a plain small number (1, 2, 3 ...) used to call the batch; the admission no (RKC-...) stays as the second line.
+    final hasRoll = record.rollNo?.trim().isNotEmpty == true;
+    final sub = record.admissionNo;
     return Card(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(14, 10, 8, 12),
@@ -715,7 +728,25 @@ class _StudentAttendanceTile extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(record.fullName, style: const TextStyle(fontWeight: FontWeight.w700), maxLines: 2, overflow: TextOverflow.ellipsis),
-                      Text(sub, style: const TextStyle(color: AppColors.textSecondary, fontSize: 12), maxLines: 1, overflow: TextOverflow.ellipsis),
+                      const SizedBox(height: 3),
+                      Row(
+                        children: [
+                          Container(
+                            constraints: const BoxConstraints(minWidth: 26),
+                            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 1),
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(color: AppColors.primarySoft, borderRadius: BorderRadius.circular(AppRadius.sm)),
+                            child: Text(
+                              hasRoll ? record.rollNo!.trim() : '—',
+                              style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.w800, fontSize: 12),
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Flexible(
+                            child: Text(sub, style: const TextStyle(color: AppColors.textSecondary, fontSize: 12), maxLines: 1, overflow: TextOverflow.ellipsis),
+                          ),
+                        ],
+                      ),
                     ],
                   ),
                 ),

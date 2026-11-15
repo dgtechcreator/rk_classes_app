@@ -18,6 +18,7 @@ import '../../services/photo_service.dart';
 import '../fees/receipt_screen.dart';
 import '../students/student_report_screen.dart';
 import 'parent_fees_screen.dart';
+import '../../widgets/child_info_pills.dart';
 import 'parent_grades_screen.dart';
 import 'parent_notes_screen.dart';
 import 'parent_notifications_screen.dart';
@@ -73,7 +74,9 @@ class ParentHomeScreen extends StatelessWidget {
                   photoPath: studentLogin ? me?.profilePicPath : null,
                   roleLabel: portalRoleLabel(session.phone, ctrl.children),
                   roleIcon: studentLogin ? Icons.school_rounded : Icons.family_restroom_rounded,
-                  sideNote: ctrl.selected?.classLabel,
+                  // Class / stream / medium / batch in full (may take two lines); roll in its own chip.
+                  sideNote: me == null || me.classLabel.trim().isEmpty ? null : me.classLabel.trim(),
+                  extraNote: me == null ? null : 'Roll No ${(me.rollNo ?? '').trim().isEmpty ? '—' : me.rollNo!.trim()}',
                   unread: ctrl.shows('notifications') ? context.watch<ParentNotificationController>().unread : 0,
                   onBell: ctrl.shows('notifications') ? () => _openNotifications(context) : null,
                 ),
@@ -403,11 +406,8 @@ class _ChildCard extends StatelessWidget {
                   children: [
                     Text(s.displayName, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
                     const SizedBox(height: 3),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
-                      decoration: BoxDecoration(color: AppColors.infoSoft, borderRadius: BorderRadius.circular(AppRadius.pill)),
-                      child: Text(s.classLabel, style: const TextStyle(color: AppColors.info, fontSize: 12, fontWeight: FontWeight.w700)),
-                    ),
+                    // Class + Roll No (same roll as the web "Roll No" card); "—" until the roll is given.
+                    ChildInfoPills(classLabel: s.classLabel, rollNo: s.rollNo),
                   ],
                 ),
               ),
